@@ -1,0 +1,43 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    >
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/gl_surface_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="0px"
+        android:padding="0px"
+        />
+
+    <ImageView
+        android:id="@+id/image_direction_controls"
+        android:layout_width="144dp"
+        android:layout_height="144dp"
+        android:src="@drawable/direction_controls"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/direction_controls"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="24dp"
+        />
+
+    <ImageView
+        android:id="@+id/image_interact_control"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:src="@drawable/interact_control"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/image_interact_control"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="48dp"
+        />
+
+
+</RelativeLayout>
