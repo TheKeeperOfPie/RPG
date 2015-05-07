@@ -10,7 +10,7 @@ import java.nio.ShortBuffer;
 /**
  * Created by TheKeeperOfPie on 5/3/2015.
  */
-public abstract class Attack {
+public abstract class Attack extends Entity {
 
     public static final float HEIGHT_RATIO = 0.9f;
     public static final float WIDTH_RATIO = 0.59999999999f;
@@ -21,7 +21,6 @@ public abstract class Attack {
     protected ShortBuffer drawListBuffer;
     protected short[] indices;
 
-    protected RenderValues renderValues;
     protected int tileSize;
     protected int damage;
     protected int range;
@@ -33,8 +32,8 @@ public abstract class Attack {
     protected long time;
     protected boolean isFinished;
 
-    public Attack(RenderValues renderValues, int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time) {
-        this.renderValues = renderValues;
+    public Attack(int texture, int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time) {
+        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), texture, 1f, 1f);
         this.tileSize = tileSize;
         this.damage = damage;
         this.range = range;
@@ -80,8 +79,7 @@ public abstract class Attack {
         drawListBuffer.position(0);
     }
 
-    public abstract void render(int texture, Renderer renderer,
-                       float[] matrixProjection, float[] matrixView);
+    public abstract void render(Renderer renderer, float[] matrixProjection, float[] matrixView);
 
     public boolean isFinished() {
         return isFinished;

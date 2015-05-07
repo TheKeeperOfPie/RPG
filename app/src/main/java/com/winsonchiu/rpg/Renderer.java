@@ -3,14 +3,12 @@ package com.winsonchiu.rpg;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PointF;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.util.Log;
 import android.util.TypedValue;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -41,8 +39,34 @@ public class Renderer implements GLSurfaceView.Renderer {
     private static final int POSITION_DATA_SIZE = 3;
     private static final int TEXTURE_DATA_SIZE = 2;
 
+    private static int programId;
+    private static int samplerLocation;
+    private static int positionLocation;
+    private static int textureLocation;
+    private static int matrixLocation;
+    private static int alphaLocation;
+
+    public static final String VERTEX_SHADER =
+            "uniform mat4 matrix;" +
+            "attribute vec4 positionCoordinate;" +
+            "attribute vec2 textureCoordinateVertex;" +
+            "varying vec2 textureCoordinateFragment;" +
+            "void main() {" +
+            "  gl_Position = matrix * positionCoordinate;" +
+            "  textureCoordinateFragment = textureCoordinateVertex;" +
+            "}";
+
+    public static final String FRAGMENT_SHADER =
+            "precision mediump float;" +
+                    "varying vec2 textureCoordinateFragment;" +
+                    "uniform float opacity;" +
+                    "uniform sampler2D texture;" +
+                    "void main() {" +
+                    "  gl_FragColor = texture2D(texture, textureCoordinateFragment);" +
+                    "  gl_FragColor.a *= opacity;" +
+                    "}";
+
     private Activity activity;
-    private RenderValues renderValues;
     private int screenWidth;
     private int screenHeight;
     private float[] matrixProjection = new float[16];
@@ -50,7 +74,6 @@ public class Renderer implements GLSurfaceView.Renderer {
     private float[] matrixProjectionAndView = new float[16];
     private int[] buffers;
     private int[] textureNames;
-    private float[] transMatrix = new float[16];
     private long endTime;
     private long startTime;
     private long frameTime;
@@ -59,7 +82,8 @@ public class Renderer implements GLSurfaceView.Renderer {
     private int tileSize;
     private float offsetCameraX;
     private float offsetCameraY;
-    private Map map;
+    private WorldMap worldMap;
+    private boolean isInitialized;
 
     public Renderer(Activity activity) {
         super();
@@ -70,15 +94,83 @@ public class Renderer implements GLSurfaceView.Renderer {
         tileSize = 16 * (int) Math.pow(2, tileSize / 16 / 2);
     }
 
+    private void initialize() {
+        programId = GLES20.glCreateProgram();
+        int vertexShaderId = RenderUtils.loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
+        int fragmentShaderId = RenderUtils.loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+        GLES20.glAttachShader(programId, vertexShaderId);
+        GLES20.glAttachShader(programId, fragmentShaderId);
+        GLES20.glLinkProgram(programId);
+        GLES20.glUseProgram(programId);
+        Renderer.positionLocation = GLES20.glGetAttribLocation(programId, "positionCoordinate");
+        Renderer.textureLocation = GLES20.glGetAttribLocation(programId, "textureCoordinateVertex");
+        Renderer.matrixLocation = GLES20.glGetUniformLocation(programId, "matrix");
+        Renderer.alphaLocation = GLES20.glGetUniformLocation(programId, "opacity");
+        Renderer.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
+    }
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
-        player = new Player(tileSize);
+        initialize();
+        Entity.initialize();
         loadTextures();
 
-        GLES20.glClearColor(0f, 0f, 0f, 1f);
+        worldMap = WorldMap.generateRectangular(225, 333);
 
-        renderValues = new RenderValues(RenderValues.vertexShaderTiles, RenderValues.fragmentShaderTiles);
+//        try {
+//            worldMap = WorldMap.fromJson(new JSONObject(writer.toString()));
+//        }
+//        catch (JSONException e) {
+//            e.printStackTrace();
+//            return;
+//        }
+
+        int playerX = -1;
+        int playerY = -1;
+
+        byte[][] walls = worldMap.getWalls();
+
+        for (int x = Player.OUT_BOUND_X; x < walls.length; x++) {
+            for (int y = Player.OUT_BOUND_Y; y < walls[0].length; y++) {
+                if (walls[x][y] != WorldMap.COLLIDE) {
+                    playerX = x;
+                    playerY = y;
+                    break;
+                }
+            }
+            if (playerX >= 0) {
+                break;
+            }
+        }
+
+        if (playerX <= Player.OUT_BOUND_X) {
+            playerX += Player.OUT_BOUND_X;
+        }
+        else if (playerX >= worldMap.getWidth() - Player.OUT_BOUND_X) {
+            playerX -= Player.OUT_BOUND_X;
+        }
+
+        if (playerY <= Player.OUT_BOUND_Y) {
+            playerY += Player.OUT_BOUND_Y;
+        }
+        else if (playerY >= worldMap.getHeight() - Player.OUT_BOUND_Y) {
+            playerY -= Player.OUT_BOUND_Y;
+        }
+
+        Log.d(TAG, "playerX: " + playerX);
+        Log.d(TAG, "playerY: " + playerY);
+
+        player = new Player(tileSize, textureNames[1], new PointF(playerX, playerY));
+        offsetCameraX = playerX;
+        offsetCameraY = playerY;
+
+        if (!isInitialized) {
+            loadVbo();
+            isInitialized = true;
+        }
+
+        GLES20.glClearColor(0f, 0f, 0f, 1f);
     }
 
     @Override
@@ -89,21 +181,17 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         GLES20.glViewport(0, 0, screenWidth, screenHeight);
 
-        player.setDimensions(width, height);
-
         android.opengl.Matrix.orthoM(matrixProjection,
-                                     0,
-                                     0,
-                                     screenWidth,
-                                     0,
-                                     screenHeight,
-                                     0f,
-                                     500f * 2);
+                0,
+                0,
+                screenWidth,
+                0,
+                screenHeight,
+                0f,
+                500f * 2);
 
         android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX, offsetCameraY, 2f,
-                                         offsetCameraX, offsetCameraY, 1f, 0.0f, 1.0f, 0.0f);
-
-        loadVbo();
+                offsetCameraX, offsetCameraY, 1f, 0.0f, 1.0f, 0.0f);
 
     }
 
@@ -131,19 +219,11 @@ public class Renderer implements GLSurfaceView.Renderer {
             }
         }
 
-        try {
-            map = Map.fromJson(new JSONObject(writer.toString()));
-        }
-        catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
         buffers = new int[4];
         GLES20.glGenBuffers(4, buffers, 0);
 
-        bindBufferFromTiles(map.getTilesBelow(), buffers[0], buffers[1]);
-        bindBufferFromTiles(map.getTilesAbove(), buffers[2], buffers[3]);
+        bindBufferFromTiles(worldMap.getTilesBelow(), buffers[0], buffers[1]);
+        bindBufferFromTiles(worldMap.getTilesAbove(), buffers[2], buffers[3]);
     }
 
     private void bindBufferFromTiles(List<Tile> tiles, int positionBufferId, int textureBufferId) {
@@ -227,11 +307,11 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, positionBuffer.capacity() * BYTES_PER_FLOAT,
-                            positionBuffer, GLES20.GL_STATIC_DRAW);
+                positionBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, textureBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, textureBuffer.capacity() * BYTES_PER_FLOAT,
-                            textureBuffer, GLES20.GL_STATIC_DRAW);
+                textureBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
     }
@@ -255,64 +335,55 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glEnableVertexAttribArray(renderValues.getPositionHandle());
-        GLES20.glEnableVertexAttribArray(renderValues.getTexCoordLoc());
-        GLES20.glUniform1i(renderValues.getSamplerLoc(), 0);
-
-        android.opengl.Matrix.setIdentityM(transMatrix, 0);
-        android.opengl.Matrix.translateM(transMatrix, 0, 0f, 0f, 0);
 
         android.opengl.Matrix.multiplyMM(matrixProjectionAndView,
-                                         0,
-                                         matrixProjection,
-                                         0,
-                                         transMatrix,
-                                         0);
+                0,
+                matrixProjection,
+                0,
+                matrixView,
+                0);
 
-        android.opengl.Matrix.multiplyMM(matrixProjectionAndView,
-                                         0,
-                                         matrixProjectionAndView,
-                                         0,
-                                         matrixView,
-                                         0);
-
-        renderScene(textureNames[0], buffers[0], buffers[1], map.getTilesBelow()
+        renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
                 .size() * 18);
 
-        player.render(textureNames, this, matrixProjection, matrixView);
+        player.render(this, matrixProjection, matrixView);
 
-        renderScene(textureNames[0], buffers[2], buffers[3], map.getTilesAbove()
+        renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
                 .size() * 18);
-
-        GLES20.glDisableVertexAttribArray(renderValues.getPositionHandle());
-        GLES20.glDisableVertexAttribArray(renderValues.getTexCoordLoc());
     }
 
     private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
 
-        GLES20.glUseProgram(renderValues.getProgram());
+        GLES20.glUseProgram(programId);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-        GLES20.glUniform1f(renderValues.getAlphaHandle(), 1.0f);
-        GLES20.glUniformMatrix4fv(renderValues.getMatrixHandle(), 1, false, matrixProjectionAndView,
-                                  0);
+        GLES20.glEnableVertexAttribArray(positionLocation);
+        GLES20.glEnableVertexAttribArray(textureLocation);
+
+        GLES20.glUniform1i(samplerLocation, 0);
+        GLES20.glUniform1f(alphaLocation, 1.0f);
+        GLES20.glUniformMatrix4fv(matrixLocation, 1, false, matrixProjectionAndView,
+                0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
-        GLES20.glVertexAttribPointer(renderValues.getPositionHandle(), POSITION_DATA_SIZE,
-                                     GLES20.GL_FLOAT, false, 0, 0);
+        GLES20.glVertexAttribPointer(positionLocation, POSITION_DATA_SIZE,
+                GLES20.GL_FLOAT, false, 0, 0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, textureBufferId);
-        GLES20.glVertexAttribPointer(renderValues.getTexCoordLoc(), TEXTURE_DATA_SIZE,
-                                     GLES20.GL_FLOAT, false, 0, 0);
+        GLES20.glVertexAttribPointer(textureLocation, TEXTURE_DATA_SIZE,
+                GLES20.GL_FLOAT, false, 0, 0);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, size);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+
+        GLES20.glDisableVertexAttribArray(positionLocation);
+        GLES20.glDisableVertexAttribArray(textureLocation);
     }
 
     public void offsetCamera(float x, float y) {
         offsetCameraX += x * tileSize;
         offsetCameraY += y * tileSize;
         android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX, offsetCameraY, 2f,
-                                         offsetCameraX, offsetCameraY, 1f, 0.0f, 1.0f, 0.0f);
+                offsetCameraX, offsetCameraY, 1f, 0.0f, 1.0f, 0.0f);
     }
 
     private void loadTextures() {
@@ -329,19 +400,18 @@ public class Renderer implements GLSurfaceView.Renderer {
         options.inScaled = false;
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                                                           R.drawable.texture_sheet, options),
-                              textureNames[0]);
+                        R.drawable.texture_sheet, options),
+                textureNames[0]);
 
-        GLES20.glUseProgram(player.getRenderValues()
-                                    .getProgram());
+        GLES20.glUseProgram(Entity.getProgram());
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
                                                            R.drawable.character_sheet, options),
                               textureNames[1]);
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                                                           R.drawable.attack_sheet, options),
-                              textureNames[2]);
+                        R.drawable.attack_sheet, options),
+                textureNames[2]);
 
     }
 
@@ -350,17 +420,17 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
 
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_MIN_FILTER,
-                               GLES20.GL_NEAREST);
+                GLES20.GL_TEXTURE_MIN_FILTER,
+                GLES20.GL_NEAREST);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
                                GLES20.GL_TEXTURE_MAG_FILTER,
                                GLES20.GL_NEAREST);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_WRAP_S,
-                               GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.GL_TEXTURE_WRAP_S,
+                GLES20.GL_CLAMP_TO_EDGE);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_WRAP_T,
-                               GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.GL_TEXTURE_WRAP_T,
+                GLES20.GL_CLAMP_TO_EDGE);
 
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 
@@ -386,19 +456,11 @@ public class Renderer implements GLSurfaceView.Renderer {
     }
 
     public byte[][] getWalls() {
-        return map.getWalls();
+        return worldMap.getWalls();
     }
 
     public Player getPlayer() {
         return player;
-    }
-
-    public RenderValues getRenderValues() {
-        return renderValues;
-    }
-
-    public float[] getMatrixProjectionAndView() {
-        return matrixProjectionAndView;
     }
 
     public float[] getMatrixView() {
@@ -407,5 +469,17 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     public float[] getMatrixProjection() {
         return matrixProjection;
+    }
+
+    public int getScreenWidth() {
+        return screenWidth;
+    }
+
+    public int getScreenHeight() {
+        return screenHeight;
+    }
+
+    public int[] getTextureNames() {
+        return textureNames;
     }
 }
