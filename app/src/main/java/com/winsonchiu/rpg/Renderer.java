@@ -116,7 +116,8 @@ public class Renderer implements GLSurfaceView.Renderer {
         Entity.initialize();
         loadTextures();
 
-        worldMap = WorldMap.generateRectangular(225, 333);
+        worldMap = new WorldMap(253, 379);
+        worldMap.generateRectangular();
 
 //        try {
 //            worldMap = WorldMap.fromJson(new JSONObject(writer.toString()));
@@ -162,8 +163,8 @@ public class Renderer implements GLSurfaceView.Renderer {
         Log.d(TAG, "playerY: " + playerY);
 
         player = new Player(tileSize, textureNames[1], new PointF(playerX, playerY));
-        offsetCameraX = playerX;
-        offsetCameraY = playerY;
+        offsetCameraX = playerX - Player.OUT_BOUND_X;
+        offsetCameraY = playerY - Player.OUT_BOUND_Y;
 
         if (!isInitialized) {
             loadVbo();
@@ -190,8 +191,7 @@ public class Renderer implements GLSurfaceView.Renderer {
                 0f,
                 500f * 2);
 
-        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX, offsetCameraY, 2f,
-                offsetCameraX, offsetCameraY, 1f, 0.0f, 1.0f, 0.0f);
+        setCamera();
 
     }
 
@@ -380,10 +380,14 @@ public class Renderer implements GLSurfaceView.Renderer {
     }
 
     public void offsetCamera(float x, float y) {
-        offsetCameraX += x * tileSize;
-        offsetCameraY += y * tileSize;
-        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX, offsetCameraY, 2f,
-                offsetCameraX, offsetCameraY, 1f, 0.0f, 1.0f, 0.0f);
+        offsetCameraX += x;
+        offsetCameraY += y;
+        setCamera();
+    }
+
+    private void setCamera() {
+        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX * tileSize, offsetCameraY * tileSize, 2f,
+                offsetCameraX * tileSize, offsetCameraY * tileSize, 1f, 0.0f, 1.0f, 0.0f);
     }
 
     private void loadTextures() {

@@ -10,8 +10,8 @@ import java.util.List;
  */
 public class Player extends Entity {
 
-    public static final int OUT_BOUND_X = 4;
-    public static final int OUT_BOUND_Y = 2;
+    public static final int OUT_BOUND_X = 3;
+    public static final int OUT_BOUND_Y = 3;
     public static final float HEIGHT_RATIO = 0.9f;
     public static final float WIDTH_RATIO = 0.59999999999f;
 
@@ -48,15 +48,15 @@ public class Player extends Entity {
 
                 if (getMovementY() < 0) {
                     yCalculated = getLocation().y + getOffsetY();
-                    moveY = yCalculated > OUT_BOUND_Y &&
-                            yCalculated < walls[0].length - OUT_BOUND_Y &&
+                    moveY = yCalculated > 1 &&
+                            yCalculated < walls[0].length - 1 &&
                             renderer.getWalls()[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
                             renderer.getWalls()[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
                 }
                 else {
                     yCalculated = getLocation().y + getOffsetY();
-                    moveY = yCalculated > OUT_BOUND_Y &&
-                            yCalculated < walls[0].length - OUT_BOUND_Y &&
+                    moveY = yCalculated > 1 &&
+                            yCalculated < walls[0].length - 1 &&
                             renderer.getWalls()[((int) getLocation().x)][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE &&
                             renderer.getWalls()[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE;
                 }
@@ -64,10 +64,10 @@ public class Player extends Entity {
                 if (moveY) {
                     getLocation().offset(0, getOffsetY());
 
-                    if (getLocation().y * getTileSize() > renderer.getOffsetCameraY() + renderer.getScreenHeight() - OUT_BOUND_Y * getTileSize() && getOffsetY() > 0) {
+                    if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - OUT_BOUND_Y && getOffsetY() > 0) {
                         renderer.offsetCamera(0, getOffsetY());
                     }
-                    else if (getLocation().y * getTileSize() < renderer.getOffsetCameraY() + (OUT_BOUND_Y - 1) * getTileSize() && getOffsetY() < 0) {
+                    else if (getLocation().y < renderer.getOffsetCameraY() + (OUT_BOUND_Y - 1) && getOffsetY() < 0) {
                         renderer.offsetCamera(0, getOffsetY());
                     }
                 }
@@ -78,15 +78,15 @@ public class Player extends Entity {
 
                 if (getMovementX() < 0) {
                     xCalculated = getLocation().x + getOffsetX();
-                    moveX = xCalculated > OUT_BOUND_X &&
-                            xCalculated < walls.length - OUT_BOUND_X &&
+                    moveX = xCalculated > 1 &&
+                            xCalculated < walls.length - 1 &&
                             renderer.getWalls()[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
                             renderer.getWalls()[((int) xCalculated)][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
                 }
                 else {
                     xCalculated = getLocation().x + getOffsetX();
-                    moveX = xCalculated > OUT_BOUND_X &&
-                            xCalculated < walls.length - OUT_BOUND_X &&
+                    moveX = xCalculated > 1 &&
+                            xCalculated < walls.length - 1 &&
                             renderer.getWalls()[((int) (xCalculated + WIDTH_RATIO))][((int) getLocation().y)] != WorldMap.COLLIDE &&
                             renderer.getWalls()[((int) (xCalculated + WIDTH_RATIO))][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
                 }
@@ -94,10 +94,10 @@ public class Player extends Entity {
                 if (moveX) {
                     getLocation().offset(getOffsetX(), 0);
 
-                    if (getLocation().x * getTileSize() > renderer.getOffsetCameraX() + renderer.getScreenWidth() - OUT_BOUND_X * getTileSize() && getOffsetX() > 0) {
+                    if (getLocation().x > renderer.getOffsetCameraX() + renderer.getScreenWidth() / getTileSize() - OUT_BOUND_X && getOffsetX() > 0) {
                         renderer.offsetCamera(getOffsetX(), 0);
                     }
-                    else if (getLocation().x * getTileSize() < renderer.getOffsetCameraX() + (OUT_BOUND_X - 1) * getTileSize() && getOffsetX() < 0) {
+                    else if (getLocation().x < renderer.getOffsetCameraX() + (OUT_BOUND_X - 1) && getOffsetX() < 0) {
                         renderer.offsetCamera(getOffsetX(), 0);
                     }
                 }
