@@ -32,7 +32,7 @@ public class AttackRanged extends Attack {
         float offsetX = (endLocation.x - startLocation.x) * ratio;
         float offsetY = (endLocation.y - startLocation.y) * ratio;
 
-        byte[][] walls = renderer.getWalls();
+        byte[][] walls = renderer.getWorldMap().getWalls();
 
         int checkFirstX = (int) (startLocation.x + offsetX);
         int checkFirstY = (int) (startLocation.y + offsetY);
@@ -46,7 +46,7 @@ public class AttackRanged extends Attack {
 
         getLocation().set(startLocation.x + offsetX, startLocation.y + offsetY);
 
-        render(matrixProjection, matrixView);
+        render(renderer, matrixProjection, matrixView);
     }
 
 }

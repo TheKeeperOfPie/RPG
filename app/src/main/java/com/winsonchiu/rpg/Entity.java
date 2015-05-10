@@ -63,7 +63,7 @@ public class Entity {
     private float velocityX;
     private float velocityY;
     private int lastAnimationFrame;
-    private Movement lastDirection;
+    private Direction lastDirection;
     private int tileSize;
     private float textureRowCount;
     private float textureColCount;
@@ -138,7 +138,9 @@ public class Entity {
         return programId;
     }
 
-    public void render(float[] matrixProjection, float[] matrixView) {
+    public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+
+        setLastFrameTime(System.currentTimeMillis());
 
         GLES20.glUseProgram(programId);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureName);
@@ -154,12 +156,12 @@ public class Entity {
                 matrixProjection,
                 0,
                 getTransMatrix(),
-                0);
+                                         0);
 
         android.opengl.Matrix.multiplyMM(getMatrixProjectionAndView(),
-                0,
-                getMatrixProjectionAndView(),
-                0,
+                                         0,
+                                         getMatrixProjectionAndView(),
+                                         0,
                 matrixView,
                 0);
 
@@ -167,17 +169,17 @@ public class Entity {
         GLES20.glUniform1f(colCountLocation, textureColCount);
         GLES20.glUniform1f(alphaLocation, 1.0f);
         GLES20.glVertexAttribPointer(positionLocation, 3,
-                GLES20.GL_FLOAT, false,
-                0, getVertexBuffer());
+                                     GLES20.GL_FLOAT, false,
+                                     0, getVertexBuffer());
         GLES20.glVertexAttribPointer(textureLocation, 2, GLES20.GL_FLOAT,
                 false,
-                0, getUvBuffer());
+                                     0, getUvBuffer());
 
 
         GLES20.glUniform1i(animationFrameLocation, getLastAnimationFrame());
 
         GLES20.glUniformMatrix4fv(matrixLocation, 1, false, getMatrixProjectionAndView(),
-                0);
+                                  0);
 
         GLES20.glUniform1i(samplerLocation, 0);
 
@@ -308,11 +310,11 @@ public class Entity {
         this.lastAnimationFrame = lastAnimationFrame;
     }
 
-    public Movement getLastDirection() {
+    public Direction getLastDirection() {
         return lastDirection;
     }
 
-    public void setLastDirection(Movement lastDirection) {
+    public void setLastDirection(Direction lastDirection) {
         this.lastDirection = lastDirection;
     }
 

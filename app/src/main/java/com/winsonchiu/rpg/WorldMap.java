@@ -31,29 +31,42 @@ public class WorldMap {
     private static final String TAG = WorldMap.class.getCanonicalName();
     private static final float CHANCE_TO_CURVE_MAZE = 0.6f;
 
-    private static final int WALL = 874;
-    private static final int CORRIDOR = 921;
-    private static final int ROOM_FLOOR = 64;
+    private static final int WALL = 177;
+    private static final int CORRIDOR = 920;
 
     private static final String IS_DOORWAY = "Doorway";
     private static final String IS_COLLIDE = "Collide";
     private static final String IS_ABOVE = "Above";
-    private static final int MAX_ROOM_WIDTH = 11;
-    private static final int MIN_ROOM_WIDTH = 7;
-    private static final int MAX_ROOM_HEIGHT = 11;
-    private static final int MIN_ROOM_HEIGHT = 7;
-    private static final int AREA_PER_ROOM = 75;
+    private static final int MAX_ROOM_WIDTH = 19;
+    private static final int MIN_ROOM_WIDTH = 15;
+    private static final int MAX_ROOM_HEIGHT = 19;
+    private static final int MIN_ROOM_HEIGHT = 15;
+    private static final int AREA_PER_ROOM = 60;
     private static final int ATTEMPT_RATIO = 3;
 
     private List<Tile> tilesBelow;
     private List<Tile> tilesAbove;
+    private List<Rect> rooms;
     private byte[][] walls;
+    private byte[][] playerTrail;
     private int width;
     private int height;
 
     public WorldMap(int width, int height) {
+
+        // Width and height must be odd to fit mazes/rooms correctly
+        if (width % 2 == 0) {
+            width++;
+        }
+        if (height % 2 == 0) {
+            height++;
+        }
+
         this.width = width;
         this.height = height;
+        rooms = new ArrayList<>();
+        walls = new byte[width][height];
+        playerTrail = new byte[width][height];
         tilesBelow = new ArrayList<>();
         tilesAbove = new ArrayList<>();
     }
@@ -87,7 +100,7 @@ public class WorldMap {
 
             for (int y = 0; y < width; y++) {
                 for (int x = 0; x < height; x++) {
-                    int value = data.getInt(position++);
+                    int value = data.getInt(position++) - 1;
 
                     if (value > 0) {
                         if (isAbove) {
@@ -154,16 +167,7 @@ public class WorldMap {
 
     public void generateRectangular() {
 
-        if (width % 2 == 0) {
-            width++;
-        }
-        if (height % 2 == 0) {
-            height++;
-        }
-
         Random random = new Random();
-        walls = new byte[width][height];
-        List<Rect> rooms = new ArrayList<>();
         int numRooms = width * height / AREA_PER_ROOM;
         int maxAttempts = numRooms * ATTEMPT_RATIO;
         int attempt = 0;
@@ -212,8 +216,6 @@ public class WorldMap {
             }
 
         }
-
-        // Separate 2D int array to store ID of isolated maze regions
 
         for (int x = 1; x < width; x += 2) {
             for (int y = 1; y < height; y += 2) {
@@ -288,22 +290,22 @@ public class WorldMap {
             }
 
             if (room.top - 1 > 0) {
-                for (int x = room.left + 1; x < room.right; x++) {
+                for (int x = room.left + 1; x < room.right - 1; x++) {
                     connections.add(new Point(x, room.top - 1));
                 }
             }
             if (room.bottom + 1 < height) {
-                for (int x = room.left + 1; x < room.right; x++) {
+                for (int x = room.left + 1; x < room.right - 1; x++) {
                     connections.add(new Point(x, room.bottom + 1));
                 }
             }
             if (room.left - 1 > 0) {
-                for (int y = room.top + 1; y <= room.bottom; y++) {
+                for (int y = room.top + 1; y < room.bottom - 1; y++) {
                     connections.add(new Point(room.left - 1, y));
                 }
             }
             if (room.right + 1 < width) {
-                for (int y = room.top + 1; y <= room.bottom; y++) {
+                for (int y = room.top + 1; y < room.bottom - 1; y++) {
                     connections.add(new Point(room.right + 1, y));
                 }
             }
@@ -389,6 +391,7 @@ public class WorldMap {
 
         removeDeadEnds();
 
+
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
 
@@ -403,7 +406,7 @@ public class WorldMap {
                         tilesBelow.add(new Tile(point, getTextureForPath(x, y)));
                         break;
                     case ROOM:
-                        tilesBelow.add(new Tile(point, ROOM_FLOOR));
+                        tilesBelow.add(new Tile(point, getTextureForRoom(x, y)));
                         break;
 
                 }
@@ -412,26 +415,129 @@ public class WorldMap {
 
     }
 
-    private static final int TOP_LEFT_CORNER = 748;
-    private static final int TOP_RIGHT_CORNER = 749;
-    private static final int BOTTOM_LEFT_CORNER = 805;
-    private static final int BOTTOM_RIGHT_CORNER = 806;
-    private static final int T_UP = 804;
-    private static final int T_DOWN = 746;
-    private static final int T_LEFT = 747;
-    private static final int T_RIGHT = 803;
-    private static final int DEAD_END_UP = 975;
-    private static final int DEAD_END_DOWN = 974;
-    private static final int DEAD_END_LEFT = 1032;
-    private static final int DEAD_END_RIGHT = 1031;
-    private static final int HORIZONTAL = 807 ;
-    private static final int VERTICAL = 750;
+    private static final int PATH_TOP_LEFT = 748;
+    private static final int PATH_TOP_RIGHT = 749;
+    private static final int PATH_BOTTOM_LEFT = 805;
+    private static final int PATH_BOTTOM_RIGHT = 806;
+    private static final int PATH_T_UP = 804;
+    private static final int PATH_T_DOWN = 746;
+    private static final int PATH_T_LEFT = 747;
+    private static final int PATH_T_RIGHT = 803;
+    private static final int PATH_DEAD_END_DOWN = 975;
+    private static final int PATH_DEAD_END_UP = 974;
+    private static final int PATH_DEAD_END_RIGHT = 1032;
+    private static final int PATH_DEAD_END_LEFT = 1031;
+    private static final int PATH_CROSSROADS = 1033;
+    private static final int PATH_HORIZONTAL = 807;
+    private static final int PATH_VERTICAL = 750;
 
     // TODO: Analyze efficiency of rotation vs state calculation
 
     private int getTextureForPath(int x, int y) {
-        
+
+        byte bitMask = 0b0000;
+
+        if (y - 1 > 0 && (walls[x][y - 1] == CORRIDOR_CONNECTED || walls[x][y - 1] == ROOM)) {
+            bitMask |= 1;
+        }
+        if (x + 1 < width && (walls[x + 1][y] == CORRIDOR_CONNECTED || walls[x + 1][y] == ROOM)) {
+            bitMask |= 1 << 1;
+        }
+        if (y + 1 < height && (walls[x][y + 1] == CORRIDOR_CONNECTED || walls[x][y + 1] == ROOM)) {
+            bitMask |= 1 << 2;
+        }
+        if (x - 1 > 0 && (walls[x - 1][y] == CORRIDOR_CONNECTED || walls[x - 1][y] == ROOM)) {
+            bitMask |= 1 << 3;
+        }
+
+        switch (bitMask) {
+
+            case 0b0101:
+                return PATH_VERTICAL;
+            case 0b1010:
+                return PATH_HORIZONTAL;
+            case 0b0011:
+                return PATH_TOP_LEFT;
+            case 0b0110:
+                return PATH_BOTTOM_LEFT;
+            case 0b1100:
+                return PATH_BOTTOM_RIGHT;
+            case 0b1001:
+                return PATH_TOP_RIGHT;
+            case 0b1011:
+                return PATH_T_DOWN;
+            case 0b0111:
+                return PATH_T_RIGHT;
+            case 0b1110:
+                return PATH_T_UP;
+            case 0b1101:
+                return PATH_T_LEFT;
+            case 0b0001:
+                return PATH_DEAD_END_DOWN;
+            case 0b0010:
+                return PATH_DEAD_END_RIGHT;
+            case 0b0100:
+                return PATH_DEAD_END_UP;
+            case 0b1000:
+                return PATH_DEAD_END_LEFT;
+            case 0b1111:
+                return PATH_CROSSROADS;
+
+
+        }
+
+
         return CORRIDOR;
+    }
+
+    private static final int ROOM_FLOOR = 920;
+    private static final int ROOM_TOP_LEFT = 862;
+    private static final int ROOM_TOP_RIGHT = 864;
+    private static final int ROOM_BOTTOM_LEFT = 976;
+    private static final int ROOM_BOTTOM_RIGHT = 978;
+    private static final int ROOM_T_UP = 977;
+    private static final int ROOM_T_DOWN = 863;
+    private static final int ROOM_T_LEFT = 921;
+    private static final int ROOM_T_RIGHT = 919;
+
+    private int getTextureForRoom(int x, int y) {
+
+        byte bitMask = 0b0000;
+
+        if (y - 1 > 0 && (walls[x][y - 1] == CORRIDOR_CONNECTED || walls[x][y - 1] == ROOM)) {
+            bitMask |= 1;
+        }
+        if (x + 1 < width && (walls[x + 1][y] == CORRIDOR_CONNECTED || walls[x + 1][y] == ROOM)) {
+            bitMask |= 1 << 1;
+        }
+        if (y + 1 < height && (walls[x][y + 1] == CORRIDOR_CONNECTED || walls[x][y + 1] == ROOM)) {
+            bitMask |= 1 << 2;
+        }
+        if (x - 1 > 0 && (walls[x - 1][y] == CORRIDOR_CONNECTED || walls[x - 1][y] == ROOM)) {
+            bitMask |= 1 << 3;
+        }
+
+        switch (bitMask) {
+            case 0b1011:
+                return ROOM_T_DOWN;
+            case 0b0111:
+                return ROOM_T_RIGHT;
+            case 0b1110:
+                return ROOM_T_UP;
+            case 0b1101:
+                return ROOM_T_LEFT;
+            case 0b0011:
+                return ROOM_TOP_LEFT;
+            case 0b0110:
+                return ROOM_BOTTOM_LEFT;
+            case 0b1100:
+                return ROOM_BOTTOM_RIGHT;
+            case 0b1001:
+                return ROOM_TOP_RIGHT;
+            default:
+                return ROOM_FLOOR;
+
+        }
     }
 
     private void removeDeadEnds() {
@@ -456,7 +562,7 @@ public class WorldMap {
                     adjacentWalls++;
                 }
 
-                if (adjacentWalls >=3) {
+                if (adjacentWalls >= 3) {
                     deadEnds.add(point);
                 }
 
@@ -467,6 +573,9 @@ public class WorldMap {
 
             Point deadEnd = deadEnds.pop();
 
+            if (walls[deadEnd.x][deadEnd.y] == COLLIDE) {
+                continue;
+            }
             walls[deadEnd.x][deadEnd.y] = COLLIDE;
 
             List<Point> adjacent = new ArrayList<>(4);
@@ -508,6 +617,27 @@ public class WorldMap {
             }
 
         }
+    }
+
+    public byte[][] getPlayerTrail() {
+        return playerTrail;
+    }
+
+    public void refreshPlayerTrail(PointF point) {
+
+        for (int x = 0; x < playerTrail.length; x++) {
+            for (int y = 0; y < playerTrail.length; y++) {
+                if (playerTrail[x][y] > 0) {
+                    playerTrail[x][y]--;
+                }
+            }
+        }
+
+        playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
+    }
+
+    public List<Rect> getRooms() {
+        return rooms;
     }
 
     /*

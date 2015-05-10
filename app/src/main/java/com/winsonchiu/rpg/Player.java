@@ -12,8 +12,8 @@ public class Player extends Entity {
 
     public static final int OUT_BOUND_X = 3;
     public static final int OUT_BOUND_Y = 3;
-    public static final float HEIGHT_RATIO = 0.9f;
     public static final float WIDTH_RATIO = 0.59999999999f;
+    public static final float HEIGHT_RATIO = 0.9f;
 
     private static final String TAG = Player.class.getCanonicalName();
 
@@ -35,14 +35,14 @@ public class Player extends Entity {
 
         if (getLastFrameTime() > 0) {
             long timeDifference = (System.currentTimeMillis() - getLastFrameTime());
-            float offset = (System.currentTimeMillis() - getLastFrameTime()) * SPEED;
+            float offset = timeDifference * SPEED;
             setOffsetX(offset * getMovementX());
             setOffsetY(offset * getMovementY());
             setVelocityX(getOffsetX() / timeDifference);
             setVelocityY(getOffsetY() / timeDifference);
             float yCalculated;
             float xCalculated;
-            byte[][] walls = renderer.getWalls();
+            byte[][] walls = renderer.getWorldMap().getWalls();
 
             if (getMovementY() != 0) {
 
@@ -50,15 +50,15 @@ public class Player extends Entity {
                     yCalculated = getLocation().y + getOffsetY();
                     moveY = yCalculated > 1 &&
                             yCalculated < walls[0].length - 1 &&
-                            renderer.getWalls()[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
-                            renderer.getWalls()[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
+                            walls[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
+                            walls[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
                 }
                 else {
                     yCalculated = getLocation().y + getOffsetY();
                     moveY = yCalculated > 1 &&
                             yCalculated < walls[0].length - 1 &&
-                            renderer.getWalls()[((int) getLocation().x)][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE &&
-                            renderer.getWalls()[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE;
+                            walls[((int) getLocation().x)][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE &&
+                            walls[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE;
                 }
 
                 if (moveY) {
@@ -80,15 +80,15 @@ public class Player extends Entity {
                     xCalculated = getLocation().x + getOffsetX();
                     moveX = xCalculated > 1 &&
                             xCalculated < walls.length - 1 &&
-                            renderer.getWalls()[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            renderer.getWalls()[((int) xCalculated)][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
+                            walls[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
+                            walls[((int) xCalculated)][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
                 }
                 else {
                     xCalculated = getLocation().x + getOffsetX();
                     moveX = xCalculated > 1 &&
                             xCalculated < walls.length - 1 &&
-                            renderer.getWalls()[((int) (xCalculated + WIDTH_RATIO))][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            renderer.getWalls()[((int) (xCalculated + WIDTH_RATIO))][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
+                            walls[((int) (xCalculated + WIDTH_RATIO))][((int) getLocation().y)] != WorldMap.COLLIDE &&
+                            walls[((int) (xCalculated + WIDTH_RATIO))][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
                 }
 
                 if (moveX) {
@@ -104,26 +104,27 @@ public class Player extends Entity {
 
             }
         }
-        setLastFrameTime(System.currentTimeMillis());
 
         if (getMovementX() < 0) {
-            setLastDirection(Movement.LEFT);
+            setLastDirection(Direction.LEFT);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 4));
         }
         else if (getMovementX() > 0) {
-            setLastDirection(Movement.RIGHT);
+            setLastDirection(Direction.RIGHT);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 8));
         }
         else if (getMovementY() > 0) {
-            setLastDirection(Movement.UP);
+            setLastDirection(Direction.UP);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
         }
         else if (getMovementY() < 0) {
-            setLastDirection(Movement.DOWN);
+            setLastDirection(Direction.DOWN);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
         }
 
-        render(matrixProjection, matrixView);
+        renderer.getWorldMap().refreshPlayerTrail(getLocation());
+
+        super.render(renderer, matrixProjection, matrixView);
 
         if (!attacks.isEmpty()) {
 
@@ -148,20 +149,20 @@ public class Player extends Entity {
 
         PointF start = new PointF(getLocation().x, getLocation().y);
         PointF end = new PointF(getLocation().x, getLocation().y);
-        if (getMovementX() < 0 || getLastDirection() == Movement.LEFT) {
+        if (getMovementX() < 0 || getLastDirection() == Direction.LEFT) {
             start.offset(-1 * WIDTH_RATIO, 0);
             end.offset(getVelocityX() * 500 - 3, 0);
         }
-        else if (getMovementX() > 0 || getLastDirection() == Movement.RIGHT) {
+        else if (getMovementX() > 0 || getLastDirection() == Direction.RIGHT) {
             start.offset(1 * WIDTH_RATIO, 0);
             end.offset(getVelocityX() * 500 + 3, 0);
         }
 
-        if (getMovementY() < 0 || getLastDirection() == Movement.DOWN) {
+        if (getMovementY() < 0 || getLastDirection() == Direction.DOWN) {
             start.offset(0, -1 * HEIGHT_RATIO);
             end.offset(0, getVelocityY() * 500 - 3);
         }
-        else if (getMovementY() > 0 || getLastDirection() == Movement.UP) {
+        else if (getMovementY() > 0 || getLastDirection() == Direction.UP) {
             start.offset(0, 1 * HEIGHT_RATIO);
             end.offset(0, getVelocityY() * 500 + 3);
         }
