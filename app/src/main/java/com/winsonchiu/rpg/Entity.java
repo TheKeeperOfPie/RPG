@@ -1,7 +1,9 @@
 package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.opengl.GLES20;
+import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -37,6 +39,7 @@ public class Entity {
             "  gl_FragColor = texture2D(texture, textureCoordinateFragment);" +
             "  gl_FragColor.a *= opacity;" +
             "}";
+    private static final String TAG = Entity.class.getCanonicalName();
 
     private static int programId;
     private static int samplerLocation;
@@ -67,7 +70,11 @@ public class Entity {
     private int tileSize;
     private float textureRowCount;
     private float textureColCount;
-    private int textureName;
+    protected int textureName;
+    private float movementSpeed;
+    private float widthRatio;
+    private float heightRatio;
+    private boolean toDestroy;
 
     public static void initialize() {
 
@@ -88,12 +95,22 @@ public class Entity {
         Entity.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
     }
 
-    public Entity(int tileSize, float widthRatio, float heightRatio, PointF location, int textureName, float textureRowCount, float textureColCount) {
+    public Entity(int tileSize,
+                  float widthRatio,
+                  float heightRatio,
+                  PointF location,
+                  int textureName,
+                  float textureRowCount,
+                  float textureColCount,
+                  float movementSpeed) {
         this.tileSize = tileSize;
+        this.widthRatio = widthRatio;
+        this.heightRatio = heightRatio;
         this.location = location;
         this.textureName = textureName;
         this.textureRowCount = textureRowCount;
         this.textureColCount = textureColCount;
+        this.movementSpeed = movementSpeed;
 
         float[] uvs = new float[]{
                 0.0f, 0.0f,
@@ -149,13 +166,13 @@ public class Entity {
 
         android.opengl.Matrix.setIdentityM(getTransMatrix(), 0);
         android.opengl.Matrix.translateM(getTransMatrix(), 0, getLocation().x * tileSize, getLocation().y * tileSize,
-                0f);
+                                         0f);
 
         android.opengl.Matrix.multiplyMM(getMatrixProjectionAndView(),
-                0,
-                matrixProjection,
-                0,
-                getTransMatrix(),
+                                         0,
+                                         matrixProjection,
+                                         0,
+                                         getTransMatrix(),
                                          0);
 
         android.opengl.Matrix.multiplyMM(getMatrixProjectionAndView(),
@@ -172,7 +189,7 @@ public class Entity {
                                      GLES20.GL_FLOAT, false,
                                      0, getVertexBuffer());
         GLES20.glVertexAttribPointer(textureLocation, 2, GLES20.GL_FLOAT,
-                false,
+                                     false,
                                      0, getUvBuffer());
 
 
@@ -188,6 +205,7 @@ public class Entity {
 
         GLES20.glDisableVertexAttribArray(positionLocation);
         GLES20.glDisableVertexAttribArray(textureLocation);
+
     }
 
     public float[] getMatrixProjectionAndView() {
@@ -324,5 +342,41 @@ public class Entity {
 
     public void setTileSize(int tileSize) {
         this.tileSize = tileSize;
+    }
+
+    public float getMovementSpeed() {
+        return movementSpeed;
+    }
+
+    public void setMovementSpeed(float movementSpeed) {
+        this.movementSpeed = movementSpeed;
+    }
+
+    public float getWidthRatio() {
+        return widthRatio;
+    }
+
+    public void setWidthRatio(float widthRatio) {
+        this.widthRatio = widthRatio;
+    }
+
+    public float getHeightRatio() {
+        return heightRatio;
+    }
+
+    public void setHeightRatio(float heightRatio) {
+        this.heightRatio = heightRatio;
+    }
+
+    public RectF getBounds() {
+        return new RectF(getLocation().x, getLocation().y, getLocation().x + widthRatio, getLocation().y + heightRatio);
+    }
+
+    public void setToDestroy(WorldMap worldMap, boolean toDestroy) {
+        this.toDestroy = toDestroy;
+    }
+
+    public boolean getToDestroy() {
+        return toDestroy;
     }
 }

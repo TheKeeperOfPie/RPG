@@ -30,10 +30,10 @@ public abstract class Attack extends Entity {
     protected long startTime;
     protected long endTime;
     protected long time;
-    protected boolean isFinished;
 
-    public Attack(int texture, int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time) {
-        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), texture, 1f, 1f);
+    public Attack(int texture, int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, float movementSpeed) {
+        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), texture, 1f, 1f,
+              movementSpeed);
         this.tileSize = tileSize;
         this.damage = damage;
         this.range = range;
@@ -77,11 +77,5 @@ public abstract class Attack extends Entity {
         drawListBuffer = dlb.asShortBuffer();
         drawListBuffer.put(indices);
         drawListBuffer.position(0);
-    }
-
-    public abstract void render(Renderer renderer, float[] matrixProjection, float[] matrixView);
-
-    public boolean isFinished() {
-        return isFinished;
     }
 }

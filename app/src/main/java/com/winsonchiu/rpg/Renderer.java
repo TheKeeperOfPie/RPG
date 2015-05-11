@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
@@ -21,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -85,7 +87,7 @@ public class Renderer implements GLSurfaceView.Renderer {
     private float offsetCameraY;
     private WorldMap worldMap;
     private boolean isInitialized;
-    private List<Entity> entities;
+    private final List<Entity> entities;
 
     public Renderer(Activity activity) {
         super();
@@ -122,32 +124,21 @@ public class Renderer implements GLSurfaceView.Renderer {
         worldMap = new WorldMap(25, 33);
         worldMap.generateRectangular();
 
-        byte[][] walls = worldMap.getWalls();
+        for (Rect room : worldMap.getRooms()) {
 
-        boolean found = false;
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1), textureNames[1], 4f, 4f, room, 5));
+//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() - 1, room.exactCenterY() - 1), textureNames[3], 4f, 4f, room, 5));
 
-        for (int y = Player.OUT_BOUND_Y; y < walls[0].length; y++) {
-            for (int x = Player.OUT_BOUND_X; x < walls.length; x++) {
-                if (walls[x][y] == WorldMap.CORRIDOR_CONNECTED) {
-                    entities.add(new MobAggressive(tileSize, 0.6f, 0.6f, new PointF(x, y), textureNames[3], 4f, 4f, worldMap.getRooms().get(0), 8));
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                break;
-            }
         }
 
+        byte[][] walls = worldMap.getWalls();
 
-
-//        try {
-//            worldMap = WorldMap.fromJson(new JSONObject(writer.toString()));
-//        }
-//        catch (JSONException e) {
-//            e.printStackTrace();
-//            return;
-//        }
 
         int playerX = -1;
         int playerY = -1;
@@ -368,8 +359,15 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         player.render(this, matrixProjection, matrixView);
 
-        for (Entity entity : entities) {
-            entity.render(this, matrixProjection, matrixView);
+        synchronized (entities) {
+            Iterator<Entity> iterator = entities.iterator();
+            while (iterator.hasNext()) {
+                Entity entity = iterator.next();
+                entity.render(this, matrixProjection, matrixView);
+                if (entity.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
         }
 
         renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
@@ -386,7 +384,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glUniform1i(samplerLocation, 0);
         GLES20.glUniform1f(alphaLocation, 1.0f);
         GLES20.glUniformMatrix4fv(matrixLocation, 1, false, matrixProjectionAndView,
-                0);
+                                  0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
         GLES20.glVertexAttribPointer(positionLocation, POSITION_DATA_SIZE,
@@ -507,5 +505,15 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     public WorldMap getWorldMap() {
         return worldMap;
+    }
+
+    public List<Entity> getEntities() {
+        return entities;
+    }
+
+    public void addEntity(AttackRanged attackRanged) {
+        synchronized (entities) {
+            entities.add(attackRanged);
+        }
     }
 }

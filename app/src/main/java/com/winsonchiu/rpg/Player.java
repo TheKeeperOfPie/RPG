@@ -1,6 +1,7 @@
 package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,28 +15,30 @@ public class Player extends Entity {
     public static final int OUT_BOUND_Y = 3;
     public static final float WIDTH_RATIO = 0.59999999999f;
     public static final float HEIGHT_RATIO = 0.9f;
+    private static final float SPEED = 0.01f;
 
     private static final String TAG = Player.class.getCanonicalName();
 
     // Ratio of grid unit to move every millisecond
-    private static final float SPEED = 0.01f;
     private List<Attack> attacks;
     private List<Integer> attacksToRemove;
 
     public Player(int tileSize, int textureName, PointF location) {
-        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, textureName, 4f, 4f);
+        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, textureName, 4f, 4f, SPEED);
         attacks = new ArrayList<>();
         attacksToRemove = new ArrayList<>();
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-        boolean moveY = false;
-        boolean moveX = false;
+        float x = getLocation().x;
+        float y = getLocation().y;
+        boolean moveY = true;
+        boolean moveX = true;
 
         if (getLastFrameTime() > 0) {
             long timeDifference = (System.currentTimeMillis() - getLastFrameTime());
-            float offset = timeDifference * SPEED;
+            float offset = timeDifference * getMovementSpeed();
             setOffsetX(offset * getMovementX());
             setOffsetY(offset * getMovementY());
             setVelocityX(getOffsetX() / timeDifference);
@@ -51,25 +54,59 @@ public class Player extends Entity {
                     moveY = yCalculated > 1 &&
                             yCalculated < walls[0].length - 1 &&
                             walls[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
-                            walls[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
+                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE &&
+                            !renderer.getWorldMap().hasMob((int) getLocation().x,(int) yCalculated) &&
+                            !renderer.getWorldMap().hasMob((int) (getLocation().x + getWidthRatio() - 0.05f),(int) yCalculated);
+
+//                    int nextX = (int) getLocation().x;
+//                    int nextY = (int) getLocation().y;
+//
+//                    if ((walls[nextX][nextY - 1] == WorldMap.COLLIDE || walls[((int) (getLocation().x + getWidthRatio() * 0.9f))][nextY - 1] == WorldMap.COLLIDE) && yCalculated < nextY) {
+//                        moveY = false;
+//                        getLocation().set(getLocation().x, nextY);
+//                    }
+//
+
+                    if ((walls[(int) (x + getWidthRatio())][(int) (y - getHeightRatio())] == WorldMap.COLLIDE)) {
+                        Log.d(TAG, "Collide x + width");
+                    }
+                    if ((walls[(int) x][(int) (y - getHeightRatio())] == WorldMap.COLLIDE)) {
+                        Log.d(TAG, "Collide x");
+                    }
+
+//                    if ((walls[(int) (x + getWidthRatio() * 0.9f)][(int) (y - getHeightRatio())] == WorldMap.COLLIDE || walls[(int) x][(int) (y - getHeightRatio())] == WorldMap.COLLIDE) && yCalculated < ((int) getLocation().y)) {
+//                        moveY = false;
+//                        getLocation().set(getLocation().x, (int) getLocation().y);
+//                    }
                 }
                 else {
                     yCalculated = getLocation().y + getOffsetY();
                     moveY = yCalculated > 1 &&
                             yCalculated < walls[0].length - 1 &&
-                            walls[((int) getLocation().x)][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE &&
-                            walls[((int) (getLocation().x + WIDTH_RATIO - 0.05f))][((int) (yCalculated + HEIGHT_RATIO))] != WorldMap.COLLIDE;
+                            walls[((int) getLocation().x)][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE &&
+                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE &&
+                            !renderer.getWorldMap().hasMob((int) getLocation().x,(int) (yCalculated + getHeightRatio())) &&
+                            !renderer.getWorldMap().hasMob((int) (getLocation().x + getWidthRatio() - 0.05f),(int) (yCalculated + getHeightRatio()));
+
+//                    int nextX = (int) getLocation().x;
+//                    int nextY = (int) getLocation().y;
+//
+//                    Log.d(TAG, "currentY: " + getLocation().y);
+//                    Log.d(TAG, "nextY: " + nextY);
+//
+//                    if ((walls[nextX][nextY + 1] == WorldMap.COLLIDE || walls[((int) (getLocation().x + getWidthRatio() * 0.9f))][nextY + 1] == WorldMap.COLLIDE) && yCalculated - getHeightRatio() > nextY) {
+//                        moveY = false;
+//                        getLocation().set(getLocation().x, nextY + 1 - getHeightRatio());
+//                    }
+
+//                    if ((walls[(int) (x + getWidthRatio() * 0.9f)][(int) (y + getHeightRatio())] == WorldMap.COLLIDE || walls[(int) x][(int) (y + getHeightRatio())] == WorldMap.COLLIDE) && yCalculated + getHeightRatio() > ((int) getLocation().y) + 1) {
+//                        moveX = false;
+//                        getLocation().set(getLocation().x, ((int) getLocation().y) + 1 - getHeightRatio());
+//                    }
                 }
 
                 if (moveY) {
                     getLocation().offset(0, getOffsetY());
-
-                    if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - OUT_BOUND_Y && getOffsetY() > 0) {
-                        renderer.offsetCamera(0, getOffsetY());
-                    }
-                    else if (getLocation().y < renderer.getOffsetCameraY() + (OUT_BOUND_Y - 1) && getOffsetY() < 0) {
-                        renderer.offsetCamera(0, getOffsetY());
-                    }
                 }
 
             }
@@ -81,28 +118,50 @@ public class Player extends Entity {
                     moveX = xCalculated > 1 &&
                             xCalculated < walls.length - 1 &&
                             walls[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            walls[((int) xCalculated)][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
+                            walls[((int) xCalculated)][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE &&
+                            !renderer.getWorldMap().hasMob((int) xCalculated, (int) getLocation().y) &&
+                            !renderer.getWorldMap().hasMob((int) xCalculated, (int) (getLocation().y + getHeightRatio() - 0.05f));
+
+//                    if ((walls[(int) (x - getWidthRatio())][(int) (y + getHeightRatio() * 0.9f)] == WorldMap.COLLIDE || walls[(int) (x - getWidthRatio())][(int) y] == WorldMap.COLLIDE) && xCalculated < ((int) getLocation().x)) {
+//                        moveX = false;
+//                        getLocation().set((int) getLocation().x, getLocation().y);
+//                    }
                 }
                 else {
                     xCalculated = getLocation().x + getOffsetX();
                     moveX = xCalculated > 1 &&
                             xCalculated < walls.length - 1 &&
-                            walls[((int) (xCalculated + WIDTH_RATIO))][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            walls[((int) (xCalculated + WIDTH_RATIO))][((int) (getLocation().y + HEIGHT_RATIO - 0.05f))] != WorldMap.COLLIDE;
+                            walls[((int) (xCalculated + getWidthRatio()))][((int) getLocation().y)] != WorldMap.COLLIDE &&
+                            walls[((int) (xCalculated + getWidthRatio()))][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE &&
+                            !renderer.getWorldMap().hasMob((int) (xCalculated + getWidthRatio()), (int) getLocation().y) &&
+                            !renderer.getWorldMap().hasMob((int) (xCalculated + getWidthRatio()), (int) (getLocation().y + getHeightRatio() - 0.05f));
+
+//                    if ((walls[(int) (x + getWidthRatio())][(int) (y + getHeightRatio() * 0.9f)] == WorldMap.COLLIDE || walls[(int) (x + getWidthRatio())][(int) y] == WorldMap.COLLIDE) && xCalculated + getWidthRatio() > ((int) getLocation().x) + 1) {
+//                        moveX = false;
+//                        getLocation().set(((int) getLocation().x) + 1 - getWidthRatio(), getLocation().y);
+//                    }
                 }
 
                 if (moveX) {
                     getLocation().offset(getOffsetX(), 0);
-
-                    if (getLocation().x > renderer.getOffsetCameraX() + renderer.getScreenWidth() / getTileSize() - OUT_BOUND_X && getOffsetX() > 0) {
-                        renderer.offsetCamera(getOffsetX(), 0);
-                    }
-                    else if (getLocation().x < renderer.getOffsetCameraX() + (OUT_BOUND_X - 1) && getOffsetX() < 0) {
-                        renderer.offsetCamera(getOffsetX(), 0);
-                    }
                 }
 
             }
+        }
+
+
+
+        if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - OUT_BOUND_Y && getOffsetY() > 0) {
+            renderer.offsetCamera(0, getOffsetY());
+        }
+        else if (getLocation().y < renderer.getOffsetCameraY() + (OUT_BOUND_Y - 1) && getOffsetY() < 0) {
+            renderer.offsetCamera(0, getOffsetY());
+        }
+        if (getLocation().x > renderer.getOffsetCameraX() + renderer.getScreenWidth() / getTileSize() - OUT_BOUND_X && getOffsetX() > 0) {
+            renderer.offsetCamera(getOffsetX(), 0);
+        }
+        else if (getLocation().x < renderer.getOffsetCameraX() + (OUT_BOUND_X - 1) && getOffsetX() < 0) {
+            renderer.offsetCamera(getOffsetX(), 0);
         }
 
         if (getMovementX() < 0) {
@@ -125,21 +184,6 @@ public class Player extends Entity {
         renderer.getWorldMap().refreshPlayerTrail(getLocation());
 
         super.render(renderer, matrixProjection, matrixView);
-
-        if (!attacks.isEmpty()) {
-
-            for (int index = 0; index < attacks.size(); index++) {
-                Attack attack = attacks.get(index);
-                attack.render(renderer, matrixProjection, matrixView);
-                if (attack.isFinished()) {
-                    attacksToRemove.add(index);
-                }
-            }
-
-            for (int index = attacksToRemove.size() - 1; index >= 0; index--) {
-                attacks.remove((int) attacksToRemove.remove(index));
-            }
-        }
 
     }
 
@@ -167,7 +211,6 @@ public class Player extends Entity {
             end.offset(0, getVelocityY() * 500 + 3);
         }
 
-        // Make Attack extend Entity
-        attacks.add(new AttackRanged(renderer.getTextureNames()[2], getTileSize(), 1, 1, 1, start, end, 500));
+        renderer.addEntity(new AttackRanged(renderer.getTextureNames()[2], getTileSize(), 1, 1, 1, start, end, 500));
     }
 }

@@ -49,6 +49,7 @@ public class WorldMap {
     private List<Rect> rooms;
     private byte[][] walls;
     private byte[][] playerTrail;
+    private boolean[][] mobLocations;
     private int width;
     private int height;
 
@@ -67,6 +68,7 @@ public class WorldMap {
         rooms = new ArrayList<>();
         walls = new byte[width][height];
         playerTrail = new byte[width][height];
+        mobLocations = new boolean[width][height];
         tilesBelow = new ArrayList<>();
         tilesAbove = new ArrayList<>();
     }
@@ -387,6 +389,8 @@ public class WorldMap {
 
             }
 
+            room.inset(1, 1);
+
         }
 
         removeDeadEnds();
@@ -638,6 +642,14 @@ public class WorldMap {
 
     public List<Rect> getRooms() {
         return rooms;
+    }
+
+    public boolean hasMob(int x, int y) {
+        return mobLocations[x][y];
+    }
+
+    public void setMob(int x, int y, boolean mob) {
+        mobLocations[x][y] = mob;
     }
 
     /*
