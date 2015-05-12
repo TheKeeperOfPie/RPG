@@ -127,12 +127,12 @@ public class Renderer implements GLSurfaceView.Renderer {
         for (Rect room : worldMap.getRooms()) {
 
             entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1), textureNames[1], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[3], 4f, 4f, room, 5));
+//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
+//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1), textureNames[1], 4f, 4f, room, 5));
 //            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() - 1, room.exactCenterY() - 1), textureNames[3], 4f, 4f, room, 5));
 
         }
