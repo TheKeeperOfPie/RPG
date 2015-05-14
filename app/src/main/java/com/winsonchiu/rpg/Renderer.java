@@ -126,14 +126,8 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         for (Rect room : worldMap.getRooms()) {
 
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[3], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1), textureNames[1], 4f, 4f, room, 5));
-//            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() - 1, room.exactCenterY() - 1), textureNames[3], 4f, 4f, room, 5));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 12));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[3], 4f, 4f, room, 12));
 
         }
 
@@ -143,8 +137,8 @@ public class Renderer implements GLSurfaceView.Renderer {
         int playerX = -1;
         int playerY = -1;
 
-        for (int x = walls.length - 1; x > Player.OUT_BOUND_X; x--) {
-            for (int y = walls[0].length - 1; y > Player.OUT_BOUND_Y; y--) {
+        for (int x = Player.OUT_BOUND_X; x < walls.length - 1; x++) {
+            for (int y = Player.OUT_BOUND_Y; y < walls[0].length - 1; y++) {
                 if (walls[x][y] == WorldMap.CORRIDOR_CONNECTED) {
                     playerX = x;
                     playerY = y;
