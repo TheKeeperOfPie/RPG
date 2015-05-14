@@ -121,13 +121,13 @@ public class Renderer implements GLSurfaceView.Renderer {
         Entity.initialize();
         loadTextures();
 
-        worldMap = new WorldMap(150, 115);
+        worldMap = new WorldMap(133, 125);
         worldMap.generateRectangular();
 
         for (Rect room : worldMap.getRooms()) {
 
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 12));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[3], 4f, 4f, room, 12));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 8));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[3], 4f, 4f, room, 8));
 
         }
 

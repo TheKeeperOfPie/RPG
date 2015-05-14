@@ -39,5 +39,10 @@
         android:layout_marginBottom="48dp"
         />
 
+    <FrameLayout
+        android:id="@+id/frame_fragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
 
 </RelativeLayout>

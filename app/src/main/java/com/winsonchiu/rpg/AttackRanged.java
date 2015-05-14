@@ -51,9 +51,8 @@ public class AttackRanged extends Attack {
 
             if (RectF.intersects(entity.getBounds(), getBounds()) && entity instanceof MobAggressive) {
                 entity.setToDestroy(renderer.getWorldMap(), true);
-                renderer.getWorldMap()
-                        .setMob((int) entity.getLocation().x, (int) entity.getLocation().y, false);
                 setToDestroy(renderer.getWorldMap(), true);
+                break;
             }
 
         }

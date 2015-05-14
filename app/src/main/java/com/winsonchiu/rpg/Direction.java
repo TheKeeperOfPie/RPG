@@ -5,6 +5,7 @@ package com.winsonchiu.rpg;
  */
 public enum Direction {
 
-    UP, DOWN, LEFT, RIGHT
+    NORTH, SOUTH, WEST, EAST,
+    NORTHWEST, NORTHEAST, SOUTHWEST, SOUTHEAST
 
 }

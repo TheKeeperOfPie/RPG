@@ -1,5 +1,6 @@
 package com.winsonchiu.rpg;
 
+import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,7 +16,7 @@ import com.crashlytics.android.Crashlytics;
 import io.fabric.sdk.android.Fabric;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements FragmentInventory.OnFragmentInteractionListener {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
     private Renderer renderer;
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageDirectionControls;
     private ImageView imageInteractControl;
     private FastOutLinearInInterpolator interpolator;
+    private ControllerInventory controllerInventory;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
         applyFullscreen();
 
         setContentView(R.layout.activity_main);
+
+        controllerInventory = new ControllerInventory();
 
         interpolator = new FastOutLinearInInterpolator();
         renderer = new Renderer(this);
@@ -165,5 +169,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         renderer.release();
         super.onStop();
+    }
+
+    @Override
+    public ControllerInventory getControllerInventory() {
+        return controllerInventory;
     }
 }

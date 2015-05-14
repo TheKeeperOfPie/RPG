@@ -54,9 +54,7 @@ public class Player extends Entity {
                     moveY = yCalculated > 1 &&
                             yCalculated < walls[0].length - 1 &&
                             walls[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
-                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE &&
-                            !renderer.getWorldMap().hasMob((int) getLocation().x,(int) yCalculated) &&
-                            !renderer.getWorldMap().hasMob((int) (getLocation().x + getWidthRatio() - 0.05f),(int) yCalculated);
+                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
 
 //                    int nextX = (int) getLocation().x;
 //                    int nextY = (int) getLocation().y;
@@ -84,9 +82,7 @@ public class Player extends Entity {
                     moveY = yCalculated > 1 &&
                             yCalculated < walls[0].length - 1 &&
                             walls[((int) getLocation().x)][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE &&
-                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE &&
-                            !renderer.getWorldMap().hasMob((int) getLocation().x,(int) (yCalculated + getHeightRatio())) &&
-                            !renderer.getWorldMap().hasMob((int) (getLocation().x + getWidthRatio() - 0.05f),(int) (yCalculated + getHeightRatio()));
+                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE;
 
 //                    int nextX = (int) getLocation().x;
 //                    int nextY = (int) getLocation().y;
@@ -118,9 +114,7 @@ public class Player extends Entity {
                     moveX = xCalculated > 1 &&
                             xCalculated < walls.length - 1 &&
                             walls[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            walls[((int) xCalculated)][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE &&
-                            !renderer.getWorldMap().hasMob((int) xCalculated, (int) getLocation().y) &&
-                            !renderer.getWorldMap().hasMob((int) xCalculated, (int) (getLocation().y + getHeightRatio() - 0.05f));
+                            walls[((int) xCalculated)][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE;
 
 //                    if ((walls[(int) (x - getWidthRatio())][(int) (y + getHeightRatio() * 0.9f)] == WorldMap.COLLIDE || walls[(int) (x - getWidthRatio())][(int) y] == WorldMap.COLLIDE) && xCalculated < ((int) getLocation().x)) {
 //                        moveX = false;
@@ -132,9 +126,7 @@ public class Player extends Entity {
                     moveX = xCalculated > 1 &&
                             xCalculated < walls.length - 1 &&
                             walls[((int) (xCalculated + getWidthRatio()))][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            walls[((int) (xCalculated + getWidthRatio()))][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE &&
-                            !renderer.getWorldMap().hasMob((int) (xCalculated + getWidthRatio()), (int) getLocation().y) &&
-                            !renderer.getWorldMap().hasMob((int) (xCalculated + getWidthRatio()), (int) (getLocation().y + getHeightRatio() - 0.05f));
+                            walls[((int) (xCalculated + getWidthRatio()))][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE;
 
 //                    if ((walls[(int) (x + getWidthRatio())][(int) (y + getHeightRatio() * 0.9f)] == WorldMap.COLLIDE || walls[(int) (x + getWidthRatio())][(int) y] == WorldMap.COLLIDE) && xCalculated + getWidthRatio() > ((int) getLocation().x) + 1) {
 //                        moveX = false;
@@ -165,19 +157,19 @@ public class Player extends Entity {
         }
 
         if (getMovementX() < 0) {
-            setLastDirection(Direction.LEFT);
+            setLastDirection(Direction.WEST);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 4));
         }
         else if (getMovementX() > 0) {
-            setLastDirection(Direction.RIGHT);
+            setLastDirection(Direction.EAST);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 8));
         }
         else if (getMovementY() > 0) {
-            setLastDirection(Direction.UP);
+            setLastDirection(Direction.NORTH);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
         }
         else if (getMovementY() < 0) {
-            setLastDirection(Direction.DOWN);
+            setLastDirection(Direction.SOUTH);
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
         }
 
@@ -193,20 +185,20 @@ public class Player extends Entity {
 
         PointF start = new PointF(getLocation().x, getLocation().y);
         PointF end = new PointF(getLocation().x, getLocation().y);
-        if (getMovementX() < 0 || getLastDirection() == Direction.LEFT) {
+        if (getMovementX() < 0 || getLastDirection() == Direction.WEST) {
             start.offset(-1 * WIDTH_RATIO, 0);
             end.offset(getVelocityX() * 500 - 3, 0);
         }
-        else if (getMovementX() > 0 || getLastDirection() == Direction.RIGHT) {
+        else if (getMovementX() > 0 || getLastDirection() == Direction.EAST) {
             start.offset(1 * WIDTH_RATIO, 0);
             end.offset(getVelocityX() * 500 + 3, 0);
         }
 
-        if (getMovementY() < 0 || getLastDirection() == Direction.DOWN) {
+        if (getMovementY() < 0 || getLastDirection() == Direction.SOUTH) {
             start.offset(0, -1 * HEIGHT_RATIO);
             end.offset(0, getVelocityY() * 500 - 3);
         }
-        else if (getMovementY() > 0 || getLastDirection() == Direction.UP) {
+        else if (getMovementY() > 0 || getLastDirection() == Direction.NORTH) {
             start.offset(0, 1 * HEIGHT_RATIO);
             end.offset(0, getVelocityY() * 500 + 3);
         }

@@ -1,6 +1,7 @@
 package com.winsonchiu.rpg;
 
 import android.graphics.Point;
+import android.graphics.PointF;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +60,10 @@ public class Node implements Comparable<Node> {
 
     public void calculateCostTo(Point target) {
         cost = MathUtils.distance(getPoint(), target);
+    }
+
+    public void calculateCostTo(PointF target) {
+        cost = MathUtils.distance(new PointF(getPoint()), target);
     }
 
     @Override

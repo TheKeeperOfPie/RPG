@@ -71,7 +71,6 @@ public class WorldMap {
     private List<Rect> rooms;
     private byte[][] walls;
     private byte[][] playerTrail;
-    private boolean[][] mobLocations;
     private int width;
     private int height;
     private Random random;
@@ -92,7 +91,6 @@ public class WorldMap {
         rooms = new ArrayList<>();
         walls = new byte[width][height];
         playerTrail = new byte[width][height];
-        mobLocations = new boolean[width][height];
         tilesBelow = new ArrayList<>();
         tilesAbove = new ArrayList<>();
     }
@@ -697,109 +695,5 @@ public class WorldMap {
         return rooms;
     }
 
-    public boolean hasMob(int x, int y) {
-        return mobLocations[x][y];
-    }
-
-    public void setMob(int x, int y, boolean mob) {
-        mobLocations[x][y] = mob;
-    }
-
-    /*
-        Sorta kinda works, but doesn't fit well with the low resolution
-        of the rendered screen.
-     */
-//    public void generateCellular(int mapWidth, int mapHeight) {
-//
-//        // Add 1 to both dimensions to simplify neighbor checking
-//        layout = new boolean[1 + mapWidth + 1][1 + mapHeight + 1];
-//        walls = new byte[mapWidth][mapHeight];
-//        WorldMap worldMap = new WorldMap(mapWidth, mapHeight);
-//        List<Tile> tilesBelow = new ArrayList<>();
-//
-//        // TODO: Scale repetitions based on map size
-//        int repetitions = 7;
-//
-//        Random random = new Random();
-//
-//        for (int x = 0; x < layout.length; x++) {
-//            layout[x][0] = true;
-//            layout[x][layout[0].length - 1] = true;
-//        }
-//
-//        for (int y = 0; y < layout.length; y++) {
-//            layout[0][y] = true;
-//            layout[layout.length - 1][y] = true;
-//        }
-//
-//        for (int x = 1; x < layout.length - 1; x++) {
-//            for (int y = 1; y < layout[0].length - 1; y++) {
-//                if (random.nextFloat() < 0.45f) {
-//                    layout[x][y] = true;
-//                }
-//            }
-//        }
-//
-//        for (int repetition = 0; repetition < repetitions; repetition++) {
-//
-//            boolean[][] newLayout = new boolean[layout.length][layout[0].length];
-//
-//            for (int x = 0; x < newLayout.length; x++) {
-//                newLayout[x][0] = true;
-//                newLayout[x][newLayout[0].length - 1] = true;
-//            }
-//
-//            for (int y = 0; y < newLayout.length; y++) {
-//                newLayout[0][y] = true;
-//                newLayout[newLayout.length - 1][y] = true;
-//            }
-//
-//
-//            for (int x = 1; x < layout.length - 1; x++) {
-//                for (int y = 1; y < layout[0].length - 1; y++) {
-//
-//                    int adjacentWalls = 0;
-//
-//                    for (int offsetX = -1; offsetX <= 1; offsetX++) {
-//                        for (int offsetY = -1; offsetY <= 1; offsetY++) {
-//                            if (layout[x + offsetX][y + offsetY]) {
-//                                adjacentWalls++;
-//                            }
-//                        }
-//                    }
-//
-//                    if (layout[x][y]) {
-//                        adjacentWalls--;
-//                    }
-//
-//                    if (adjacentWalls >= 5 || (repetition < repetitions - 2 && adjacentWalls <= 1)) {
-//                        newLayout[x][y] = true;
-//                    }
-//
-//                }
-//            }
-//
-//            layout = newLayout;
-//        }
-//
-//        for (int x = 1; x < layout.length - 1; x++) {
-//            for (int y = 1; y < layout[0].length - 1; y++) {
-//                if (layout[x][y]) {
-//                    walls[x - 1][y - 1] = COLLIDE;
-//                    tilesBelow.add(new Tile(new PointF(x - 1, y - 1), WALL));
-//                }
-//                else {
-//                    tilesBelow.add(new Tile(new PointF(x - 1, y - 1), ROOM_FLOOR));
-//                }
-//
-//            }
-//        }
-//
-//        worldMap.setWalls(walls);
-//        worldMap.setTilesBelow(tilesBelow);
-//
-//
-//        return worldMap;
-//    }
 
 }
