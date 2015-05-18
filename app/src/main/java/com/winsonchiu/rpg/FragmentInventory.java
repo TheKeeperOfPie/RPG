@@ -90,7 +90,6 @@ public class FragmentInventory extends Fragment {
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         this.activity = activity;
-        CustomApplication.getRefWatcher(activity).watch(activity);
         try {
             mListener = (OnFragmentInteractionListener) activity;
         }

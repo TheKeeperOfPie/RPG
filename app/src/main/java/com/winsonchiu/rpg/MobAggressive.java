@@ -39,7 +39,7 @@ public class MobAggressive extends Entity {
     @Override
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-        calculateNextPosition(renderer);
+//        calculateNextPosition(renderer);
 
         super.render(renderer, matrixProjection, matrixView);
     }
@@ -156,6 +156,8 @@ public class MobAggressive extends Entity {
             getLocation().set(getLocation().x, calculatedY);
         }
 
+        calculateAnimationFrame();
+
     }
 
     private void calculateAnimationFrame() {
@@ -267,7 +269,6 @@ public class MobAggressive extends Entity {
         while (!openList.isEmpty()) {
 
             Node currentNode = openList.poll();
-            Log.d(TAG, "trail: " + worldMap.getPlayerTrail()[currentNode.getPoint().x][currentNode.getPoint().y]);
             int trail = worldMap.getPlayerTrail()[currentNode.getPoint().x][currentNode.getPoint().y];
 
             if (trail > highestTrail && !doesLineIntersectWalls(getLocation(), new PointF(currentNode.getPoint()), worldMap.getWalls())) {

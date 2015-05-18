@@ -1,23 +1,41 @@
 package com.winsonchiu.rpg;
 
+import android.graphics.PointF;
+import android.util.Log;
+
 /**
  * Created by TheKeeperOfPie on 5/14/2015.
  */
-public class Item {
+public class Item extends Entity {
 
+    private static final String TAG = Item.class.getCanonicalName();
     private String name;
     private int healthBoost;
     private int armorBoost;
     private int damageBoost;
     private int speedBoost;
     private int resourceId;
+    private int quantity = 1;
+    private float x;
+    private float y;
 
-    public Item(String name, int healthBoost, int armorBoost, int damageBoost, int speedBoost) {
+    public Item(String name, int healthBoost, int armorBoost, int damageBoost, int speedBoost, int tileSize, float widthRatio, float heightRatio, PointF location, int textureName, float textureRowCount, float textureColCount, float movementSpeed) {
+        super(tileSize, widthRatio, heightRatio, location, textureName, textureRowCount, textureColCount, movementSpeed);
+        x = location.x;
+        y = location.y;
         this.name = name;
         this.healthBoost = healthBoost;
         this.armorBoost = armorBoost;
         this.damageBoost = damageBoost;
         this.speedBoost = speedBoost;
+    }
+
+    @Override
+    public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+
+        getLocation().set(x, y);
+
+        super.render(renderer, matrixProjection, matrixView);
     }
 
     public String getName() {
@@ -62,5 +80,13 @@ public class Item {
 
     public int getResourceId() {
         return resourceId;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
     }
 }

@@ -71,9 +71,11 @@ public class WorldMap {
     private List<Rect> rooms;
     private byte[][] walls;
     private byte[][] playerTrail;
+    private List<Item> items;
     private int width;
     private int height;
     private Random random;
+    private boolean[][] itemLocations;
 
     public WorldMap(int width, int height) {
 
@@ -87,12 +89,55 @@ public class WorldMap {
 
         this.width = width;
         this.height = height;
+        items = new ArrayList<>();
         random = new Random();
         rooms = new ArrayList<>();
         walls = new byte[width][height];
+        itemLocations = new boolean[width][height];
         playerTrail = new byte[width][height];
         tilesBelow = new ArrayList<>();
         tilesAbove = new ArrayList<>();
+    }
+
+    public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+
+        for (Item item : items) {
+            item.render(renderer, matrixProjection, matrixView);
+        }
+
+    }
+
+    public void addItem(Item item) {
+        itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
+        items.add(item);
+    }
+
+    public Item getItem(int x, int y) {
+        Iterator<Item> iterator = items.iterator();
+        while (iterator.hasNext()) {
+            Item item = iterator.next();
+            if ((int) item.getLocation().x == x && (int) item.getLocation().y == y) {
+                itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
+                iterator.remove();
+                return item;
+            }
+        }
+        return null;
+    }
+
+    public Item removeItem(int x, int y) {
+
+        Item item = getItem(x, y);
+        if (item == null) {
+            return null;
+        }
+        if (item.getQuantity() == 1) {
+            items.remove(item);
+        }
+        else {
+            item.setQuantity(item.getQuantity() - 1);
+        }
+        return item;
     }
 
     public static WorldMap fromJson(JSONObject jsonObject) throws JSONException {

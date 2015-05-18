@@ -127,8 +127,9 @@ public class Renderer implements GLSurfaceView.Renderer {
         for (Rect room : worldMap.getRooms()) {
 
             entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 8));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[3], 4f, 4f, room, 8));
+            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1), textureNames[3], 4f, 4f, room, 8));
 
+            worldMap.addItem(new Item("TestItem", 0, 0, 0, 0, tileSize, 1.0f, 1.0f, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[2], 1f, 1f, 0));
         }
 
         byte[][] walls = worldMap.getWalls();
@@ -330,6 +331,7 @@ public class Renderer implements GLSurfaceView.Renderer {
             if (frameTime < targetFrameTime) {
                 Thread.sleep(targetFrameTime - frameTime);
             }
+
             startTime = System.currentTimeMillis();
         }
         catch (InterruptedException e) {
@@ -350,6 +352,8 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
                 .size() * 18);
+
+        worldMap.render(this, matrixProjection, matrixView);
 
         player.render(this, matrixProjection, matrixView);
 
