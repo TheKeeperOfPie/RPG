@@ -9,6 +9,12 @@ import android.util.Log;
 public class Item extends Entity {
 
     private static final String TAG = Item.class.getCanonicalName();
+
+    private static final float WIDTH_RATIO = 0.75f;
+    private static final float HEIGHT_RATIO = 0.75f;
+    private static final float TEXTURE_ROW_COUNT = 15f;
+    private static final float TEXTURE_COL_COUNT = 30f;
+
     private String name;
     private int healthBoost;
     private int armorBoost;
@@ -16,13 +22,10 @@ public class Item extends Entity {
     private int speedBoost;
     private int resourceId;
     private int quantity = 1;
-    private float x;
-    private float y;
 
-    public Item(String name, int healthBoost, int armorBoost, int damageBoost, int speedBoost, int tileSize, float widthRatio, float heightRatio, PointF location, int textureName, float textureRowCount, float textureColCount, float movementSpeed) {
-        super(tileSize, widthRatio, heightRatio, location, textureName, textureRowCount, textureColCount, movementSpeed);
-        x = location.x;
-        y = location.y;
+    public Item(String name, int healthBoost, int armorBoost, int damageBoost, int speedBoost, int tileSize, PointF location) {
+        super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x + 0.125f, location.y + 0.125f), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+                0);
         this.name = name;
         this.healthBoost = healthBoost;
         this.armorBoost = armorBoost;
@@ -32,9 +35,6 @@ public class Item extends Entity {
 
     @Override
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
-
-        getLocation().set(x, y);
-
         super.render(renderer, matrixProjection, matrixView);
     }
 

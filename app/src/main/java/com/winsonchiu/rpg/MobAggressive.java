@@ -26,8 +26,8 @@ public class MobAggressive extends Entity {
     private Point homeLocation;
     private boolean isAlerted;
 
-    public MobAggressive(int tileSize, float widthRatio, float heightRatio, PointF location, int textureName, float textureRowCount, float textureColCount, Rect room, int searchRadius) {
-        super(tileSize, widthRatio, heightRatio, location, textureName, textureRowCount,
+    public MobAggressive(int health, int armor, int tileSize, float widthRatio, float heightRatio, PointF location, float textureRowCount, float textureColCount, Rect room, int searchRadius) {
+        super(health, armor, tileSize, widthRatio, heightRatio, location, textureRowCount,
               textureColCount,
               SPEED);
         this.homeLocation = new Point((int) location.x, (int) location.y);
@@ -39,7 +39,7 @@ public class MobAggressive extends Entity {
     @Override
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-//        calculateNextPosition(renderer);
+        calculateNextPosition(renderer);
 
         super.render(renderer, matrixProjection, matrixView);
     }
@@ -110,6 +110,10 @@ public class MobAggressive extends Entity {
             return;
         }
 
+        calculateAnimationFrame();
+
+        calculateRaytrace(renderer.getWorldMap());
+
         RectF newBoundsX = new RectF(calculatedX, getLocation().y,
                 calculatedX + getWidthRatio(),
                 getLocation().y + getHeightRatio());
@@ -121,42 +125,49 @@ public class MobAggressive extends Entity {
             return;
         }
 
-        for (Entity entity : renderer.getEntities()) {
+        boolean collidesX = false;
+        boolean collidesY = false;
+
+        for (Entity entity : renderer.getEntityMobs()) {
             if (entity != this) {
                 if (RectF.intersects(entity.getBounds(), newBoundsX)) {
-                    calculatedX += -2 * getOffsetX();
-                    if (!isAlerted) {
-                        targetLocation.set(getLocation().x, getLocation().y);
-                    }
-                    break;
+                    calculatedY += getOffsetX();
+                    collidesX = true;
+//                    if (!isAlerted) {
+//                        targetLocation.set(getLocation().x, getLocation().y);
+//                    }
+//                    break;
                 }
                 if (RectF.intersects(entity.getBounds(), newBoundsY)) {
-                    calculatedY += -2 * getOffsetY();
-                    if (!isAlerted) {
-                        targetLocation.set(getLocation().x, getLocation().y);
-                    }
-                    break;
+                    calculatedX += getOffsetY();
+                    collidesY = true;
+//                    if (!isAlerted) {
+//                        targetLocation.set(getLocation().x, getLocation().y);
+//                    }
+//                    break;
                 }
             }
         }
 
-        int checkHorizontalX;
-        int checkVerticalY;
-
-        checkHorizontalX = getMovementX() < 0 ? ((int) (getLocation().x - 0.5f)) : ((int) (getLocation().x + getWidthRatio() + 0.5f));
-        checkVerticalY = getMovementY() < 0 ? ((int) (getLocation().y - 0.5f)) : ((int) (getLocation().y + getHeightRatio() + 0.5f));
-
-
-        if (walls[checkHorizontalX][(int) getLocation().y] != WorldMap.COLLIDE &&
-                walls[checkHorizontalX][((int) (getLocation().y + getHeightRatio()))] != WorldMap.COLLIDE) {
+        if (!collidesX) {
             getLocation().set(calculatedX, getLocation().y);
         }
-        if (walls[(int) getLocation().x][checkVerticalY] != WorldMap.COLLIDE &&
-                walls[(int) (getLocation().x + getWidthRatio())][checkVerticalY] != WorldMap.COLLIDE) {
+        if (!collidesY) {
             getLocation().set(getLocation().x, calculatedY);
         }
 
-        calculateAnimationFrame();
+    }
+
+    private void calculateRaytrace(WorldMap worldMap) {
+
+        Point topLeft = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y + 0.2f));
+        Point top = new Point((int) (getLocation().x), (int) (getLocation().y + 0.2f));
+        Point topRight = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y + 0.2f));
+        Point left = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y));
+        Point right = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y));
+        Point bottomLeft = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y - 0.2f));
+        Point bottom = new Point((int) (getLocation().x), (int) (getLocation().y - 0.2f));
+        Point bottomRight = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y - 0.2f));
 
     }
 
@@ -236,7 +247,7 @@ public class MobAggressive extends Entity {
 
                     boolean intersect = false;
 
-                    for (Entity entity : renderer.getEntities()) {
+                    for (Entity entity : renderer.getEntityMobs()) {
                         if (entity != this && RectF.intersects(entity.getBounds(), new RectF(node.getPoint().x + 0.05f, node.getPoint().y + 0.05f, node.getPoint().x + 0.95f, node.getPoint().y + 0.95f))) {
                             intersect = true;
                             break;

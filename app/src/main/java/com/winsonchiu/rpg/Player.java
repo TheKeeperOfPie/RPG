@@ -16,6 +16,8 @@ public class Player extends Entity {
     public static final float WIDTH_RATIO = 0.59999999999f;
     public static final float HEIGHT_RATIO = 0.9f;
     private static final float SPEED = 0.01f;
+    private static final int BASE_HEALTH = 20;
+    private static final int BASE_ARMOR = 1;
 
     private static final String TAG = Player.class.getCanonicalName();
 
@@ -23,8 +25,8 @@ public class Player extends Entity {
     private List<Attack> attacks;
     private List<Integer> attacksToRemove;
 
-    public Player(int tileSize, int textureName, PointF location) {
-        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, textureName, 4f, 4f, SPEED);
+    public Player(int tileSize, PointF location) {
+        super(BASE_HEALTH, BASE_ARMOR, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 4f, 4f, SPEED);
         attacks = new ArrayList<>();
         attacksToRemove = new ArrayList<>();
     }
@@ -141,8 +143,6 @@ public class Player extends Entity {
             }
         }
 
-
-
         if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - OUT_BOUND_Y && getOffsetY() > 0) {
             renderer.offsetCamera(0, getOffsetY());
         }
@@ -179,6 +179,10 @@ public class Player extends Entity {
 
     }
 
+    public List<Attack> getAttacks() {
+        return attacks;
+    }
+
     public void startNewAttack(Renderer renderer) {
 
         // TODO: Redo offsets to start centered on player
@@ -203,6 +207,6 @@ public class Player extends Entity {
             end.offset(0, getVelocityY() * 500 + 3);
         }
 
-        renderer.addEntity(new AttackRanged(renderer.getTextureNames()[2], getTileSize(), 1, 1, 1, start, end, 500));
+        attacks.add(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500));
     }
 }

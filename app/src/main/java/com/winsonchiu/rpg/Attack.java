@@ -31,8 +31,8 @@ public abstract class Attack extends Entity {
     protected long endTime;
     protected long time;
 
-    public Attack(int texture, int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, float movementSpeed) {
-        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), texture, 1f, 1f,
+    public Attack(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, float movementSpeed) {
+        super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), 1f, 1f,
               movementSpeed);
         this.tileSize = tileSize;
         this.damage = damage;
@@ -41,41 +41,10 @@ public abstract class Attack extends Entity {
         this.startLocation = startLocation;
         this.endLocation = endLocation;
         this.time = time;
-
-        float[] uvs = new float[]{
-                0.0f, 0.0f,
-                0.0f, 1.0f,
-                1.0f, 1.0f,
-                1.0f, 0.0f,
-        };
-
-        ByteBuffer uvByteBuffer = ByteBuffer.allocateDirect(uvs.length * 4);
-        uvByteBuffer.order(ByteOrder.nativeOrder());
-        uvBuffer = uvByteBuffer.asFloatBuffer();
-        uvBuffer.put(uvs);
-        uvBuffer.position(0);
-
-        float[] vertices = new float[]{
-                0.0f, tileSize * HEIGHT_RATIO, -5f,
-                0.0f, 0.0f, -5f,
-                tileSize * WIDTH_RATIO, 0.0f, -5f,
-                tileSize * WIDTH_RATIO, tileSize * HEIGHT_RATIO, -5f
-        };
-
-        // The vertex buffer.
-        ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
-        bb.order(ByteOrder.nativeOrder());
-        vertexBuffer = bb.asFloatBuffer();
-        vertexBuffer.put(vertices);
-        vertexBuffer.position(0);
-
-        indices = new short[]{0, 1, 2, 0, 2, 3};
-
-        // initialize byte buffer for the draw list
-        ByteBuffer dlb = ByteBuffer.allocateDirect(indices.length * 2);
-        dlb.order(ByteOrder.nativeOrder());
-        drawListBuffer = dlb.asShortBuffer();
-        drawListBuffer.put(indices);
-        drawListBuffer.position(0);
     }
+
+    public int calculateDamage() {
+        return damage;
+    }
+
 }

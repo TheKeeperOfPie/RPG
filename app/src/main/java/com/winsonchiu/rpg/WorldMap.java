@@ -99,7 +99,7 @@ public class WorldMap {
         tilesAbove = new ArrayList<>();
     }
 
-    public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+    public void renderItems(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
         for (Item item : items) {
             item.render(renderer, matrixProjection, matrixView);
@@ -140,98 +140,8 @@ public class WorldMap {
         return item;
     }
 
-    public static WorldMap fromJson(JSONObject jsonObject) throws JSONException {
-
-        int width = jsonObject.getInt("width");
-        int height = jsonObject.getInt("height");
-        WorldMap worldMap = new WorldMap(width, height);
-        JSONArray layers = jsonObject.getJSONArray("layers");
-        ArrayList<Tile> tilesBelow = new ArrayList<>();
-        ArrayList<Tile> tilesAbove = new ArrayList<>();
-
-        byte[][] walls = new byte[width][height];
-
-        for (int index = 0; index < layers.length(); index++) {
-            JSONObject layer = layers.getJSONObject(index);
-            JSONArray data = layer.getJSONArray("data");
-            int position = 0;
-
-            byte type = 0;
-
-            if (layer.getString("name").contains(IS_DOORWAY)) {
-                type = DOORWAY;
-            }
-            else if (layer.getString("name").contains(IS_COLLIDE)) {
-                type = COLLIDE;
-            }
-
-            boolean isAbove = layer.getString("name").contains(IS_ABOVE);
-
-            for (int y = 0; y < width; y++) {
-                for (int x = 0; x < height; x++) {
-                    int value = data.getInt(position++) - 1;
-
-                    if (value > 0) {
-                        if (isAbove) {
-                            tilesAbove.add(new Tile(new PointF(x, height - 1 - y), value));
-                        }
-                        else {
-                            tilesBelow.add(new Tile(new PointF(x, height - 1 - y), value));
-                        }
-                        if (type > 0) {
-                            walls[x][height - 1 - y] = type;
-                        }
-                    }
-                }
-            }
-        }
-
-        worldMap.setTilesBelow(tilesBelow);
-        worldMap.setTilesAbove(tilesAbove);
-        worldMap.setWalls(walls);
-
-        return worldMap;
-
-    }
-
-    public byte[][] getWalls() {
-        return walls;
-    }
-
-    public void setWalls(byte[][] walls) {
-        this.walls = walls;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public void setWidth(int width) {
-        this.width = width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public void setHeight(int height) {
-        this.height = height;
-    }
-
-    public List<Tile> getTilesBelow() {
-        return tilesBelow;
-    }
-
-    public void setTilesBelow(List<Tile> tilesBelow) {
-        this.tilesBelow = tilesBelow;
-    }
-
-    public List<Tile> getTilesAbove() {
-        return tilesAbove;
-    }
-
-    public void setTilesAbove(List<Tile> tilesAbove) {
-        this.tilesAbove = tilesAbove;
+    public boolean isCollide(Point point) {
+        return walls[point.x][point.y] == COLLIDE;
     }
 
     public void generateRectangular() {
@@ -522,6 +432,100 @@ public class WorldMap {
         }
     }
 
+    // TODO: Reimplement dead end checks
+    private void removeDeadEnds() {
+
+        Stack<Point> deadEnds = new Stack<>();
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                Point point = new Point(x, y);
+                int adjacentWalls = 0;
+
+                if (x - 1 > 0 && walls[x - 1][y] == COLLIDE) {
+                    adjacentWalls++;
+                }
+                if (x + 1 < width && walls[x +  1][y] == COLLIDE) {
+                    adjacentWalls++;
+                }
+                if (y - 1 > 0 && walls[x][y - 1] == COLLIDE) {
+                    adjacentWalls++;
+                }
+                if (y + 1 < height && walls[x][y + 1] == COLLIDE) {
+                    adjacentWalls++;
+                }
+
+                if (adjacentWalls >= 3) {
+                    deadEnds.add(point);
+                }
+
+            }
+        }
+
+        while (!deadEnds.isEmpty()) {
+
+            Point deadEnd = deadEnds.pop();
+
+            if (walls[deadEnd.x][deadEnd.y] == COLLIDE) {
+                continue;
+            }
+            walls[deadEnd.x][deadEnd.y] = COLLIDE;
+
+            List<Point> adjacent = new ArrayList<>(4);
+
+            if (deadEnd.x - 1 > 0 && walls[deadEnd.x - 1][deadEnd.y] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x - 1, deadEnd.y));
+            }
+            if (deadEnd.x + 1 < width && walls[deadEnd.x + 1][deadEnd.y] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x + 1, deadEnd.y));
+            }
+            if (deadEnd.y - 1 > 0 && walls[deadEnd.x][deadEnd.y - 1] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x, deadEnd.y - 1));
+            }
+            if (deadEnd.y + 1 < height && walls[deadEnd.x][deadEnd.y + 1] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x, deadEnd.y + 1));
+            }
+
+            for (Point point : adjacent) {
+
+                int adjacentWalls = 0;
+
+                if (point.x - 1 > 0 && walls[point.x - 1][point.y] == COLLIDE) {
+                    adjacentWalls++;
+                }
+                if (point.x + 1 < width && walls[point.x +  1][point.y] == COLLIDE) {
+                    adjacentWalls++;
+                }
+                if (point.y - 1 > 0 && walls[point.x][point.y - 1] == COLLIDE) {
+                    adjacentWalls++;
+                }
+                if (point.y + 1 < height && walls[point.x][point.y + 1] == COLLIDE) {
+                    adjacentWalls++;
+                }
+
+                if (adjacentWalls >= 3) {
+                    deadEnds.push(point);
+                }
+
+            }
+
+        }
+    }
+
+    public void refreshPlayerTrail(PointF point) {
+
+        for (int x = 0; x < playerTrail.length; x++) {
+            for (int y = 0; y < playerTrail[0].length; y++) {
+                if (playerTrail[x][y] > 0) {
+                    playerTrail[x][y]--;
+                }
+            }
+        }
+
+        playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
+    }
+
+    //region Getters and setters
     private void setTiles() {
         tilesBelow.clear();
         tilesAbove.clear();
@@ -640,105 +644,108 @@ public class WorldMap {
         }
     }
 
-    private void removeDeadEnds() {
-
-        Stack<Point> deadEnds = new Stack<>();
-
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                Point point = new Point(x, y);
-                int adjacentWalls = 0;
-
-                if (x - 1 > 0 && walls[x - 1][y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (x + 1 < width && walls[x +  1][y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (y - 1 > 0 && walls[x][y - 1] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (y + 1 < height && walls[x][y + 1] == COLLIDE) {
-                    adjacentWalls++;
-                }
-
-                if (adjacentWalls >= 3) {
-                    deadEnds.add(point);
-                }
-
-            }
-        }
-
-        while (!deadEnds.isEmpty()) {
-
-            Point deadEnd = deadEnds.pop();
-
-            if (walls[deadEnd.x][deadEnd.y] == COLLIDE) {
-                continue;
-            }
-            walls[deadEnd.x][deadEnd.y] = COLLIDE;
-
-            List<Point> adjacent = new ArrayList<>(4);
-
-            if (deadEnd.x - 1 > 0 && walls[deadEnd.x - 1][deadEnd.y] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x - 1, deadEnd.y));
-            }
-            if (deadEnd.x + 1 < width && walls[deadEnd.x + 1][deadEnd.y] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x + 1, deadEnd.y));
-            }
-            if (deadEnd.y - 1 > 0 && walls[deadEnd.x][deadEnd.y - 1] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x, deadEnd.y - 1));
-            }
-            if (deadEnd.y + 1 < height && walls[deadEnd.x][deadEnd.y + 1] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x, deadEnd.y + 1));
-            }
-
-            for (Point point : adjacent) {
-
-                int adjacentWalls = 0;
-
-                if (point.x - 1 > 0 && walls[point.x - 1][point.y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (point.x + 1 < width && walls[point.x +  1][point.y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (point.y - 1 > 0 && walls[point.x][point.y - 1] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (point.y + 1 < height && walls[point.x][point.y + 1] == COLLIDE) {
-                    adjacentWalls++;
-                }
-
-                if (adjacentWalls >= 3) {
-                    deadEnds.push(point);
-                }
-
-            }
-
-        }
-    }
-
     public byte[][] getPlayerTrail() {
         return playerTrail;
-    }
-
-    public void refreshPlayerTrail(PointF point) {
-
-        for (int x = 0; x < playerTrail.length; x++) {
-            for (int y = 0; y < playerTrail[0].length; y++) {
-                if (playerTrail[x][y] > 0) {
-                    playerTrail[x][y]--;
-                }
-            }
-        }
-
-        playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
     }
 
     public List<Rect> getRooms() {
         return rooms;
     }
 
+
+    public byte[][] getWalls() {
+        return walls;
+    }
+
+    public void setWalls(byte[][] walls) {
+        this.walls = walls;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
+    public List<Tile> getTilesBelow() {
+        return tilesBelow;
+    }
+
+    public void setTilesBelow(List<Tile> tilesBelow) {
+        this.tilesBelow = tilesBelow;
+    }
+
+    public List<Tile> getTilesAbove() {
+        return tilesAbove;
+    }
+
+    public void setTilesAbove(List<Tile> tilesAbove) {
+        this.tilesAbove = tilesAbove;
+    }
+    //endregion
+
+    public static WorldMap fromJson(JSONObject jsonObject) throws JSONException {
+
+        int width = jsonObject.getInt("width");
+        int height = jsonObject.getInt("height");
+        WorldMap worldMap = new WorldMap(width, height);
+        JSONArray layers = jsonObject.getJSONArray("layers");
+        ArrayList<Tile> tilesBelow = new ArrayList<>();
+        ArrayList<Tile> tilesAbove = new ArrayList<>();
+
+        byte[][] walls = new byte[width][height];
+
+        for (int index = 0; index < layers.length(); index++) {
+            JSONObject layer = layers.getJSONObject(index);
+            JSONArray data = layer.getJSONArray("data");
+            int position = 0;
+
+            byte type = 0;
+
+            if (layer.getString("name").contains(IS_DOORWAY)) {
+                type = DOORWAY;
+            }
+            else if (layer.getString("name").contains(IS_COLLIDE)) {
+                type = COLLIDE;
+            }
+
+            boolean isAbove = layer.getString("name").contains(IS_ABOVE);
+
+            for (int y = 0; y < width; y++) {
+                for (int x = 0; x < height; x++) {
+                    int value = data.getInt(position++) - 1;
+
+                    if (value > 0) {
+                        if (isAbove) {
+                            tilesAbove.add(new Tile(new PointF(x, height - 1 - y), value));
+                        }
+                        else {
+                            tilesBelow.add(new Tile(new PointF(x, height - 1 - y), value));
+                        }
+                        if (type > 0) {
+                            walls[x][height - 1 - y] = type;
+                        }
+                    }
+                }
+            }
+        }
+
+        worldMap.setTilesBelow(tilesBelow);
+        worldMap.setTilesAbove(tilesAbove);
+        worldMap.setWalls(walls);
+
+        return worldMap;
+
+    }
 
 }

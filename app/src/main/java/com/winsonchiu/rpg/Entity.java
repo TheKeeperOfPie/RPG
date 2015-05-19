@@ -26,8 +26,8 @@ public class Entity {
             "void main() {" +
             "  gl_Position = matrix * positionCoordinate;" +
             "  textureCoordinateFragment = textureCoordinateVertex;" +
-            "  textureCoordinateFragment.x = (textureCoordinateVertex.x + float(mod(float(animationFrame), rowCount))) / rowCount;" +
-            "  textureCoordinateFragment.y = (textureCoordinateVertex.y + float(animationFrame / int(colCount))) / colCount;" +
+            "  textureCoordinateFragment.x = (textureCoordinateVertex.x + float(mod(float(animationFrame), colCount))) / colCount;" +
+            "  textureCoordinateFragment.y = (textureCoordinateVertex.y + float(animationFrame / int(rowCount))) / rowCount;" +
             "}";
 
     public static final String FRAGMENT_SHADER =
@@ -70,97 +70,49 @@ public class Entity {
     private int tileSize;
     private float textureRowCount;
     private float textureColCount;
-    protected int textureName;
-    private float movementSpeed;
     private float widthRatio;
     private float heightRatio;
     private boolean toDestroy;
 
-    public static void initialize() {
+    private int health;
+    private int armor;
+    private float movementSpeed;
 
-        programId = GLES20.glCreateProgram();
-        int vertexShaderId = RenderUtils.loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
-        int fragmentShaderId = RenderUtils.loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
-        GLES20.glAttachShader(programId, vertexShaderId);
-        GLES20.glAttachShader(programId, fragmentShaderId);
-        GLES20.glLinkProgram(programId);
-        GLES20.glUseProgram(programId);
-        Entity.positionLocation = GLES20.glGetAttribLocation(programId, "positionCoordinate");
-        Entity.textureLocation = GLES20.glGetAttribLocation(programId, "textureCoordinateVertex");
-        Entity.matrixLocation = GLES20.glGetUniformLocation(programId, "matrix");
-        Entity.alphaLocation = GLES20.glGetUniformLocation(programId, "opacity");
-        Entity.animationFrameLocation = GLES20.glGetUniformLocation(programId, "animationFrame");
-        Entity.rowCountLocation = GLES20.glGetUniformLocation(programId, "rowCount");
-        Entity.colCountLocation = GLES20.glGetUniformLocation(programId, "colCount");
-        Entity.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
-    }
-
-    public Entity(int tileSize,
-                  float widthRatio,
-                  float heightRatio,
-                  PointF location,
-                  int textureName,
-                  float textureRowCount,
-                  float textureColCount,
-                  float movementSpeed) {
+    public Entity(int health,
+            int armor,
+            int tileSize,
+            float widthRatio,
+            float heightRatio,
+            PointF location,
+            float textureRowCount,
+            float textureColCount,
+            float movementSpeed) {
+        this.health = health;
+        this.armor = armor;
         this.tileSize = tileSize;
         this.widthRatio = widthRatio;
         this.heightRatio = heightRatio;
         this.location = location;
-        this.textureName = textureName;
         this.textureRowCount = textureRowCount;
         this.textureColCount = textureColCount;
         this.movementSpeed = movementSpeed;
 
-        float[] uvs = new float[]{
-                0.0f, 0.0f,
-                0.0f, 1.0f,
-                1.0f, 1.0f,
-                1.0f, 0.0f,
-        };
-
-        ByteBuffer uvByteBuffer = ByteBuffer.allocateDirect(uvs.length * 4);
-        uvByteBuffer.order(ByteOrder.nativeOrder());
-        uvBuffer = uvByteBuffer.asFloatBuffer();
-        uvBuffer.put(uvs);
-        uvBuffer.position(0);
-
-        float[] vertices = new float[]{
-                0.0f, tileSize * heightRatio, -5f,
-                0.0f, 0.0f, -5f,
-                tileSize * widthRatio, 0.0f, -5f,
-                tileSize * widthRatio, tileSize * heightRatio, -5f
-        };
-
-        // The vertex buffer.
-        ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
-        bb.order(ByteOrder.nativeOrder());
-        vertexBuffer = bb.asFloatBuffer();
-        vertexBuffer.put(vertices);
-        vertexBuffer.position(0);
-
-        indices = new short[]{0, 1, 2, 0, 2, 3};
-
-        // initialize byte buffer for the draw list
-        ByteBuffer dlb = ByteBuffer.allocateDirect(indices.length * 2);
-
-        dlb.order(ByteOrder.nativeOrder());
-        drawListBuffer = dlb.asShortBuffer();
-        drawListBuffer.put(indices);
-        drawListBuffer.position(0);
+        setupBuffers();
 
     }
 
-    public static int getProgram() {
-        return programId;
+    public void applyAttack(Attack attack) {
+        health -= attack.calculateDamage();
+        if (health <= 0) {
+            setToDestroy(true);
+        }
     }
 
+    //region Rendering
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
         setLastFrameTime(System.currentTimeMillis());
 
-        GLES20.glUseProgram(programId);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureName);
         GLES20.glEnableVertexAttribArray(positionLocation);
         GLES20.glEnableVertexAttribArray(textureLocation);
 
@@ -206,6 +158,26 @@ public class Entity {
         GLES20.glDisableVertexAttribArray(positionLocation);
         GLES20.glDisableVertexAttribArray(textureLocation);
 
+    }
+    //endregion
+
+    //region Getters and Setters
+
+    public RectF getBounds() {
+        return new RectF(getLocation().x, getLocation().y, getLocation().x + widthRatio, getLocation().y + heightRatio);
+    }
+
+
+    public static int getProgram() {
+        return programId;
+    }
+
+    public void setToDestroy(boolean toDestroy) {
+        this.toDestroy = toDestroy;
+    }
+
+    public boolean getToDestroy() {
+        return toDestroy;
     }
 
     public float[] getMatrixProjectionAndView() {
@@ -367,16 +339,64 @@ public class Entity {
     public void setHeightRatio(float heightRatio) {
         this.heightRatio = heightRatio;
     }
+    //endregion
 
-    public RectF getBounds() {
-        return new RectF(getLocation().x, getLocation().y, getLocation().x + widthRatio, getLocation().y + heightRatio);
+    //region intializers
+    private void setupBuffers() {
+        float[] uvs = new float[]{
+                0.0f, 0.0f,
+                0.0f, 1.0f,
+                1.0f, 1.0f,
+                1.0f, 0.0f,
+        };
+
+        ByteBuffer uvByteBuffer = ByteBuffer.allocateDirect(uvs.length * 4);
+        uvByteBuffer.order(ByteOrder.nativeOrder());
+        uvBuffer = uvByteBuffer.asFloatBuffer();
+        uvBuffer.put(uvs);
+        uvBuffer.position(0);
+
+        float[] vertices = new float[]{
+                0.0f, tileSize * heightRatio, -5f,
+                0.0f, 0.0f, -5f,
+                tileSize * widthRatio, 0.0f, -5f,
+                tileSize * widthRatio, tileSize * heightRatio, -5f
+        };
+
+        // The vertex buffer.
+        ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
+        bb.order(ByteOrder.nativeOrder());
+        vertexBuffer = bb.asFloatBuffer();
+        vertexBuffer.put(vertices);
+        vertexBuffer.position(0);
+
+        indices = new short[]{0, 1, 2, 0, 2, 3};
+
+        // initialize byte buffer for the draw list
+        ByteBuffer dlb = ByteBuffer.allocateDirect(indices.length * 2);
+
+        dlb.order(ByteOrder.nativeOrder());
+        drawListBuffer = dlb.asShortBuffer();
+        drawListBuffer.put(indices);
+        drawListBuffer.position(0);
     }
 
-    public void setToDestroy(WorldMap worldMap, boolean toDestroy) {
-        this.toDestroy = toDestroy;
+    public static void initialize() {
+        programId = GLES20.glCreateProgram();
+        int vertexShaderId = RenderUtils.loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
+        int fragmentShaderId = RenderUtils.loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+        GLES20.glAttachShader(programId, vertexShaderId);
+        GLES20.glAttachShader(programId, fragmentShaderId);
+        GLES20.glLinkProgram(programId);
+        GLES20.glUseProgram(programId);
+        Entity.positionLocation = GLES20.glGetAttribLocation(programId, "positionCoordinate");
+        Entity.textureLocation = GLES20.glGetAttribLocation(programId, "textureCoordinateVertex");
+        Entity.matrixLocation = GLES20.glGetUniformLocation(programId, "matrix");
+        Entity.alphaLocation = GLES20.glGetUniformLocation(programId, "opacity");
+        Entity.animationFrameLocation = GLES20.glGetUniformLocation(programId, "animationFrame");
+        Entity.rowCountLocation = GLES20.glGetUniformLocation(programId, "rowCount");
+        Entity.colCountLocation = GLES20.glGetUniformLocation(programId, "colCount");
+        Entity.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
     }
-
-    public boolean getToDestroy() {
-        return toDestroy;
-    }
+    //endregion
 }

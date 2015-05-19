@@ -35,6 +35,13 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     private static final String TAG = Renderer.class.getCanonicalName();
 
+    private static final int NUM_TEXTURES = 5;
+    private static final int TEXTURE_MAP = 0;
+    private static final int TEXTURE_PLAYER = 1;
+    private static final int TEXTURE_ATTACKS = 2;
+    private static final int TEXTURE_MOBS = 3;
+    private static final int TEXTURE_ITEMS = 4;
+
     private static final int TILES_IN_ROW = 57;
     private static final int TILES_IN_COL = 31;
 
@@ -87,12 +94,12 @@ public class Renderer implements GLSurfaceView.Renderer {
     private float offsetCameraY;
     private WorldMap worldMap;
     private boolean isInitialized;
-    private final List<Entity> entities;
+    private final List<Entity> entityMobs;
 
     public Renderer(Activity activity) {
         super();
         this.activity = activity;
-        entities = new ArrayList<>();
+        entityMobs = new ArrayList<>();
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
         tileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 32, activity.getResources().getDisplayMetrics());
@@ -126,10 +133,16 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         for (Rect room : worldMap.getRooms()) {
 
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX(), room.exactCenterY()), textureNames[3], 4f, 4f, room, 8));
-            entities.add(new MobAggressive(tileSize, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1), textureNames[3], 4f, 4f, room, 8));
+            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
+                    MobAggressive.HEIGHT_RATIO,
+                    new PointF(room.exactCenterX(), room.exactCenterY()), 4f, 4f,
+                    room, 8));
+            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
+                    MobAggressive.HEIGHT_RATIO,
+                    new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1),
+                    4f, 4f, room, 8));
 
-            worldMap.addItem(new Item("TestItem", 0, 0, 0, 0, tileSize, 1.0f, 1.0f, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2), textureNames[2], 1f, 1f, 0));
+            worldMap.addItem(new Item("TestItem", 0, 0, 0, 0, tileSize, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2)));
         }
 
         byte[][] walls = worldMap.getWalls();
@@ -168,7 +181,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         Log.d(TAG, "playerX: " + playerX);
         Log.d(TAG, "playerY: " + playerY);
 
-        player = new Player(tileSize, textureNames[1], new PointF(playerX, playerY));
+        player = new Player(tileSize, new PointF(playerX, playerY));
         offsetCameraX = playerX - Player.OUT_BOUND_X;
         offsetCameraY = playerY - Player.OUT_BOUND_Y;
 
@@ -189,13 +202,13 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, screenWidth, screenHeight);
 
         android.opengl.Matrix.orthoM(matrixProjection,
-                                     0,
-                                     0,
-                                     screenWidth,
-                                     0,
-                                     screenHeight,
-                                     0f,
-                                     500f * 2);
+                0,
+                0,
+                screenWidth,
+                0,
+                screenHeight,
+                0f,
+                500f * 2);
 
         setCamera();
 
@@ -313,11 +326,11 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, positionBuffer.capacity() * BYTES_PER_FLOAT,
-                            positionBuffer, GLES20.GL_STATIC_DRAW);
+                positionBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, textureBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, textureBuffer.capacity() * BYTES_PER_FLOAT,
-                            textureBuffer, GLES20.GL_STATIC_DRAW);
+                textureBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
     }
@@ -344,21 +357,49 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 
         android.opengl.Matrix.multiplyMM(matrixProjectionAndView,
-                                         0,
-                                         matrixProjection,
-                                         0,
-                                         matrixView,
-                                         0);
+                0,
+                matrixProjection,
+                0,
+                matrixView,
+                0);
 
         renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
                 .size() * 18);
 
-        worldMap.render(this, matrixProjection, matrixView);
+        renderEntities();
+
+        renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
+                .size() * 18);
+    }
+
+    private void renderEntities() {
+
+        GLES20.glUseProgram(Entity.getProgram());
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ITEMS]);
+
+        worldMap.renderItems(this, matrixProjection, matrixView);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_PLAYER]);
 
         player.render(this, matrixProjection, matrixView);
 
-        synchronized (entities) {
-            Iterator<Entity> iterator = entities.iterator();
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ATTACKS]);
+
+        synchronized (player.getAttacks()) {
+            Iterator<Attack> iterator =  player.getAttacks().iterator();
+            while (iterator.hasNext()) {
+                Attack attack = iterator.next();
+                attack.render(this, matrixProjection, matrixView);
+                if (attack.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_MOBS]);
+
+        synchronized (entityMobs) {
+            Iterator<Entity> iterator = entityMobs.iterator();
             while (iterator.hasNext()) {
                 Entity entity = iterator.next();
                 entity.render(this, matrixProjection, matrixView);
@@ -367,9 +408,6 @@ public class Renderer implements GLSurfaceView.Renderer {
                 }
             }
         }
-
-        renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
-                .size() * 18);
     }
 
     private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
@@ -413,8 +451,8 @@ public class Renderer implements GLSurfaceView.Renderer {
     }
 
     private void loadTextures() {
-        textureNames = new int[4];
-        GLES20.glGenTextures(4, textureNames, 0);
+        textureNames = new int[NUM_TEXTURES];
+        GLES20.glGenTextures(NUM_TEXTURES, textureNames, 0);
 
         // TODO: Scale check for maximum texture size
         int[] maxTextureSize = new int[1];
@@ -426,22 +464,26 @@ public class Renderer implements GLSurfaceView.Renderer {
         options.inScaled = false;
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                                                           R.drawable.texture_sheet, options),
-                              textureNames[0]);
+                        R.drawable.texture_sheet, options),
+                textureNames[TEXTURE_MAP]);
 
         GLES20.glUseProgram(Entity.getProgram());
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                                                           R.drawable.character_sheet, options),
-                              textureNames[1]);
+                        R.drawable.character_sheet, options),
+                textureNames[TEXTURE_PLAYER]);
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                                                           R.drawable.attack_sheet, options),
-                              textureNames[2]);
+                        R.drawable.attack_sheet, options),
+                textureNames[TEXTURE_ATTACKS]);
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                                                           R.drawable.mob_sheet, options),
-                              textureNames[3]);
+                        R.drawable.mob_sheet, options),
+                textureNames[TEXTURE_MOBS]);
+
+        bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
+                        R.drawable.item_sheet, options),
+                textureNames[TEXTURE_ITEMS]);
 
     }
 
@@ -505,13 +547,13 @@ public class Renderer implements GLSurfaceView.Renderer {
         return worldMap;
     }
 
-    public List<Entity> getEntities() {
-        return entities;
+    public List<Entity> getEntityMobs() {
+        return entityMobs;
     }
 
     public void addEntity(AttackRanged attackRanged) {
-        synchronized (entities) {
-            entities.add(attackRanged);
+        synchronized (entityMobs) {
+            entityMobs.add(attackRanged);
         }
     }
 }
