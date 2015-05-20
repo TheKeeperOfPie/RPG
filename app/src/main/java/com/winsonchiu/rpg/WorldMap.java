@@ -144,6 +144,20 @@ public class WorldMap {
         return walls[point.x][point.y] == COLLIDE;
     }
 
+    public boolean isCollide(Point... points) {
+
+        boolean isCollide = false;
+
+        for (Point point : points) {
+            if (isCollide(point)) {
+                isCollide = true;
+                break;
+            }
+        }
+
+        return isCollide;
+    }
+
     public void generateRectangular() {
 
         generateRooms();

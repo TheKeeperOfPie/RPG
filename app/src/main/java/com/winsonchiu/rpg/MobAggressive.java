@@ -39,12 +39,12 @@ public class MobAggressive extends Entity {
     @Override
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-        calculateNextPosition(renderer);
+        calculateNextPosition(renderer, matrixProjection, matrixView);
 
         super.render(renderer, matrixProjection, matrixView);
     }
 
-    private void calculateNextPosition(Renderer renderer) {
+    private void calculateNextPosition(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
 
         Player player = renderer.getPlayer();
@@ -56,7 +56,10 @@ public class MobAggressive extends Entity {
                 playerLocation.y < getLocation().y + searchRadius &&
                 playerLocation.y > getLocation().y - searchRadius) {
 
-            if (!doesLineIntersectWalls(getLocation(), playerLocation, walls)) {
+            if (!doesLineIntersectWalls(getLocation(), playerLocation, walls) &&
+                    !doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y + getHeightRatio()), new PointF(playerLocation.x + getWidthRatio(), playerLocation.y + getHeightRatio()), walls) &&
+                    !doesLineIntersectWalls(new PointF(getLocation().x, getLocation().y + getHeightRatio()), new PointF(playerLocation.x, playerLocation.y + getHeightRatio()), walls) &&
+                    !doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y), new PointF(playerLocation.x + getWidthRatio(), playerLocation.y), walls)) {
                 targetLocation.set(playerLocation.x, playerLocation.y);
                 isAlerted = true;
             }
@@ -78,12 +81,23 @@ public class MobAggressive extends Entity {
 //            }
         }
 
-        if (doesLineIntersectWalls(getLocation(), targetLocation, walls)) {
+        if (doesLineIntersectWalls(getLocation(), targetLocation, walls) ||
+                doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y + getHeightRatio()), new PointF(targetLocation.x + getWidthRatio(), targetLocation.y + getHeightRatio()), walls) ||
+                doesLineIntersectWalls(new PointF(getLocation().x, getLocation().y + getHeightRatio()), new PointF(targetLocation.x, targetLocation.y + getHeightRatio()), walls) ||
+                doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y), new PointF(targetLocation.x + getWidthRatio(), targetLocation.y), walls)) {
             return;
         }
 
         long timeDifference = (System.currentTimeMillis() - getLastFrameTime());
         float offset = timeDifference * getMovementSpeed();
+
+        PointF storeLocation = new PointF(getLocation().x, getLocation().y);
+
+        getLocation().set(targetLocation.x, targetLocation.y);
+
+        super.render(renderer, matrixProjection, matrixView);
+
+        getLocation().set(storeLocation.x, storeLocation.y);
 
         float differenceX = targetLocation.x - getLocation().x;
         float differenceY = targetLocation.y - getLocation().y;
@@ -112,16 +126,58 @@ public class MobAggressive extends Entity {
 
         calculateAnimationFrame();
 
-        calculateRaytrace(renderer.getWorldMap());
+        WorldMap worldMap = renderer.getWorldMap();
+        boolean moveX = true;
+        boolean moveY = true;
 
-        RectF newBoundsX = new RectF(calculatedX, getLocation().y,
+        float centerX = getLocation().x + getWidthRatio() / 2;
+        float centerY = getLocation().y + getHeightRatio() / 2;
+        float radiusX = getWidthRatio() / 2 + 0.2f;
+        float radiusY = getHeightRatio() / 2 + 0.2f;
+
+        Point topLeft = new Point((int) (centerX - radiusX), (int) (centerY + radiusY));
+        Point top = new Point((int) (centerX), (int) (centerY + radiusY));
+        Point topRight = new Point((int) (centerX + radiusX), (int) (centerY + radiusY));
+        Point left = new Point((int) (centerX - radiusX), (int) (centerY));
+        Point right = new Point((int) (centerX + radiusX), (int) (centerY));
+        Point bottomLeft = new Point((int) (centerX - radiusX), (int) (centerY - radiusY));
+        Point bottom = new Point((int) (centerX), (int) (centerY - radiusY));
+        Point bottomRight = new Point((int) (centerX + radiusX), (int) (centerY - radiusY));
+
+        if (worldMap.isCollide(left) && getMovementX() < 0) {
+            calculatedY += getOffsetY();
+            moveX = false;
+        }
+        else if (worldMap.isCollide(right) && getMovementX() > 0) {
+            calculatedY += getOffsetY();
+            moveX = false;
+        }
+
+        if (worldMap.isCollide(top) && getMovementY() > 0) {
+            calculatedX += getOffsetX();
+            moveY = false;
+        }
+        else if (worldMap.isCollide(bottom) && getMovementY() < 0) {
+            calculatedX += getOffsetX();
+            moveY = false;
+        }
+
+        RectF newBounds = new RectF(calculatedX, calculatedY,
                 calculatedX + getWidthRatio(),
-                getLocation().y + getHeightRatio());
-        RectF newBoundsY = new RectF(getLocation().x, calculatedY,
-                getLocation().x + getWidthRatio(),
                 calculatedY + getHeightRatio());
 
-        if (RectF.intersects(player.getBounds(), newBoundsX) || RectF.intersects(player.getBounds(), newBoundsY)) {
+//        RectF newBoundsX = new RectF(calculatedX, getLocation().y,
+//                calculatedX + getWidthRatio(),
+//                getLocation().y + getHeightRatio());
+//        RectF newBoundsY = new RectF(getLocation().x, calculatedY,
+//                getLocation().x + getWidthRatio(),
+//                calculatedY + getHeightRatio());
+
+//        if (RectF.intersects(player.getBounds(), newBoundsX) || RectF.intersects(player.getBounds(), newBoundsY)) {
+//            return;
+//        }
+
+        if (RectF.intersects(player.getBounds(), newBounds)) {
             return;
         }
 
@@ -130,46 +186,68 @@ public class MobAggressive extends Entity {
 
         for (Entity entity : renderer.getEntityMobs()) {
             if (entity != this) {
-                if (RectF.intersects(entity.getBounds(), newBoundsX)) {
-                    calculatedY += getOffsetX();
+                if (RectF.intersects(entity.getBounds(), newBounds)) {
                     collidesX = true;
-//                    if (!isAlerted) {
-//                        targetLocation.set(getLocation().x, getLocation().y);
-//                    }
-//                    break;
-                }
-                if (RectF.intersects(entity.getBounds(), newBoundsY)) {
-                    calculatedX += getOffsetY();
                     collidesY = true;
-//                    if (!isAlerted) {
-//                        targetLocation.set(getLocation().x, getLocation().y);
-//                    }
-//                    break;
                 }
+
+//                if (RectF.intersects(entity.getBounds(), newBoundsX)) {
+//                    calculatedY += -2 * getOffsetY();
+//                    collidesX = true;
+////                    if (!isAlerted) {
+////                        targetLocation.set(getLocation().x, getLocation().y);
+////                    }
+////                    break;
+//                }
+//                if (RectF.intersects(entity.getBounds(), newBoundsY)) {
+//                    calculatedX += -2 * getOffsetX();
+//                    collidesY = true;
+////                    if (!isAlerted) {
+////                        targetLocation.set(getLocation().x, getLocation().y);
+////                    }
+////                    break;
+//                }
             }
         }
 
-        if (!collidesX) {
+        if (moveX && !collidesX) {
             getLocation().set(calculatedX, getLocation().y);
         }
-        if (!collidesY) {
+
+        if (moveY && !collidesY) {
             getLocation().set(getLocation().x, calculatedY);
         }
 
     }
 
-    private void calculateRaytrace(WorldMap worldMap) {
-
-        Point topLeft = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y + 0.2f));
-        Point top = new Point((int) (getLocation().x), (int) (getLocation().y + 0.2f));
-        Point topRight = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y + 0.2f));
-        Point left = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y));
-        Point right = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y));
-        Point bottomLeft = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y - 0.2f));
-        Point bottom = new Point((int) (getLocation().x), (int) (getLocation().y - 0.2f));
-        Point bottomRight = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y - 0.2f));
-
-    }
+//    private void calculateRaytrace(WorldMap worldMap) {
+//
+//        Point topLeft = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y + 0.2f));
+//        Point top = new Point((int) (getLocation().x), (int) (getLocation().y + 0.2f));
+//        Point topRight = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y + 0.2f));
+//        Point left = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y));
+//        Point right = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y));
+//        Point bottomLeft = new Point((int) (getLocation().x - 0.2f), (int) (getLocation().y - 0.2f));
+//        Point bottom = new Point((int) (getLocation().x), (int) (getLocation().y - 0.2f));
+//        Point bottomRight = new Point((int) (getLocation().x + 0.2f), (int) (getLocation().y - 0.2f));
+//
+//        if (worldMap.isCollide(topLeft, left, bottomLeft) && getMovementX() < 0) {
+//            moveX = false;
+//        }
+//
+//        if (worldMap.isCollide(topRight, right, bottomRight) && getMovementX() > 0) {
+//            moveX = false;
+//        }
+//
+//        if (worldMap.isCollide(topLeft, top, topRight) && getMovementY() > 0) {
+//            moveY = false;
+//        }
+//
+//        if (worldMap.isCollide(bottomLeft, bottom, bottomRight) && getMovementY() < 0) {
+//            moveY = false;
+//        }
+//
+//    }
 
     private void calculateAnimationFrame() {
         double angle = Math.atan(getOffsetY() / getOffsetX());
