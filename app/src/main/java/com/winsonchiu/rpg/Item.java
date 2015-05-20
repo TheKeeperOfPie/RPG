@@ -12,8 +12,8 @@ public class Item extends Entity {
 
     private static final float WIDTH_RATIO = 0.75f;
     private static final float HEIGHT_RATIO = 0.75f;
-    private static final float TEXTURE_ROW_COUNT = 15f;
-    private static final float TEXTURE_COL_COUNT = 30f;
+    private static final float TEXTURE_ROW_COUNT = 14f;
+    private static final float TEXTURE_COL_COUNT = 29f;
 
     private String name;
     private int healthBoost;
@@ -23,7 +23,7 @@ public class Item extends Entity {
     private int resourceId;
     private int quantity = 1;
 
-    public Item(String name, int healthBoost, int armorBoost, int damageBoost, int speedBoost, int tileSize, PointF location) {
+    public Item(String name, int id, int healthBoost, int armorBoost, int damageBoost, int speedBoost, int tileSize, PointF location) {
         super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x + 0.125f, location.y + 0.125f), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
         this.name = name;
@@ -31,6 +31,7 @@ public class Item extends Entity {
         this.armorBoost = armorBoost;
         this.damageBoost = damageBoost;
         this.speedBoost = speedBoost;
+        setLastAnimationFrame(id);
     }
 
     @Override

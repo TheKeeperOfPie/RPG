@@ -26,10 +26,19 @@ public class MobAggressive extends Entity {
     private Point homeLocation;
     private boolean isAlerted;
 
-    public MobAggressive(int health, int armor, int tileSize, float widthRatio, float heightRatio, PointF location, float textureRowCount, float textureColCount, Rect room, int searchRadius) {
+    public MobAggressive(int health,
+            int armor,
+            int tileSize,
+            float widthRatio,
+            float heightRatio,
+            PointF location,
+            float textureRowCount,
+            float textureColCount,
+            Rect room,
+            int searchRadius) {
         super(health, armor, tileSize, widthRatio, heightRatio, location, textureRowCount,
-              textureColCount,
-              SPEED);
+                textureColCount,
+                SPEED);
         this.homeLocation = new Point((int) location.x, (int) location.y);
         this.targetLocation = new PointF(location.x, location.y);
         this.homeRoom = new RectF(room.left, room.top, room.right, room.bottom);
@@ -39,34 +48,91 @@ public class MobAggressive extends Entity {
     @Override
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-        calculateNextPosition(renderer, matrixProjection, matrixView);
+        if (System.currentTimeMillis() > getStunEndTime()) {
+            calculateNextPosition(renderer, matrixProjection, matrixView);
+        }
 
         super.render(renderer, matrixProjection, matrixView);
     }
 
-    private void calculateNextPosition(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+    @Override
+    public List<Item> calculateDrops() {
+
+        List<Item> drops = new ArrayList<>();
+
+        drops.add(new Item("Gold", 130, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+
+        return drops;
+    }
+
+    private void calculateNextPosition(Renderer renderer,
+            float[] matrixProjection,
+            float[] matrixView) {
 
 
         Player player = renderer.getPlayer();
         PointF playerLocation = player.getLocation();
-        byte[][] walls = renderer.getWorldMap().getWalls();
+        byte[][] walls = renderer.getWorldMap()
+                .getWalls();
+
+        WorldMap worldMap = renderer.getWorldMap();
 
         if (playerLocation.x < getLocation().x + searchRadius &&
                 playerLocation.x > getLocation().x - searchRadius &&
                 playerLocation.y < getLocation().y + searchRadius &&
                 playerLocation.y > getLocation().y - searchRadius) {
 
-            if (!doesLineIntersectWalls(getLocation(), playerLocation, walls) &&
-                    !doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y + getHeightRatio()), new PointF(playerLocation.x + getWidthRatio(), playerLocation.y + getHeightRatio()), walls) &&
-                    !doesLineIntersectWalls(new PointF(getLocation().x, getLocation().y + getHeightRatio()), new PointF(playerLocation.x, playerLocation.y + getHeightRatio()), walls) &&
-                    !doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y), new PointF(playerLocation.x + getWidthRatio(), playerLocation.y), walls)) {
-                targetLocation.set(playerLocation.x, playerLocation.y);
+            PointF newTargetLocation = new PointF(playerLocation.x, playerLocation.y);//new PointF(((int) playerLocation.x) + 0.2f, ((int) playerLocation.y) + 0.2f);
+
+            float centerX = newTargetLocation.x + getWidthRatio() / 2;
+            float centerY = newTargetLocation.y + getHeightRatio() / 2;
+            float radiusX = getWidthRatio() / 2 + 0.2f;
+            float radiusY = getHeightRatio() / 2 + 0.2f;
+
+            Point topLeft = new Point((int) (centerX - radiusX), (int) (centerY + radiusY));
+            Point top = new Point((int) (centerX), (int) (centerY + radiusY));
+            Point topRight = new Point((int) (centerX + radiusX), (int) (centerY + radiusY));
+            Point left = new Point((int) (centerX - radiusX), (int) (centerY));
+            Point right = new Point((int) (centerX + radiusX), (int) (centerY));
+            Point bottomLeft = new Point((int) (centerX - radiusX), (int) (centerY - radiusY));
+            Point bottom = new Point((int) (centerX), (int) (centerY - radiusY));
+            Point bottomRight = new Point((int) (centerX + radiusX), (int) (centerY - radiusY));
+
+            if (worldMap.isCollide(topLeft)) {
+                newTargetLocation.offset(0.1f, -0.1f);
+            }
+            else if (worldMap.isCollide(bottomLeft)) {
+                newTargetLocation.offset(0.1f, 0.1f);
+            }
+
+            if (worldMap.isCollide(topRight)) {
+                newTargetLocation.offset(-0.1f, -0.1f);
+            }
+            else if (worldMap.isCollide(bottomRight)) {
+                newTargetLocation.offset(-0.1f, 0.1f);
+            }
+
+            if (!doesLineIntersectWalls(getLocation(), newTargetLocation, walls) &&
+                    !doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(),
+                            getLocation().y + getHeightRatio()),
+                            new PointF(newTargetLocation.x + getWidthRatio(),
+                                    newTargetLocation.y + getHeightRatio()), walls) &&
+                    !doesLineIntersectWalls(
+                            new PointF(getLocation().x, getLocation().y + getHeightRatio()),
+                            new PointF(newTargetLocation.x, newTargetLocation.y + getHeightRatio()),
+                            walls) &&
+                    !doesLineIntersectWalls(
+                            new PointF(getLocation().x + getWidthRatio(), getLocation().y),
+                            new PointF(newTargetLocation.x + getWidthRatio(), newTargetLocation.y),
+                            walls)) {
+                targetLocation.set(newTargetLocation.x, newTargetLocation.y);
                 isAlerted = true;
             }
 
         }
         else if (isAlerted) {
-            Point location = searchForTrail(new Point((int) getLocation().x, (int) getLocation().y), renderer.getWorldMap(), renderer);
+            Point location = searchForTrail(new Point((int) getLocation().x, (int) getLocation().y),
+                    renderer.getWorldMap(), renderer);
             if (location != null) {
                 targetLocation.set(location.x, location.y);
             }
@@ -82,9 +148,16 @@ public class MobAggressive extends Entity {
         }
 
         if (doesLineIntersectWalls(getLocation(), targetLocation, walls) ||
-                doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y + getHeightRatio()), new PointF(targetLocation.x + getWidthRatio(), targetLocation.y + getHeightRatio()), walls) ||
-                doesLineIntersectWalls(new PointF(getLocation().x, getLocation().y + getHeightRatio()), new PointF(targetLocation.x, targetLocation.y + getHeightRatio()), walls) ||
-                doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(), getLocation().y), new PointF(targetLocation.x + getWidthRatio(), targetLocation.y), walls)) {
+                doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(),
+                        getLocation().y + getHeightRatio()),
+                        new PointF(targetLocation.x + getWidthRatio(),
+                                targetLocation.y + getHeightRatio()), walls) ||
+                doesLineIntersectWalls(
+                        new PointF(getLocation().x, getLocation().y + getHeightRatio()),
+                        new PointF(targetLocation.x, targetLocation.y + getHeightRatio()), walls) ||
+                doesLineIntersectWalls(
+                        new PointF(getLocation().x + getWidthRatio(), getLocation().y),
+                        new PointF(targetLocation.x + getWidthRatio(), targetLocation.y), walls)) {
             return;
         }
 
@@ -120,62 +193,129 @@ public class MobAggressive extends Entity {
         float calculatedY = getLocation().y + getOffsetY();
         float calculatedX = getLocation().x + getOffsetX();
 
-        if (calculatedX < 0 || calculatedY < 0 || calculatedX >= renderer.getWorldMap().getWidth() || calculatedY >= renderer.getWorldMap().getHeight()) {
+        if (calculatedX < 0 || calculatedY < 0 || calculatedX >= renderer.getWorldMap()
+                .getWidth() || calculatedY >= renderer.getWorldMap()
+                .getHeight()) {
             return;
         }
 
         calculateAnimationFrame();
 
-        WorldMap worldMap = renderer.getWorldMap();
         boolean moveX = true;
         boolean moveY = true;
 
         float centerX = getLocation().x + getWidthRatio() / 2;
         float centerY = getLocation().y + getHeightRatio() / 2;
-        float radiusX = getWidthRatio() / 2 + 0.2f;
-        float radiusY = getHeightRatio() / 2 + 0.2f;
+        float radiusX = getWidthRatio() / 2 + 1f;
+        float radiusY = getHeightRatio() / 2 + 1f;
 
         Point topLeft = new Point((int) (centerX - radiusX), (int) (centerY + radiusY));
-        Point top = new Point((int) (centerX), (int) (centerY + radiusY));
+        Point topLeftMost = new Point((int) (centerX - getWidthRatio() / 2), (int) (centerY + radiusY));
+//        Point top = new Point((int) (centerX), (int) (centerY + radiusY));
+        Point topRightMost = new Point((int) (centerX + getWidthRatio() / 2), (int) (centerY + radiusY));
         Point topRight = new Point((int) (centerX + radiusX), (int) (centerY + radiusY));
-        Point left = new Point((int) (centerX - radiusX), (int) (centerY));
-        Point right = new Point((int) (centerX + radiusX), (int) (centerY));
+        Point leftUpper = new Point((int) (centerX - radiusX), (int) (centerY + getHeightRatio() / 2));
+//        Point left = new Point((int) (centerX - radiusX), (int) (centerY));
+        Point leftLower = new Point((int) (centerX - radiusX), (int) (centerY - getHeightRatio() / 2));
+        Point rightUpper = new Point((int) (centerX + radiusX), (int) (centerY + getHeightRatio() / 2));
+//        Point right = new Point((int) (centerX + radiusX), (int) (centerY));
+        Point rightLower = new Point((int) (centerX + radiusX), (int) (centerY - getHeightRatio() / 2));
         Point bottomLeft = new Point((int) (centerX - radiusX), (int) (centerY - radiusY));
-        Point bottom = new Point((int) (centerX), (int) (centerY - radiusY));
+        Point bottomLeftMost = new Point((int) (centerX - getWidthRatio() / 2), (int) (centerY - radiusY));
+//        Point bottom = new Point((int) (centerX), (int) (centerY - radiusY));
+        Point bottomRightMost = new Point((int) (centerX + getWidthRatio() / 2), (int) (centerY - radiusY));
         Point bottomRight = new Point((int) (centerX + radiusX), (int) (centerY - radiusY));
 
-        if (worldMap.isCollide(left) && getMovementX() < 0) {
-            calculatedY += getOffsetY();
+        if (worldMap.isCollide(leftUpper, leftLower) && getMovementX() < 0) {
+//            calculatedY += getOffsetY();
+//            Log.d(TAG, "Collide left");
             moveX = false;
         }
-        else if (worldMap.isCollide(right) && getMovementX() > 0) {
-            calculatedY += getOffsetY();
+        else if (worldMap.isCollide(rightUpper, rightLower) && getMovementX() > 0) {
+//            calculatedY += getOffsetY();
+//            Log.d(TAG, "Collide right");
             moveX = false;
         }
 
-        if (worldMap.isCollide(top) && getMovementY() > 0) {
-            calculatedX += getOffsetX();
+        if (worldMap.isCollide(topLeftMost, topRightMost) && getMovementY() > 0) {
+//            calculatedX += getOffsetX();
+//            Log.d(TAG, "Collide top");
             moveY = false;
         }
-        else if (worldMap.isCollide(bottom) && getMovementY() < 0) {
-            calculatedX += getOffsetX();
+        else if (worldMap.isCollide(bottomLeftMost, bottomRightMost) && getMovementY() < 0) {
+//            calculatedX += getOffsetX();
+//            Log.d(TAG, "Collide bottom");
             moveY = false;
         }
+
+//        if (worldMap.isCollide(bottomLeft) && !worldMap.isCollide(topLeft) && getMovementX() < 0) {
+//            calculatedX += Math.abs(getOffsetX());
+//            calculatedY += Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide bottomLeft not topLeft");
+//        }
+//        else if (worldMap.isCollide(topLeft) && !worldMap.isCollide(bottomLeft) && getMovementX() < 0) {
+//            calculatedX += Math.abs(getOffsetX());
+//            calculatedY -= Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide topLeft not bottomLeft");
+//        }
+
+//        if (worldMap.isCollide(bottomRight) && !worldMap.isCollide(topRight) && getMovementX() > 0) {
+//            calculatedX -= Math.abs(getOffsetX());
+//            calculatedY += Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide bottomRight not topRight");
+//        }
+//        else if (worldMap.isCollide(topRight) && !worldMap.isCollide(bottomRight) && getMovementX() > 0) {
+//            calculatedX -= Math.abs(getOffsetX());
+//            calculatedY -= Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide topRight not bottomRight");
+//        }
+//
+//        if (worldMap.isCollide(bottomLeft) && !worldMap.isCollide(bottomRight) && getMovementY() < 0) {
+//            calculatedX += Math.abs(getOffsetX());
+//            calculatedY += Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide bottomLeft not bottomRight");
+//        }
+//        else if (worldMap.isCollide(bottomRight) && !worldMap.isCollide(bottomLeft) && getMovementY() < 0) {
+//            calculatedX -= Math.abs(getOffsetX());
+//            calculatedY += Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide bottomRight not bottomLeft");
+//        }
+//
+//        if (worldMap.isCollide(topLeft) && !worldMap.isCollide(topRight) && getMovementY() > 0) {
+//            calculatedX += Math.abs(getOffsetX());
+//            calculatedY -= Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide topLeft not topRight");
+//        }
+//        else if (worldMap.isCollide(topRight) && !worldMap.isCollide(topLeft) && getMovementY() > 0) {
+//            calculatedX -= Math.abs(getOffsetX());
+//            calculatedY -= Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide topRight not topLeft");
+//        }
+
+//        if (worldMap.isCollide(topLeft) && getMovementX() < 0 && getMovementY() > 0) {
+//            calculatedX -= 2 * getOffsetX();
+//            calculatedY -= 2 * getOffsetY();
+//            Log.d(TAG, "Collide topLeft");
+//        }
+//        else if (worldMap.isCollide(topRight) && getMovementX() > 0 && getMovementY() > 0) {
+//            calculatedX -= 2 * getOffsetX();
+//            calculatedY -= 2 * getOffsetY();
+//            Log.d(TAG, "Collide topRight");
+//        }
+//        else if (worldMap.isCollide(bottomLeft) && !worldMap.isCollide(left) && !worldMap.isCollide(bottom)&& getMovementX() < 0 && getMovementY() < 0) {
+//            calculatedX -= 2 * getOffsetX();
+//            calculatedY -= 2 * getOffsetY();
+//            Log.d(TAG, "Collide bottomLeft");
+//        }
+//        else if (worldMap.isCollide(bottomRight) && getMovementX() > 0 && getMovementY() < 0) {
+//            calculatedX -= 2 * getOffsetX();
+//            calculatedY -= 2 * getOffsetY();
+//            Log.d(TAG, "Collide bottomRight");
+//        }
 
         RectF newBounds = new RectF(calculatedX, calculatedY,
                 calculatedX + getWidthRatio(),
                 calculatedY + getHeightRatio());
-
-//        RectF newBoundsX = new RectF(calculatedX, getLocation().y,
-//                calculatedX + getWidthRatio(),
-//                getLocation().y + getHeightRatio());
-//        RectF newBoundsY = new RectF(getLocation().x, calculatedY,
-//                getLocation().x + getWidthRatio(),
-//                calculatedY + getHeightRatio());
-
-//        if (RectF.intersects(player.getBounds(), newBoundsX) || RectF.intersects(player.getBounds(), newBoundsY)) {
-//            return;
-//        }
 
         if (RectF.intersects(player.getBounds(), newBounds)) {
             return;
@@ -184,31 +324,113 @@ public class MobAggressive extends Entity {
         boolean collidesX = false;
         boolean collidesY = false;
 
+        float boundOffset = 0.1f;
+
+        RectF boundLeft = new RectF(getLocation().x - boundOffset, getLocation().y,
+                getLocation().x - boundOffset + getWidthRatio(),
+                getLocation().y + getHeightRatio());
+
+        RectF boundRight = new RectF(getLocation().x + boundOffset, getLocation().y,
+                getLocation().x + boundOffset + getWidthRatio(),
+                getLocation().y + getHeightRatio());
+
+        RectF boundUp = new RectF(getLocation().x, getLocation().y + boundOffset,
+                getLocation().x + getWidthRatio(),
+                getLocation().y + boundOffset + getHeightRatio());
+
+        RectF boundDown = new RectF(getLocation().x, getLocation().y - boundOffset,
+                getLocation().x + getWidthRatio(),
+                getLocation().y - boundOffset + getHeightRatio());
+
         for (Entity entity : renderer.getEntityMobs()) {
             if (entity != this) {
-                if (RectF.intersects(entity.getBounds(), newBounds)) {
-                    collidesX = true;
-                    collidesY = true;
+                if (RectF.intersects(entity.getBounds(), boundLeft) && !RectF.intersects(entity.getBounds(), boundRight)) {
+                    calculatedX += 2 * Math.abs(getOffsetX());
+                    Log.d(TAG, "Collide boundLeft");
+                }
+                else if (RectF.intersects(entity.getBounds(), boundRight) && !RectF.intersects(entity.getBounds(), boundLeft)) {
+                    calculatedX -= 2 * Math.abs(getOffsetX());
+                    Log.d(TAG, "Collide boundRight");
                 }
 
+                if (RectF.intersects(entity.getBounds(), boundUp) && !RectF.intersects(entity.getBounds(), boundDown)) {
+                    calculatedY -= 2 * Math.abs(getOffsetY());
+                    Log.d(TAG, "Collide boundUp");
+                }
+                if (RectF.intersects(entity.getBounds(), boundDown) && !RectF.intersects(entity.getBounds(), boundUp)) {
+                    calculatedY += 2 * Math.abs(getOffsetY());
+                    Log.d(TAG, "Collide boundDown");
+                }
+
+//                if (RectF.intersects(entity.getBounds(), boundX)) {
+////                    calculatedY += getOffsetY();
+////                    calculatedX = getLocation().x;
+//                    moveX = false;
+//                }
+//                if (RectF.intersects(entity.getBounds(), boundY)) {
+////                    calculatedX += getOffsetX();
+////                    calculatedY = getLocation().y;
+//                    moveY = false;
+//                }
+            }
+        }
+//
+//        newBounds = new RectF(calculatedX, calculatedY,
+//                calculatedX + getWidthRatio(),
+//                calculatedY + getHeightRatio());
+//
+//        for (Entity entity : renderer.getEntityMobs()) {
+//            if (entity != this) {
+//                if (RectF.intersects(entity.getBounds(), newBounds)) {
+//                    collidesX = true;
+//                    collidesY = true;
+//                }
+//            }
+//        }
+
+//        RectF newBoundsX = new RectF(calculatedX, getLocation().y,
+//                calculatedX + getWidthRatio(),
+//                getLocation().y + getHeightRatio());
+//        RectF newBoundsNewX = new RectF(calculatedX, calculatedY,
+//                calculatedX + getWidthRatio(),
+//                calculatedY + getHeightRatio());
+//        RectF newBoundsY = new RectF(getLocation().x, calculatedY,
+//                getLocation().x + getWidthRatio(),
+//                calculatedY + getHeightRatio());
+//        RectF newBoundsNewY = new RectF(calculatedX, calculatedY,
+//                calculatedX + getWidthRatio(),
+//                calculatedY + getHeightRatio());
+//
+////        if (RectF.intersects(player.getBounds(), newBoundsX) || RectF.intersects(player.getBounds(), newBoundsY)) {
+////            return;
+////        }
+//
+//        for (Entity entity : renderer.getEntityMobs()) {
+//            if (entity != this) {
 //                if (RectF.intersects(entity.getBounds(), newBoundsX)) {
-//                    calculatedY += -2 * getOffsetY();
 //                    collidesX = true;
 ////                    if (!isAlerted) {
 ////                        targetLocation.set(getLocation().x, getLocation().y);
 ////                    }
 ////                    break;
+//                    if (RectF.intersects(entity.getBounds(), newBoundsNewX)) {
+//                        collidesY = true;
+//                    }
+//                    break;
 //                }
 //                if (RectF.intersects(entity.getBounds(), newBoundsY)) {
-//                    calculatedX += -2 * getOffsetX();
 //                    collidesY = true;
 ////                    if (!isAlerted) {
 ////                        targetLocation.set(getLocation().x, getLocation().y);
 ////                    }
 ////                    break;
+//                    if (RectF.intersects(entity.getBounds(), newBoundsNewY)) {
+//                        collidesX = true;
+//                    }
+//                    break;
 //                }
-            }
-        }
+//            }
+//        }
 
         if (moveX && !collidesX) {
             getLocation().set(calculatedX, getLocation().y);
@@ -313,7 +535,8 @@ public class MobAggressive extends Entity {
 
             for (Node node : currentNode.getAdjacentNodes()) {
 
-                if (node.getPoint().equals(homeLocation)) {
+                if (node.getPoint()
+                        .equals(homeLocation)) {
                     node.setParent(currentNode);
                     return getPath(currentNode);
                 }
@@ -326,7 +549,9 @@ public class MobAggressive extends Entity {
                     boolean intersect = false;
 
                     for (Entity entity : renderer.getEntityMobs()) {
-                        if (entity != this && RectF.intersects(entity.getBounds(), new RectF(node.getPoint().x + 0.05f, node.getPoint().y + 0.05f, node.getPoint().x + 0.95f, node.getPoint().y + 0.95f))) {
+                        if (entity != this && RectF.intersects(entity.getBounds(),
+                                new RectF(node.getPoint().x + 0.05f, node.getPoint().y + 0.05f,
+                                        node.getPoint().x + 0.95f, node.getPoint().y + 0.95f))) {
                             intersect = true;
                             break;
                         }
@@ -360,7 +585,8 @@ public class MobAggressive extends Entity {
             Node currentNode = openList.poll();
             int trail = worldMap.getPlayerTrail()[currentNode.getPoint().x][currentNode.getPoint().y];
 
-            if (trail > highestTrail && !doesLineIntersectWalls(getLocation(), new PointF(currentNode.getPoint()), worldMap.getWalls())) {
+            if (trail > highestTrail && !doesLineIntersectWalls(getLocation(),
+                    new PointF(currentNode.getPoint()), worldMap.getWalls())) {
                 end = currentNode.getPoint();
                 highestTrail = trail;
             }
@@ -378,7 +604,8 @@ public class MobAggressive extends Entity {
                         worldMap.getWalls()[node.getPoint().x][node.getPoint().y] != WorldMap.COLLIDE) {
 
                     if (!closedSet.contains(node)) {
-                        node.calculateCostTo(renderer.getPlayer().getLocation());
+                        node.calculateCostTo(renderer.getPlayer()
+                                .getLocation());
                         openList.offer(node);
                         node.setParent(currentNode);
 
@@ -388,9 +615,9 @@ public class MobAggressive extends Entity {
             }
         }
 
-        Log.d(TAG, "highestTrail: " + highestTrail);
+//        Log.d(TAG, "highestTrail: " + highestTrail);
 
-        return end;
+        return highestTrail > 0 ? end : null;
 
     }
 
@@ -406,37 +633,31 @@ public class MobAggressive extends Entity {
         int num = 1;
         double error;
 
-        if (changeX == 0)
-        {
+        if (changeX == 0) {
             increaseX = 0;
             error = Double.POSITIVE_INFINITY;
         }
-        else if (second.x > first.x)
-        {
+        else if (second.x > first.x) {
             increaseX = 1;
             num += (int) second.x - currentX;
             error = ((int) first.x + 1 - first.x) * changeY;
         }
-        else
-        {
+        else {
             increaseX = -1;
             num += currentX - (int) second.x;
             error = (first.x - (int) first.x) * changeY;
         }
 
-        if (changeY == 0)
-        {
+        if (changeY == 0) {
             increaseY = 0;
             error -= Double.POSITIVE_INFINITY;
         }
-        else if (second.y > first.y)
-        {
+        else if (second.y > first.y) {
             increaseY = 1;
             num += (int) second.y - currentY;
             error -= ((int) first.y + 1 - first.y) * changeX;
         }
-        else
-        {
+        else {
             increaseY = -1;
             num += currentY - (int) second.y;
             error -= (first.y - (int) first.y) * changeX;

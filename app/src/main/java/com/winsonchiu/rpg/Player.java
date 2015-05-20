@@ -11,11 +11,11 @@ import java.util.List;
  */
 public class Player extends Entity {
 
-    public static final int OUT_BOUND_X = 3;
-    public static final int OUT_BOUND_Y = 3;
+    public static final int OUT_BOUND_X = 5;
+    public static final int OUT_BOUND_Y = 5;
     public static final float WIDTH_RATIO = 0.59999999999f;
     public static final float HEIGHT_RATIO = 0.9f;
-    private static final float SPEED = 0.01f;
+    private static final float SPEED = 0.007f;
     private static final int BASE_HEALTH = 20;
     private static final int BASE_ARMOR = 1;
 

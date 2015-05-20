@@ -9,11 +9,12 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.List;
 
 /**
  * Created by TheKeeperOfPie on 5/5/2015.
  */
-public class Entity {
+    public class Entity {
 
     public static final String VERTEX_SHADER =
             "uniform mat4 matrix;" +
@@ -24,10 +25,10 @@ public class Entity {
             "uniform int animationFrame;" +
             "varying vec2 textureCoordinateFragment;" +
             "void main() {" +
-            "  gl_Position = matrix * positionCoordinate;" +
-            "  textureCoordinateFragment = textureCoordinateVertex;" +
-            "  textureCoordinateFragment.x = (textureCoordinateVertex.x + float(mod(float(animationFrame), colCount))) / colCount;" +
-            "  textureCoordinateFragment.y = (textureCoordinateVertex.y + float(animationFrame / int(rowCount))) / rowCount;" +
+            "    gl_Position = matrix * positionCoordinate;" +
+            "    textureCoordinateFragment = textureCoordinateVertex;" +
+            "    textureCoordinateFragment.x = (textureCoordinateVertex.x + float(mod(float(animationFrame), colCount))) / colCount;" +
+            "    textureCoordinateFragment.y = (textureCoordinateVertex.y + float(animationFrame / int(colCount))) / rowCount;" +
             "}";
 
     public static final String FRAGMENT_SHADER =
@@ -35,9 +36,13 @@ public class Entity {
             "varying vec2 textureCoordinateFragment;" +
             "uniform float opacity;" +
             "uniform sampler2D texture;" +
+            "uniform float damage;" +
             "void main() {" +
-            "  gl_FragColor = texture2D(texture, textureCoordinateFragment);" +
-            "  gl_FragColor.a *= opacity;" +
+            "    gl_FragColor = texture2D(texture, textureCoordinateFragment);" +
+            "    gl_FragColor.a *= opacity;" +
+            "    if (damage > 0.5f) {" +
+            "        gl_FragColor.r = gl_FragColor.r * 0.5f + 0.5f;" +
+            "    }" +
             "}";
     private static final String TAG = Entity.class.getCanonicalName();
 
@@ -50,6 +55,7 @@ public class Entity {
     private static int animationFrameLocation;
     private static int rowCountLocation;
     private static int colCountLocation;
+    private static int damageLocation;
 
     private float[] matrixProjectionAndView = new float[16];
     private float[] transMatrix = new float[16];
@@ -77,6 +83,8 @@ public class Entity {
     private int health;
     private int armor;
     private float movementSpeed;
+    private long stunEndTime;
+    private long damageEndTime;
 
     public Entity(int health,
             int armor,
@@ -101,11 +109,19 @@ public class Entity {
 
     }
 
-    public void applyAttack(Attack attack) {
+    public List<Item> applyAttack(Attack attack) {
         health -= attack.calculateDamage();
+        stunEndTime = System.currentTimeMillis() + 250;
+        damageEndTime = System.currentTimeMillis() + 250;
         if (health <= 0) {
             setToDestroy(true);
+            return calculateDrops();
         }
+        return null;
+    }
+
+    public List<Item> calculateDrops() {
+        return null;
     }
 
     //region Rendering
@@ -137,6 +153,14 @@ public class Entity {
         GLES20.glUniform1f(rowCountLocation, textureRowCount);
         GLES20.glUniform1f(colCountLocation, textureColCount);
         GLES20.glUniform1f(alphaLocation, 1.0f);
+
+        if (System.currentTimeMillis() < damageEndTime) {
+            GLES20.glUniform1f(damageLocation, 1.0f);
+        }
+        else {
+            GLES20.glUniform1f(damageLocation, 0.0f);
+        }
+
         GLES20.glVertexAttribPointer(positionLocation, 3,
                                      GLES20.GL_FLOAT, false,
                                      0, getVertexBuffer());
@@ -397,6 +421,15 @@ public class Entity {
         Entity.rowCountLocation = GLES20.glGetUniformLocation(programId, "rowCount");
         Entity.colCountLocation = GLES20.glGetUniformLocation(programId, "colCount");
         Entity.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
+        Entity.damageLocation = GLES20.glGetUniformLocation(programId, "damage");
+    }
+
+    public long getStunEndTime() {
+        return stunEndTime;
+    }
+
+    public void setStunEndTime(long stunEndTime) {
+        this.stunEndTime = stunEndTime;
     }
     //endregion
 }

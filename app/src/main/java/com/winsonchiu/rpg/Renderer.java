@@ -8,6 +8,7 @@ import android.graphics.Rect;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 
@@ -95,6 +96,8 @@ public class Renderer implements GLSurfaceView.Renderer {
     private WorldMap worldMap;
     private boolean isInitialized;
     private final List<Entity> entityMobs;
+    private float tilesOnScreenX;
+    private float tilesOnScreenY;
 
     public Renderer(Activity activity) {
         super();
@@ -102,8 +105,11 @@ public class Renderer implements GLSurfaceView.Renderer {
         entityMobs = new ArrayList<>();
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
-        tileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 32, activity.getResources().getDisplayMetrics());
+        DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
+        tileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
         tileSize = 16 * (int) Math.pow(2, tileSize / 16 / 2);
+        tilesOnScreenX = displayMetrics.widthPixels / tileSize;
+        tilesOnScreenY = displayMetrics.heightPixels / tileSize;
     }
 
     private void initialize() {
@@ -142,7 +148,14 @@ public class Renderer implements GLSurfaceView.Renderer {
                     new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1),
                     4f, 4f, room, 8));
 
-            worldMap.addItem(new Item("TestItem", 0, 0, 0, 0, tileSize, new PointF(room.exactCenterX() + 2, room.exactCenterY() + 2)));
+            int item = 0;
+
+            for (int x = room.left + 1; x < room.right - 1; x++) {
+                for (int y = room.top + 1; y < room.bottom - 1; y++) {
+                    worldMap.addItem(new Item("Health Vial", item++, 0, 0, 0, 0, tileSize,
+                            new PointF(x, y)));
+                }
+            }
         }
 
         byte[][] walls = worldMap.getWalls();
@@ -197,7 +210,7 @@ public class Renderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
 
         screenWidth = width;
-        screenHeight = height;
+            screenHeight = height;
 
         GLES20.glViewport(0, 0, screenWidth, screenHeight);
 
@@ -424,11 +437,11 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
         GLES20.glVertexAttribPointer(positionLocation, POSITION_DATA_SIZE,
-                                     GLES20.GL_FLOAT, false, 0, 0);
+                GLES20.GL_FLOAT, false, 0, 0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, textureBufferId);
         GLES20.glVertexAttribPointer(textureLocation, TEXTURE_DATA_SIZE,
-                                     GLES20.GL_FLOAT, false, 0, 0);
+                GLES20.GL_FLOAT, false, 0, 0);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, size);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
@@ -445,9 +458,9 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     private void setCamera() {
         android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX * tileSize,
-                                         offsetCameraY * tileSize, 2f,
-                                         offsetCameraX * tileSize, offsetCameraY * tileSize, 1f,
-                                         0.0f, 1.0f, 0.0f);
+                offsetCameraY * tileSize, 2f,
+                offsetCameraX * tileSize, offsetCameraY * tileSize, 1f,
+                0.0f, 1.0f, 0.0f);
     }
 
     private void loadTextures() {
@@ -492,17 +505,17 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
 
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_MIN_FILTER,
-                               GLES20.GL_NEAREST);
+                GLES20.GL_TEXTURE_MIN_FILTER,
+                GLES20.GL_NEAREST);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_MAG_FILTER,
-                               GLES20.GL_NEAREST);
+                GLES20.GL_TEXTURE_MAG_FILTER,
+                GLES20.GL_NEAREST);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_WRAP_S,
-                               GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.GL_TEXTURE_WRAP_S,
+                GLES20.GL_CLAMP_TO_EDGE);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-                               GLES20.GL_TEXTURE_WRAP_T,
-                               GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.GL_TEXTURE_WRAP_T,
+                GLES20.GL_CLAMP_TO_EDGE);
 
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 
@@ -555,5 +568,13 @@ public class Renderer implements GLSurfaceView.Renderer {
         synchronized (entityMobs) {
             entityMobs.add(attackRanged);
         }
+    }
+
+    public float getTilesOnScreenX() {
+        return tilesOnScreenX;
+    }
+
+    public float getTilesOnScreenY() {
+        return tilesOnScreenY;
     }
 }

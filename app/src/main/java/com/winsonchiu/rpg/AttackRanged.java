@@ -3,6 +3,8 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.graphics.RectF;
 
+import java.util.List;
+
 /**
  * Created by TheKeeperOfPie on 5/3/2015.
  */
@@ -49,7 +51,10 @@ public class AttackRanged extends Attack {
         for (Entity entity : renderer.getEntityMobs()) {
 
             if (RectF.intersects(entity.getBounds(), getBounds()) && entity instanceof MobAggressive) {
-                entity.applyAttack(this);
+                List<Item> drops = entity.applyAttack(this);
+                if (drops != null) {
+                    renderer.getWorldMap().addItems(drops);
+                }
                 setToDestroy(true);
                 break;
             }

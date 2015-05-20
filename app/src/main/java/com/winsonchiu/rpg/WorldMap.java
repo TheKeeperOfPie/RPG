@@ -90,7 +90,7 @@ public class WorldMap {
         this.width = width;
         this.height = height;
         items = new ArrayList<>();
-        random = new Random();
+        random = new Random(55);
         rooms = new ArrayList<>();
         walls = new byte[width][height];
         itemLocations = new boolean[width][height];
@@ -102,7 +102,12 @@ public class WorldMap {
     public void renderItems(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
         for (Item item : items) {
-            item.render(renderer, matrixProjection, matrixView);
+            if (item.getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
+                    item.getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
+                    item.getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
+                    item.getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
+                item.render(renderer, matrixProjection, matrixView);
+            }
         }
 
     }
@@ -110,6 +115,13 @@ public class WorldMap {
     public void addItem(Item item) {
         itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
         items.add(item);
+    }
+
+    public void addItems(List<Item> items) {
+        for (Item item : items) {
+            itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
+            this.items.add(item);
+        }
     }
 
     public Item getItem(int x, int y) {
@@ -171,7 +183,7 @@ public class WorldMap {
     }
 
     private void generateRooms() {
-        int numRooms = width * height / AREA_PER_ROOM;
+        int numRooms = 1;//width * height / AREA_PER_ROOM;
         int maxAttempts = numRooms * ATTEMPT_RATIO;
         int attempt = 0;
 
@@ -761,5 +773,4 @@ public class WorldMap {
         return worldMap;
 
     }
-
 }
