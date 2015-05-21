@@ -25,6 +25,7 @@ public class MobAggressive extends Entity {
     private PointF targetLocation;
     private Point homeLocation;
     private boolean isAlerted;
+    private long attackEndTime;
 
     public MobAggressive(int health,
             int armor,
@@ -50,9 +51,23 @@ public class MobAggressive extends Entity {
 
         if (System.currentTimeMillis() > getStunEndTime()) {
             calculateNextPosition(renderer, matrixProjection, matrixView);
+
+            calculateAttack(renderer);
+
         }
 
         super.render(renderer, matrixProjection, matrixView);
+    }
+
+    private void calculateAttack(Renderer renderer) {
+        Player player = renderer.getPlayer();
+        PointF playerLocation = renderer.getPlayer().getLocation();
+
+        if (MathUtils.distance(playerLocation, getLocation()) < 2f && System.currentTimeMillis() > attackEndTime) {
+            renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, getLocation(), new PointF(playerLocation.x, playerLocation.y), 250, true));
+            attackEndTime = System.currentTimeMillis() + 500;
+        }
+
     }
 
     @Override
@@ -166,13 +181,13 @@ public class MobAggressive extends Entity {
         long timeDifference = (System.currentTimeMillis() - getLastFrameTime());
         float offset = timeDifference * getMovementSpeed();
 
-        PointF storeLocation = new PointF(getLocation().x, getLocation().y);
-
-        getLocation().set(targetLocation.x, targetLocation.y);
-
-        super.render(renderer, matrixProjection, matrixView);
-
-        getLocation().set(storeLocation.x, storeLocation.y);
+//        PointF storeLocation = new PointF(getLocation().x, getLocation().y);
+//
+//        getLocation().set(targetLocation.x, targetLocation.y);
+//
+//        super.render(renderer, matrixProjection, matrixView);
+//
+//        getLocation().set(storeLocation.x, storeLocation.y);
 
         float differenceX = targetLocation.x - getLocation().x;
         float differenceY = targetLocation.y - getLocation().y;
@@ -326,23 +341,28 @@ public class MobAggressive extends Entity {
         boolean collidesX = false;
         boolean collidesY = false;
 
-        float boundOffset = 0.1f;
+        float boundOffsetX = getWidthRatio() / 4;
+        float boundOffsetY = getHeightRatio() / 4;
+        boolean collides = false;
 
-        RectF boundLeft = new RectF(getLocation().x - boundOffset, getLocation().y,
-                getLocation().x - boundOffset + getWidthRatio(),
+        RectF boundTarget = new RectF(calculatedX, calculatedY,
+                calculatedX + getWidthRatio(), calculatedY + getHeightRatio());
+
+        RectF boundLeft = new RectF(getLocation().x - boundOffsetX, getLocation().y,
+                getLocation().x - boundOffsetX + getWidthRatio(),
                 getLocation().y + getHeightRatio());
 
-        RectF boundRight = new RectF(getLocation().x + boundOffset, getLocation().y,
-                getLocation().x + boundOffset + getWidthRatio(),
+        RectF boundRight = new RectF(getLocation().x + boundOffsetX, getLocation().y,
+                getLocation().x + boundOffsetX + getWidthRatio(),
                 getLocation().y + getHeightRatio());
 
-        RectF boundUp = new RectF(getLocation().x, getLocation().y + boundOffset,
+        RectF boundUp = new RectF(getLocation().x, getLocation().y + boundOffsetY,
                 getLocation().x + getWidthRatio(),
-                getLocation().y + boundOffset + getHeightRatio());
+                getLocation().y + boundOffsetY + getHeightRatio());
 
-        RectF boundDown = new RectF(getLocation().x, getLocation().y - boundOffset,
+        RectF boundDown = new RectF(getLocation().x, getLocation().y - boundOffsetY,
                 getLocation().x + getWidthRatio(),
-                getLocation().y - boundOffset + getHeightRatio());
+                getLocation().y - boundOffsetY + getHeightRatio());
 
         for (Entity entity : renderer.getEntityMobs()) {
             if (entity != this) {
@@ -374,6 +394,10 @@ public class MobAggressive extends Entity {
                     moveY = false;
                 }
 
+                if (RectF.intersects(entity.getBounds(), boundTarget)) {
+                    collides = true;
+                }
+
 //                if (RectF.intersects(entity.getBounds(), boundX)) {
 ////                    calculatedY += getOffsetY();
 ////                    calculatedX = getLocation().x;
@@ -387,26 +411,35 @@ public class MobAggressive extends Entity {
             }
         }
 
-
-        Entity entity = player;
-
-        if (RectF.intersects(entity.getBounds(), boundLeft) && !RectF.intersects(entity.getBounds(), boundRight)) {
-            calculatedX += 2 * Math.abs(getOffsetX());
-            Log.d(TAG, "Collide boundLeft");
-        }
-        else if (RectF.intersects(entity.getBounds(), boundRight) && !RectF.intersects(entity.getBounds(), boundLeft)) {
-            calculatedX -= 2 * Math.abs(getOffsetX());
-            Log.d(TAG, "Collide boundRight");
+        if ((getMovementX() < 0 && RectF.intersects(player.getBounds(), boundLeft)) || (getMovementX() > 0 && RectF.intersects(
+                player.getBounds(), boundRight))) {
+            moveX = false;
         }
 
-        if (RectF.intersects(entity.getBounds(), boundUp) && !RectF.intersects(entity.getBounds(), boundDown)) {
-            calculatedY -= 2 * Math.abs(getOffsetY());
-            Log.d(TAG, "Collide boundUp");
+        if ((getMovementY() > 0 && RectF.intersects(player.getBounds(), boundUp)) || (getMovementY() < 0 && RectF.intersects(
+                player.getBounds(), boundDown))) {
+            moveY = false;
         }
-        if (RectF.intersects(entity.getBounds(), boundDown) && !RectF.intersects(entity.getBounds(), boundUp)) {
-            calculatedY += 2 * Math.abs(getOffsetY());
-            Log.d(TAG, "Collide boundDown");
-        }
+
+//        Entity entity = player;
+//
+//        if (RectF.intersects(entity.getBounds(), boundLeft) && !RectF.intersects(entity.getBounds(), boundRight)) {
+//            calculatedX += 2 * Math.abs(getOffsetX());
+//            Log.d(TAG, "Collide boundLeft");
+//        }
+//        else if (RectF.intersects(entity.getBounds(), boundRight) && !RectF.intersects(entity.getBounds(), boundLeft)) {
+//            calculatedX -= 2 * Math.abs(getOffsetX());
+//            Log.d(TAG, "Collide boundRight");
+//        }
+//
+//        if (RectF.intersects(entity.getBounds(), boundUp) && !RectF.intersects(entity.getBounds(), boundDown)) {
+//            calculatedY -= 2 * Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide boundUp");
+//        }
+//        if (RectF.intersects(entity.getBounds(), boundDown) && !RectF.intersects(entity.getBounds(), boundUp)) {
+//            calculatedY += 2 * Math.abs(getOffsetY());
+//            Log.d(TAG, "Collide boundDown");
+//        }
 //
 //        newBounds = new RectF(calculatedX, calculatedY,
 //                calculatedX + getWidthRatio(),
@@ -727,5 +760,4 @@ public class MobAggressive extends Entity {
 
         return path;
     }
-
 }

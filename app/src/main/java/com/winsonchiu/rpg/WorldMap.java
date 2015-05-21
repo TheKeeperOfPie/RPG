@@ -99,6 +99,10 @@ public class WorldMap {
         tilesAbove = new ArrayList<>();
     }
 
+    public List<Item> getItems() {
+        return items;
+    }
+
     public void renderItems(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
         synchronized (items) {
@@ -143,18 +147,32 @@ public class WorldMap {
 
     public Item removeItem(int x, int y) {
 
-        Item item = getItem(x, y);
-        if (item == null) {
+        int indexItem = -1;
+
+        synchronized (items) {
+            for (int index = 0; index < items.size(); index++) {
+
+                Item item = items.get(index);
+
+                if ((int) item.getLocation().x == x && (int) item.getLocation().y == y) {
+                    indexItem = index;
+                    break;
+                }
+            }
+        }
+
+        if (indexItem < 0) {
             return null;
         }
+        Item item = items.get(indexItem);
+
         if (item.getQuantity() <= 1) {
             itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
-            items.remove(item);
+            return items.remove(indexItem);
         }
         else {
-            item = item.decrementQuantity();
+            return item.decrementQuantity();
         }
-        return item;
     }
 
     public boolean isCollide(Point point) {

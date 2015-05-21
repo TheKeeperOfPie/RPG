@@ -13,8 +13,8 @@ public class AttackRanged extends Attack {
     private static final String TAG = AttackRanged.class.getCanonicalName();
     private static final float SPEED = 0.01f;
 
-    public AttackRanged(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time) {
-        super(tileSize, damage, range, accuracy, startLocation, endLocation, time, SPEED);
+    public AttackRanged(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, boolean hostile) {
+        super(tileSize, damage, range, accuracy, startLocation, endLocation, time, SPEED, hostile);
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
@@ -47,18 +47,25 @@ public class AttackRanged extends Attack {
 
         getLocation().set(startLocation.x + offsetX, startLocation.y + offsetY);
 
-        // TODO: Move to a single pass check using a QuadTree
-        for (Entity entity : renderer.getEntityMobs()) {
-
-            if (RectF.intersects(entity.getBounds(), getBounds()) && entity instanceof MobAggressive) {
-                List<Item> drops = entity.applyAttack(this);
-                if (drops != null) {
-                    renderer.getWorldMap().addItems(drops);
-                }
+        if (hostile) {
+            if (RectF.intersects(getBounds(), renderer.getPlayer().getBounds())) {
+                renderer.getPlayer().applyAttack(this);
                 setToDestroy(true);
-                break;
             }
+        }
+        else {
+            // TODO: Move to a single pass check using a QuadTree
+            for (Entity entity : renderer.getEntityMobs()) {
 
+                if (RectF.intersects(entity.getBounds(), getBounds()) && entity instanceof MobAggressive) {
+                    List<Item> drops = entity.applyAttack(this);
+                    if (drops != null) {
+                        renderer.getWorldMap().addItems(drops);
+                    }
+                    setToDestroy(true);
+                    break;
+                }
+            }
         }
 
         super.render(renderer, matrixProjection, matrixView);

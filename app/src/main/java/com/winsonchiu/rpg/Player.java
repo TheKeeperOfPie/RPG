@@ -22,15 +22,9 @@ public class Player extends Entity {
 
     private static final String TAG = Player.class.getCanonicalName();
 
-    // Ratio of grid unit to move every millisecond
-    private final List<Attack> attacks;
-    private List<Integer> attacksToRemove;
-
     public Player(int tileSize, PointF location) {
         super(BASE_HEALTH, BASE_ARMOR, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 4f, 4f,
                 SPEED);
-        attacks = new ArrayList<>();
-        attacksToRemove = new ArrayList<>();
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
@@ -215,10 +209,6 @@ public class Player extends Entity {
 
     }
 
-    public List<Attack> getAttacks() {
-        return attacks;
-    }
-
     public void startNewAttack(Renderer renderer) {
 
         // TODO: Redo offsets to start centered on player
@@ -243,8 +233,6 @@ public class Player extends Entity {
             end.offset(0, getVelocityY() * 500 + 3);
         }
 
-        synchronized (attacks) {
-            attacks.add(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500));
-        }
+        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
     }
 }

@@ -30,8 +30,9 @@ public abstract class Attack extends Entity {
     protected long startTime;
     protected long endTime;
     protected long time;
+    protected boolean hostile;
 
-    public Attack(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, float movementSpeed) {
+    public Attack(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, float movementSpeed, boolean hostile) {
         super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), 1f, 1f,
               movementSpeed);
         this.tileSize = tileSize;
@@ -41,6 +42,7 @@ public abstract class Attack extends Entity {
         this.startLocation = startLocation;
         this.endLocation = endLocation;
         this.time = time;
+        this.hostile = hostile;
     }
 
     public int calculateDamage() {

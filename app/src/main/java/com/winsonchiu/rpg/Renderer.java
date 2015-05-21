@@ -27,6 +27,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Random;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -100,6 +101,7 @@ public class Renderer implements GLSurfaceView.Renderer {
     private WorldMap worldMap;
     private boolean isInitialized;
     private final List<Entity> entityMobs;
+    private final List<Attack> entityAttacks;
     private float tilesOnScreenX;
     private float tilesOnScreenY;
     private boolean showInventory;
@@ -113,6 +115,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         this.eventListener = eventListener;
         random = new Random();
         entityMobs = new ArrayList<>();
+        entityAttacks = new ArrayList<>();
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
         DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
@@ -428,24 +431,28 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glUseProgram(Entity.getProgram());
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ITEMS]);
 
-        worldMap.renderItems(this, matrixProjection, matrixView);
+        synchronized (worldMap.getItems()) {
+            Iterator<Item> iterator = worldMap.getItems().iterator();
+            while (iterator.hasNext()) {
+                Item item = iterator.next();
+                if (item.getLocation().x + 2.0f > getOffsetCameraX() &&
+                        item.getLocation().x - 2.0f < getOffsetCameraX() + getTilesOnScreenX() &&
+                        item.getLocation().y + 2.0f > getOffsetCameraY() &&
+                        item.getLocation().y - 2.0f < getOffsetCameraY() + getTilesOnScreenY()) {
+                    if (RectF.intersects(item.getBounds(), player.getBounds())) {
+                        iterator.remove();
+                        eventListener.pickUpItem(item);
+                    }
+                    else {
+                        item.render(this, matrixProjection, matrixView);
+                    }
+                }
+            }
+        }
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_PLAYER]);
 
         player.render(this, matrixProjection, matrixView);
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ATTACKS]);
-
-        synchronized (player.getAttacks()) {
-            Iterator<Attack> iterator =  player.getAttacks().iterator();
-            while (iterator.hasNext()) {
-                Attack attack = iterator.next();
-                attack.render(this, matrixProjection, matrixView);
-                if (attack.getToDestroy()) {
-                    iterator.remove();
-                }
-            }
-        }
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_MOBS]);
 
@@ -460,10 +467,19 @@ public class Renderer implements GLSurfaceView.Renderer {
             }
         }
 
-        Item item = worldMap.removeItem((int) player.getLocation().x, (int) player.getLocation().y);
-        if (item != null) {
-            eventListener.pickUpItem(item);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ATTACKS]);
+
+        synchronized (entityAttacks) {
+            Iterator<Attack> iterator = entityAttacks.iterator();
+            while (iterator.hasNext()) {
+                Attack attack = iterator.next();
+                attack.render(this, matrixProjection, matrixView);
+                if (attack.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
         }
+
     }
 
     private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
@@ -607,9 +623,15 @@ public class Renderer implements GLSurfaceView.Renderer {
         return entityMobs;
     }
 
-    public void addEntity(AttackRanged attackRanged) {
+    public void addEntity(Entity entity) {
         synchronized (entityMobs) {
-            entityMobs.add(attackRanged);
+            entityMobs.add(entity);
+        }
+    }
+
+    public void addAttack(Attack attack) {
+        synchronized (entityAttacks) {
+            entityAttacks.add(attack);
         }
     }
 

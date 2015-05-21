@@ -85,6 +85,7 @@ import java.util.List;
     private float movementSpeed;
     private long stunEndTime;
     private long damageEndTime;
+    protected Attack attack;
 
     public Entity(int health,
             int armor,
@@ -434,6 +435,14 @@ import java.util.List;
 
     public void setStunEndTime(long stunEndTime) {
         this.stunEndTime = stunEndTime;
+    }
+
+    public Attack getAttack() {
+        return attack;
+    }
+
+    public void setAttack(Attack attack) {
+        this.attack = attack;
     }
     //endregion
 }

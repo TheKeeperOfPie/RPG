@@ -31,6 +31,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
@@ -171,16 +172,7 @@ public class MainActivity extends AppCompatActivity {
     private void inflateInventory() {
         layoutInventory = (RelativeLayout) LayoutInflater.from(this).inflate(R.layout.inventory,
                 frameView, false);
-        buttonClose = (ImageButton) layoutInventory.findViewById(R.id.button_close);
-        buttonClose.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                frameView.setVisibility(View.GONE);
-            }
-        });
-
-        loadAndSetBackground(layoutInventory, R.drawable.background_inventory);
-        loadAndSetBackground(buttonClose, R.drawable.button_close);
+        layoutInventory.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_inventory));
 
         inventoryListener = new ControllerInventory.InventoryListener() {
             @Override
@@ -250,22 +242,14 @@ public class MainActivity extends AppCompatActivity {
 
                         View view = LayoutInflater.from(MainActivity.this).inflate(
                                 R.layout.popup_item, frameView, false);
-                        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-
-                        y += TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
 
                         final PopupWindow popup = new PopupWindow(MainActivity.this);
-                        popup.setContentView(view);
-                        popup.setWidth(view.getMeasuredWidth());
-                        popup.setHeight(view.getMeasuredHeight());
-                        popup.setFocusable(true);
+                        Item item = controllerInventory.getItem(position);
 
                         Button buttonDrop = (Button) view.findViewById(R.id.button_drop);
                         buttonDrop.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                Toast.makeText(MainActivity.this, "Dropped", Toast.LENGTH_SHORT)
-                                        .show();
                                 controllerInventory.dropItem(position);
                                 popup.dismiss();
                             }
@@ -275,8 +259,7 @@ public class MainActivity extends AppCompatActivity {
                         buttonInfo.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                Toast.makeText(MainActivity.this, "Info", Toast.LENGTH_SHORT)
-                                        .show();
+                                // TODO: Add item info
                             }
                         });
 
@@ -284,10 +267,26 @@ public class MainActivity extends AppCompatActivity {
                         buttonEquip.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                Toast.makeText(MainActivity.this, "Equipped", Toast.LENGTH_SHORT).show();
+                                // TODO: Add equipable item
                             }
                         });
 
+                        TextView textName = (TextView) view.findViewById(R.id.text_name);
+                        textName.setText(item.getItemId().getName());
+
+                        TextView textDescription = (TextView) view.findViewById(R.id.text_description);
+                        textDescription.setText(item.getItemId().getDescription());
+                        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+                        ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
+                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), item.getItemId().getDrawable()));
+
+                        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+                        popup.setContentView(view);
+                        popup.setWidth(view.getMeasuredWidth());
+                        popup.setHeight(view.getMeasuredHeight());
+                        popup.setFocusable(true);
                         popup.showAtLocation(view, Gravity.NO_GRAVITY, x, y);
 
                         Log.d(TAG, "Popup shown at (" + x + ", " + y + ")");
@@ -303,30 +302,20 @@ public class MainActivity extends AppCompatActivity {
         buttonItems = (Button) layoutInventory.findViewById(R.id.button_items);
         buttonStats = (Button) layoutInventory.findViewById(R.id.button_stats);
         buttonCrafting = (Button) layoutInventory.findViewById(R.id.button_crafting);
+        buttonClose = (ImageButton) layoutInventory.findViewById(R.id.button_close);
+        buttonClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                frameView.setVisibility(View.GONE);
+            }
+        });
+        buttonClose.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.button_close));
 
-    }
+        buttonClose.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonItems.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonStats.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonCrafting.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
 
-    private void loadAndSetBackground(View view, int resourceId) {
-        // Force inScaled off to prevent a blurry texture
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inScaled = false;
-
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
-                resourceId, options);
-
-        Drawable background;
-
-        if (bitmap.getNinePatchChunk() != null) {
-            background = new NinePatchDrawable(getResources(), bitmap, bitmap.getNinePatchChunk(), new Rect(), null);
-        }
-        else {
-            background = new BitmapDrawable(getResources(), bitmap);
-        }
-
-        background.setDither(false);
-        background.setFilterBitmap(false);
-
-        view.setBackground(background);
     }
 
     private void applyFullscreen() {
