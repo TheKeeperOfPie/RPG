@@ -143,7 +143,7 @@ public class WorldMap {
         if (item == null) {
             return null;
         }
-        if (item.getQuantity() == 1) {
+        if (item.getQuantity() <= 1) {
             items.remove(item);
         }
         else {

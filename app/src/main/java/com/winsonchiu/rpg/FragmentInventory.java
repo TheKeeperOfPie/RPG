@@ -25,7 +25,7 @@ public class FragmentInventory extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-    private static final int SPAN_COUNT = 4;
+    private static final int SPAN_COUNT = 2;
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -37,6 +37,7 @@ public class FragmentInventory extends Fragment {
     private RecyclerView recyclerInventory;
     private GridLayoutManager gridLayoutManager;
     private AdapterInventory adapterInventory;
+    private ControllerInventory.InventoryListener inventoryListener;
 
     /**
      * Use this factory method to create a new instance of
@@ -75,8 +76,16 @@ public class FragmentInventory extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_inventory, container, false);
 
+        inventoryListener = new ControllerInventory.InventoryListener() {
+            @Override
+            public RecyclerView.Adapter getAdapter() {
+                return adapterInventory;
+            }
+        };
+
         gridLayoutManager = new GridLayoutManager(activity, SPAN_COUNT, LinearLayoutManager.VERTICAL, false);
-        adapterInventory = new AdapterInventory(mListener.getControllerInventory());
+
+        adapterInventory = new AdapterInventory(activity, mListener.getControllerInventory());
 
         recyclerInventory = (RecyclerView) view.findViewById(R.id.recycler_inventory);
         recyclerInventory.setHasFixedSize(true);
@@ -84,6 +93,18 @@ public class FragmentInventory extends Fragment {
         recyclerInventory.setAdapter(adapterInventory);
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mListener.getControllerInventory().addListener(inventoryListener);
+    }
+
+    @Override
+    public void onPause() {
+        mListener.getControllerInventory().removeListener(inventoryListener);
+        super.onPause();
     }
 
     @Override

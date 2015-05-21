@@ -1,5 +1,11 @@
 package com.winsonchiu.rpg;
 
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,9 +18,11 @@ import android.widget.TextView;
  */
 public class AdapterInventory extends RecyclerView.Adapter<AdapterInventory.ViewHolder> {
 
+    private Activity activity;
     private ControllerInventory controllerInventory;
 
-    public AdapterInventory(ControllerInventory controllerInventory) {
+    public AdapterInventory(Activity activity, ControllerInventory controllerInventory) {
+        this.activity = activity;
         this.controllerInventory = controllerInventory;
     }
 
@@ -26,10 +34,37 @@ public class AdapterInventory extends RecyclerView.Adapter<AdapterInventory.View
     @Override
     public void onBindViewHolder(ViewHolder viewHolder, int position) {
 
-        Item item = controllerInventory.getItemList().get(position);
+        Item item = controllerInventory.getItem(position);
 
-        viewHolder.imageIcon.setImageResource(item.getResourceId());
-        viewHolder.textName.setText(item.getName());
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inScaled = false;
+//        options.inDither = false;
+//
+//        Bitmap bitmap = BitmapFactory.decodeResource(activity.getResources(), item.getItemId().getDrawable(), options);
+//
+////        Matrix matrix = new Matrix();
+//
+//        bitmap = Bitmap.createScaledBitmap(bitmap, viewHolder.imageIcon.getMaxWidth(), viewHolder.imageIcon.getMaxWidth(), false);
+//
+//        viewHolder.imageIcon.setImageBitmap(bitmap);
+        viewHolder.imageIcon.setImageResource(item.getItemId().getDrawable());
+        viewHolder.textName.setText(item.getItemId().getName());
+
+    }
+
+    @Override
+    public void onViewRecycled(ViewHolder holder) {
+        super.onViewRecycled(holder);
+
+        Drawable drawable = holder.imageIcon.getDrawable();
+        if (drawable != null && drawable instanceof BitmapDrawable) {
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+
+            if (bitmap != null && !bitmap.isRecycled()) {
+                bitmap.recycle();
+            }
+
+        }
 
     }
 

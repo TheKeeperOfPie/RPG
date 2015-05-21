@@ -60,7 +60,7 @@ public class MobAggressive extends Entity {
 
         List<Item> drops = new ArrayList<>();
 
-        drops.add(new Item("Gold", 130, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+        drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
 
         return drops;
     }

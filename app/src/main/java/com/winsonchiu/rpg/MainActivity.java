@@ -1,30 +1,40 @@
 package com.winsonchiu.rpg;
 
-import android.net.Uri;
+import android.app.Activity;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.view.animation.FastOutLinearInInterpolator;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
+
 import com.crashlytics.android.Crashlytics;
+
 import io.fabric.sdk.android.Fabric;
 
 
-public class MainActivity extends AppCompatActivity implements FragmentInventory.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity implements FragmentInventory.OnFragmentInteractionListener, FragmentRender.OnFragmentInteractionListener {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
+    private ControllerInventory controllerInventory;
     private Renderer renderer;
     private GLSurfaceView glSurfaceView;
     private ImageView imageDirectionControls;
     private ImageView imageInteractControl;
+    private ImageView imageInventoryControl;
     private FastOutLinearInInterpolator interpolator;
-    private ControllerInventory controllerInventory;
+    private RecyclerView recyclerInventory;
+    private GridLayoutManager gridLayoutManager;
+    private AdapterInventory adapterInventory;
+    private ControllerInventory.InventoryListener inventoryListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,14 +48,24 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
         controllerInventory = new ControllerInventory();
 
         interpolator = new FastOutLinearInInterpolator();
-        renderer = new Renderer(this);
+
+        renderer = new Renderer(this, new Renderer.EventListener() {
+            @Override
+            public void pickUpItem(Item item) {
+                controllerInventory.addItem(item);
+            }
+
+            @Override
+            public ControllerInventory getControllerInventory() {
+                return controllerInventory;
+            }
+        });
 
         glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
         glSurfaceView.setEGLContextClientVersion(2);
         glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         glSurfaceView.setPreserveEGLContextOnPause(true);
         glSurfaceView.setRenderer(renderer);
-        glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
         imageDirectionControls = (ImageView) findViewById(R.id.image_direction_controls);
         imageDirectionControls.setOnTouchListener(new View.OnTouchListener() {
@@ -106,6 +126,30 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
             }
         });
 
+        imageInventoryControl = (ImageView) findViewById(R.id.image_inventory_control);
+        imageInventoryControl.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                recyclerInventory.setVisibility(View.VISIBLE);
+            }
+        });
+
+        inventoryListener = new ControllerInventory.InventoryListener() {
+            @Override
+            public RecyclerView.Adapter getAdapter() {
+                return adapterInventory;
+            }
+        };
+
+        gridLayoutManager = new GridLayoutManager(this, 4, LinearLayoutManager.VERTICAL, false);
+
+        adapterInventory = new AdapterInventory(this, controllerInventory);
+
+        recyclerInventory = (RecyclerView) findViewById(R.id.recycler_inventory);
+        recyclerInventory.setHasFixedSize(true);
+        recyclerInventory.setLayoutManager(gridLayoutManager);
+        recyclerInventory.setAdapter(adapterInventory);
+
     }
 
     private void applyFullscreen() {
@@ -155,20 +199,29 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
     @Override
     protected void onResume() {
         super.onResume();
-        glSurfaceView.onResume();
         applyFullscreen();
+        controllerInventory.addListener(inventoryListener);
     }
 
     @Override
     protected void onPause() {
-        glSurfaceView.onPause();
+        controllerInventory.removeListener(inventoryListener);
         super.onPause();
     }
 
     @Override
     protected void onStop() {
-        renderer.release();
         super.onStop();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (recyclerInventory.isShown()) {
+            recyclerInventory.setVisibility(View.GONE);
+        }
+        else {
+            super.onBackPressed();
+        }
     }
 
     @Override

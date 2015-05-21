@@ -78,6 +78,7 @@ public class Renderer implements GLSurfaceView.Renderer {
                     "}";
 
     private Activity activity;
+    private EventListener eventListener;
     private int screenWidth;
     private int screenHeight;
     private float[] matrixProjection = new float[16];
@@ -98,10 +99,12 @@ public class Renderer implements GLSurfaceView.Renderer {
     private final List<Entity> entityMobs;
     private float tilesOnScreenX;
     private float tilesOnScreenY;
+    private boolean showInventory;
 
-    public Renderer(Activity activity) {
+    public Renderer(Activity activity, EventListener eventListener) {
         super();
         this.activity = activity;
+        this.eventListener = eventListener;
         entityMobs = new ArrayList<>();
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
@@ -148,14 +151,14 @@ public class Renderer implements GLSurfaceView.Renderer {
                     new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1),
                     4f, 4f, room, 8));
 
-            int item = 0;
-
-            for (int x = room.left + 1; x < room.right - 1; x++) {
-                for (int y = room.top + 1; y < room.bottom - 1; y++) {
-                    worldMap.addItem(new Item("Health Vial", item++, 0, 0, 0, 0, tileSize,
-                            new PointF(x, y)));
-                }
-            }
+//            int item = 0;
+//
+//            for (int x = room.left + 1; x < room.right - 1; x++) {
+//                for (int y = room.top + 1; y < room.bottom - 1; y++) {
+//                    worldMap.addItem(new Item("Health Vial", item++, 0, 0, 0, 0, tileSize,
+//                            new PointF(x, y)));
+//                }
+//            }
         }
 
         byte[][] walls = worldMap.getWalls();
@@ -198,10 +201,10 @@ public class Renderer implements GLSurfaceView.Renderer {
         offsetCameraX = playerX - Player.OUT_BOUND_X;
         offsetCameraY = playerY - Player.OUT_BOUND_Y;
 
-        if (!isInitialized) {
+//        if (!isInitialized) {
             loadVbo();
             isInitialized = true;
-        }
+//        }
 
         GLES20.glClearColor(0f, 0f, 0f, 1f);
     }
@@ -421,6 +424,11 @@ public class Renderer implements GLSurfaceView.Renderer {
                 }
             }
         }
+
+        Item item = worldMap.removeItem((int) player.getLocation().x, (int) player.getLocation().y);
+        if (item != null) {
+            eventListener.pickUpItem(item);
+        }
     }
 
     private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
@@ -577,4 +585,14 @@ public class Renderer implements GLSurfaceView.Renderer {
     public float getTilesOnScreenY() {
         return tilesOnScreenY;
     }
+
+    public void showInventory() {
+        showInventory = true;
+    }
+
+    public interface EventListener {
+        void pickUpItem(Item item);
+        ControllerInventory getControllerInventory();
+    }
+
 }
