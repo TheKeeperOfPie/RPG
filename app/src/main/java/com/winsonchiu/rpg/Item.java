@@ -3,6 +3,9 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by TheKeeperOfPie on 5/14/2015.
  */
@@ -79,11 +82,80 @@ public class Item extends Entity {
         this.quantity = quantity;
     }
 
+    public void incrementQuantity(int amount) {
+        quantity += amount;
+    }
+
+    public Item decrementQuantity() {
+
+        if (quantity == 0) {
+            throw new IllegalStateException("Not enough quantity for item: " + toString());
+        }
+
+        quantity--;
+
+        return new Item(itemId, healthBoost, armorBoost, damageBoost, speedBoost, getTileSize(), new PointF(getLocation().x, getLocation().y));
+
+    }
+
+    public List<Item> decrementQuantity(int amount) {
+
+        if (amount > quantity) {
+            throw new IllegalStateException("Not enough quantity for item: " + toString());
+        }
+
+        quantity -= amount;
+
+        List<Item> removed = new ArrayList<>(amount);
+        for (int num = 0; num < amount; num++) {
+            removed.add(new Item(itemId, healthBoost, armorBoost, damageBoost, speedBoost, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+        }
+
+        return removed;
+    }
+
     public ItemIds getItemId() {
         return itemId;
     }
 
     public void setItemId(ItemIds itemId) {
         this.itemId = itemId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Item item = (Item) o;
+
+        if (getHealthBoost() != item.getHealthBoost()) {
+            return false;
+        }
+        if (getArmorBoost() != item.getArmorBoost()) {
+            return false;
+        }
+        if (getDamageBoost() != item.getDamageBoost()) {
+            return false;
+        }
+        if (getSpeedBoost() != item.getSpeedBoost()) {
+            return false;
+        }
+        return getItemId() == item.getItemId();
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getItemId().hashCode();
+        result = 31 * result + getHealthBoost();
+        result = 31 * result + getArmorBoost();
+        result = 31 * result + getDamageBoost();
+        result = 31 * result + getSpeedBoost();
+        return result;
     }
 }

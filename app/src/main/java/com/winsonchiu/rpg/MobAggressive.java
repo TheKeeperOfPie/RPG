@@ -61,6 +61,8 @@ public class MobAggressive extends Entity {
         List<Item> drops = new ArrayList<>();
 
         drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+        drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+        drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
 
         return drops;
     }
@@ -344,22 +346,32 @@ public class MobAggressive extends Entity {
 
         for (Entity entity : renderer.getEntityMobs()) {
             if (entity != this) {
-                if (RectF.intersects(entity.getBounds(), boundLeft) && !RectF.intersects(entity.getBounds(), boundRight)) {
-                    calculatedX += 2 * Math.abs(getOffsetX());
-                    Log.d(TAG, "Collide boundLeft");
-                }
-                else if (RectF.intersects(entity.getBounds(), boundRight) && !RectF.intersects(entity.getBounds(), boundLeft)) {
-                    calculatedX -= 2 * Math.abs(getOffsetX());
-                    Log.d(TAG, "Collide boundRight");
+//                if (RectF.intersects(entity.getBounds(), boundLeft) && !RectF.intersects(entity.getBounds(), boundRight)) {
+//                    calculatedX += 2 * Math.abs(getOffsetX());
+//                    Log.d(TAG, "Collide boundLeft");
+//                }
+//                else if (RectF.intersects(entity.getBounds(), boundRight) && !RectF.intersects(entity.getBounds(), boundLeft)) {
+//                    calculatedX -= 2 * Math.abs(getOffsetX());
+//                    Log.d(TAG, "Collide boundRight");
+//                }
+
+//                if (RectF.intersects(entity.getBounds(), boundUp) && !RectF.intersects(entity.getBounds(), boundDown)) {
+//                    calculatedY -= 2 * Math.abs(getOffsetY());
+//                    Log.d(TAG, "Collide boundUp");
+//                }
+//                if (RectF.intersects(entity.getBounds(), boundDown) && !RectF.intersects(entity.getBounds(), boundUp)) {
+//                    calculatedY += 2 * Math.abs(getOffsetY());
+//                    Log.d(TAG, "Collide boundDown");
+//                }
+
+                if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(), boundLeft)) || (getMovementX() > 0 && RectF.intersects(
+                        entity.getBounds(), boundRight))) {
+                    moveX = false;
                 }
 
-                if (RectF.intersects(entity.getBounds(), boundUp) && !RectF.intersects(entity.getBounds(), boundDown)) {
-                    calculatedY -= 2 * Math.abs(getOffsetY());
-                    Log.d(TAG, "Collide boundUp");
-                }
-                if (RectF.intersects(entity.getBounds(), boundDown) && !RectF.intersects(entity.getBounds(), boundUp)) {
-                    calculatedY += 2 * Math.abs(getOffsetY());
-                    Log.d(TAG, "Collide boundDown");
+                if ((getMovementY() > 0 && RectF.intersects(entity.getBounds(), boundUp)) || (getMovementY() < 0 && RectF.intersects(
+                        entity.getBounds(), boundDown))) {
+                    moveY = false;
                 }
 
 //                if (RectF.intersects(entity.getBounds(), boundX)) {
@@ -373,6 +385,27 @@ public class MobAggressive extends Entity {
 //                    moveY = false;
 //                }
             }
+        }
+
+
+        Entity entity = player;
+
+        if (RectF.intersects(entity.getBounds(), boundLeft) && !RectF.intersects(entity.getBounds(), boundRight)) {
+            calculatedX += 2 * Math.abs(getOffsetX());
+            Log.d(TAG, "Collide boundLeft");
+        }
+        else if (RectF.intersects(entity.getBounds(), boundRight) && !RectF.intersects(entity.getBounds(), boundLeft)) {
+            calculatedX -= 2 * Math.abs(getOffsetX());
+            Log.d(TAG, "Collide boundRight");
+        }
+
+        if (RectF.intersects(entity.getBounds(), boundUp) && !RectF.intersects(entity.getBounds(), boundDown)) {
+            calculatedY -= 2 * Math.abs(getOffsetY());
+            Log.d(TAG, "Collide boundUp");
+        }
+        if (RectF.intersects(entity.getBounds(), boundDown) && !RectF.intersects(entity.getBounds(), boundUp)) {
+            calculatedY += 2 * Math.abs(getOffsetY());
+            Log.d(TAG, "Collide boundDown");
         }
 //
 //        newBounds = new RectF(calculatedX, calculatedY,

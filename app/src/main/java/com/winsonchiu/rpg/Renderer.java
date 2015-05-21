@@ -3,8 +3,10 @@ package com.winsonchiu.rpg;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
@@ -25,6 +27,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -100,11 +103,15 @@ public class Renderer implements GLSurfaceView.Renderer {
     private float tilesOnScreenX;
     private float tilesOnScreenY;
     private boolean showInventory;
+    private boolean isPaused;
+    private Random random;
+    private QuadTree quadTree;
 
     public Renderer(Activity activity, EventListener eventListener) {
         super();
         this.activity = activity;
         this.eventListener = eventListener;
+        random = new Random();
         entityMobs = new ArrayList<>();
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
@@ -140,6 +147,8 @@ public class Renderer implements GLSurfaceView.Renderer {
         worldMap = new WorldMap(133, 125);
         worldMap.generateRectangular();
 
+        quadTree = new QuadTree(0, new RectF(0, 0, 133, 125));
+
         for (Rect room : worldMap.getRooms()) {
 
             entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
@@ -148,7 +157,23 @@ public class Renderer implements GLSurfaceView.Renderer {
                     room, 8));
             entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
                     MobAggressive.HEIGHT_RATIO,
+                    new PointF(room.exactCenterX() + 1, room.exactCenterY()),
+                    4f, 4f, room, 8));
+            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
+                    MobAggressive.HEIGHT_RATIO,
+                    new PointF(room.exactCenterX(), room.exactCenterY() + 1),
+                    4f, 4f, room, 8));
+            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
+                    MobAggressive.HEIGHT_RATIO,
                     new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1),
+                    4f, 4f, room, 8));
+            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
+                    MobAggressive.HEIGHT_RATIO,
+                    new PointF(room.exactCenterX() - 1, room.exactCenterY()),
+                    4f, 4f, room, 8));
+            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
+                    MobAggressive.HEIGHT_RATIO,
+                    new PointF(room.exactCenterX(), room.exactCenterY() - 1),
                     4f, 4f, room, 8));
 
 //            int item = 0;
@@ -351,6 +376,10 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
     }
 
+    public void pause() {
+        isPaused = true;
+    }
+
     @Override
     public void onDrawFrame(GL10 gl) {
 
@@ -378,6 +407,12 @@ public class Renderer implements GLSurfaceView.Renderer {
                 0,
                 matrixView,
                 0);
+
+        quadTree.clear();
+        for (Entity entity : entityMobs) {
+            quadTree.insert(entity);
+        }
+        quadTree.insert(player);
 
         renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
                 .size() * 18);
@@ -588,6 +623,47 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     public void showInventory() {
         showInventory = true;
+    }
+
+    public boolean dropItem(Item item) {
+
+        PointF centerLocation = new PointF(player.getLocation().x + player.getWidthRatio() / 2, player.getLocation().y + player.getHeightRatio() / 2);
+
+        Direction direction = player.getLastDirection();
+
+        List<PointF> validLocations = new ArrayList<>();
+
+        for (int offsetDirection = -2; offsetDirection <= 2; offsetDirection++) {
+
+            Direction directionDrop = Direction.offset(direction, offsetDirection);
+            validLocations.add(new PointF(centerLocation.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2, centerLocation.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
+
+        }
+
+        Iterator<PointF> iterator = validLocations.iterator();
+        while (iterator.hasNext()) {
+
+            PointF point = iterator.next();
+
+            if (worldMap.isCollide(new Point((int) point.x, (int) point.y)) ||
+                    worldMap.isCollide(new Point((int) (point.x + item.getWidthRatio()), (int) point.y)) ||
+                    worldMap.isCollide(new Point((int) point.x, (int) (point.y + item.getHeightRatio()))) ||
+                    worldMap.isCollide(new Point((int) (point.x + item.getWidthRatio()), (int) (point.y + item.getHeightRatio())))) {
+                iterator.remove();
+            }
+
+        }
+
+        if (validLocations.isEmpty()) {
+            return false;
+        }
+
+        PointF pointDrop = validLocations.get(random.nextInt(validLocations.size()));
+
+        item.setLocation(pointDrop);
+        worldMap.addItem(item);
+
+        return true;
     }
 
     public interface EventListener {

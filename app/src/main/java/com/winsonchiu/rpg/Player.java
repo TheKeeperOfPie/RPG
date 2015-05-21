@@ -1,6 +1,7 @@
 package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -22,11 +23,12 @@ public class Player extends Entity {
     private static final String TAG = Player.class.getCanonicalName();
 
     // Ratio of grid unit to move every millisecond
-    private List<Attack> attacks;
+    private final List<Attack> attacks;
     private List<Integer> attacksToRemove;
 
     public Player(int tileSize, PointF location) {
-        super(BASE_HEALTH, BASE_ARMOR, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 4f, 4f, SPEED);
+        super(BASE_HEALTH, BASE_ARMOR, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 4f, 4f,
+                SPEED);
         attacks = new ArrayList<>();
         attacksToRemove = new ArrayList<>();
     }
@@ -47,9 +49,42 @@ public class Player extends Entity {
             setVelocityY(getOffsetY() / timeDifference);
             float yCalculated;
             float xCalculated;
-            byte[][] walls = renderer.getWorldMap().getWalls();
+            byte[][] walls = renderer.getWorldMap()
+                    .getWalls();
 
-            if (getMovementY() != 0) {
+            float boundOffset = 0.1f;
+
+            RectF boundLeft = new RectF(getLocation().x - boundOffset, getLocation().y,
+                    getLocation().x - boundOffset + getWidthRatio(),
+                    getLocation().y + getHeightRatio());
+
+            RectF boundRight = new RectF(getLocation().x + boundOffset, getLocation().y,
+                    getLocation().x + boundOffset + getWidthRatio(),
+                    getLocation().y + getHeightRatio());
+
+            RectF boundUp = new RectF(getLocation().x, getLocation().y + boundOffset,
+                    getLocation().x + getWidthRatio(),
+                    getLocation().y + boundOffset + getHeightRatio());
+
+            RectF boundDown = new RectF(getLocation().x, getLocation().y - boundOffset,
+                    getLocation().x + getWidthRatio(),
+                    getLocation().y - boundOffset + getHeightRatio());
+
+            for (Entity entity : renderer.getEntityMobs()) {
+                if (entity != this) {
+                    if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(), boundLeft)) || (getMovementX() > 0 && RectF.intersects(
+                            entity.getBounds(), boundRight))) {
+                        moveX = false;
+                    }
+
+                    if ((getMovementY() > 0 && RectF.intersects(entity.getBounds(), boundUp)) || (getMovementY() < 0 && RectF.intersects(
+                            entity.getBounds(), boundDown))) {
+                        moveY = false;
+                    }
+                }
+            }
+
+            if (getMovementY() != 0 && moveY) {
 
                 if (getMovementY() < 0) {
                     yCalculated = getLocation().y + getOffsetY();
@@ -109,7 +144,7 @@ public class Player extends Entity {
 
             }
 
-            if (getMovementX() != 0) {
+            if (getMovementX() != 0 && moveX) {
 
                 if (getMovementX() < 0) {
                     xCalculated = getLocation().x + getOffsetX();
@@ -173,7 +208,8 @@ public class Player extends Entity {
             setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
         }
 
-        renderer.getWorldMap().refreshPlayerTrail(getLocation());
+        renderer.getWorldMap()
+                .refreshPlayerTrail(getLocation());
 
         super.render(renderer, matrixProjection, matrixView);
 
@@ -207,6 +243,8 @@ public class Player extends Entity {
             end.offset(0, getVelocityY() * 500 + 3);
         }
 
-        attacks.add(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500));
+        synchronized (attacks) {
+            attacks.add(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500));
+        }
     }
 }

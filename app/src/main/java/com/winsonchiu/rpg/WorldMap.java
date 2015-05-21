@@ -71,7 +71,7 @@ public class WorldMap {
     private List<Rect> rooms;
     private byte[][] walls;
     private byte[][] playerTrail;
-    private List<Item> items;
+    private final List<Item> items;
     private int width;
     private int height;
     private Random random;
@@ -101,37 +101,41 @@ public class WorldMap {
 
     public void renderItems(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-        for (Item item : items) {
-            if (item.getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
-                    item.getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
-                    item.getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
-                    item.getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
-                item.render(renderer, matrixProjection, matrixView);
+        synchronized (items) {
+            for (Item item : items) {
+                if (item.getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
+                        item.getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
+                        item.getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
+                        item.getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
+                    item.render(renderer, matrixProjection, matrixView);
+                }
             }
         }
 
     }
 
     public void addItem(Item item) {
-        itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
-        items.add(item);
+        synchronized (items) {
+            itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
+            items.add(item);
+        }
     }
 
     public void addItems(List<Item> items) {
-        for (Item item : items) {
-            itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
-            this.items.add(item);
+        synchronized (items) {
+            for (Item item : items) {
+                itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
+                this.items.add(item);
+            }
         }
     }
 
     public Item getItem(int x, int y) {
-        Iterator<Item> iterator = items.iterator();
-        while (iterator.hasNext()) {
-            Item item = iterator.next();
-            if ((int) item.getLocation().x == x && (int) item.getLocation().y == y) {
-                itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
-                iterator.remove();
-                return item;
+        synchronized (items) {
+            for (Item item : items) {
+                if ((int) item.getLocation().x == x && (int) item.getLocation().y == y) {
+                    return item;
+                }
             }
         }
         return null;
@@ -144,10 +148,11 @@ public class WorldMap {
             return null;
         }
         if (item.getQuantity() <= 1) {
+            itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
             items.remove(item);
         }
         else {
-            item.setQuantity(item.getQuantity() - 1);
+            item = item.decrementQuantity();
         }
         return item;
     }

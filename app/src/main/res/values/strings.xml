@@ -9,4 +9,10 @@
 <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="image_inventory_control">Open inventory</string>
+    <string name="button_items">Items</string>
+    <string name="button_stats">Stats</string>
+    <string name="button_crafting">Craft</string>
+    <string name="button_drop">Drop</string>
+    <string name="button_info">Info</string>
+    <string name="button_equip">Equip</string>
 </resources>

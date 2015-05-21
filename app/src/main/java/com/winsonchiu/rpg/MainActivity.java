@@ -1,6 +1,13 @@
 package com.winsonchiu.rpg;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.NinePatchDrawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -9,11 +16,21 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
@@ -21,7 +38,7 @@ import com.crashlytics.android.Crashlytics;
 import io.fabric.sdk.android.Fabric;
 
 
-public class MainActivity extends AppCompatActivity implements FragmentInventory.OnFragmentInteractionListener, FragmentRender.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
     private ControllerInventory controllerInventory;
@@ -31,10 +48,18 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
     private ImageView imageInteractControl;
     private ImageView imageInventoryControl;
     private FastOutLinearInInterpolator interpolator;
+
+    // Inventory screen
+    private RelativeLayout layoutInventory;
     private RecyclerView recyclerInventory;
     private GridLayoutManager gridLayoutManager;
     private AdapterInventory adapterInventory;
     private ControllerInventory.InventoryListener inventoryListener;
+    private ImageButton buttonClose;
+    private Button buttonItems;
+    private Button buttonStats;
+    private Button buttonCrafting;
+    private FrameLayout frameView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,7 +144,8 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    renderer.getPlayer().startNewAttack(renderer);
+                    renderer.getPlayer()
+                            .startNewAttack(renderer);
                     return true;
                 }
                 return false;
@@ -130,26 +156,177 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
         imageInventoryControl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                recyclerInventory.setVisibility(View.VISIBLE);
+                frameView.removeAllViewsInLayout();
+                frameView.addView(layoutInventory);
+                frameView.setVisibility(View.VISIBLE);
             }
         });
+
+        frameView = (FrameLayout) findViewById(R.id.frame_view);
+
+        inflateInventory();
+
+    }
+
+    private void inflateInventory() {
+        layoutInventory = (RelativeLayout) LayoutInflater.from(this).inflate(R.layout.inventory,
+                frameView, false);
+        buttonClose = (ImageButton) layoutInventory.findViewById(R.id.button_close);
+        buttonClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                frameView.setVisibility(View.GONE);
+            }
+        });
+
+        loadAndSetBackground(layoutInventory, R.drawable.background_inventory);
+        loadAndSetBackground(buttonClose, R.drawable.button_close);
 
         inventoryListener = new ControllerInventory.InventoryListener() {
             @Override
             public RecyclerView.Adapter getAdapter() {
                 return adapterInventory;
             }
+
+            @Override
+            public void dropItem(Item item) {
+                if (!renderer.dropItem(item)) {
+                    Toast.makeText(MainActivity.this, "No room to drop item", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void equipItem() {
+
+            }
+
+            @Override
+            public void notifyItemInserted(final int position) {
+                recyclerInventory.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapterInventory.notifyItemInserted(position);
+                    }
+                });
+            }
+
+            @Override
+            public void notifyItemRemoved(final int position) {
+                recyclerInventory.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapterInventory.notifyItemRemoved(position);
+                    }
+                });
+            }
+
+            @Override
+            public void notifyDataSetChanged() {
+                recyclerInventory.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapterInventory.notifyDataSetChanged();
+                    }
+                });
+            }
+
+            @Override
+            public void notifyItemChanged(final int position) {
+                recyclerInventory.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapterInventory.notifyItemChanged(position);
+                    }
+                });
+            }
         };
 
         gridLayoutManager = new GridLayoutManager(this, 4, LinearLayoutManager.VERTICAL, false);
 
-        adapterInventory = new AdapterInventory(this, controllerInventory);
+        adapterInventory = new AdapterInventory(this, controllerInventory,
+                new AdapterInventory.EventCallback() {
+                    @Override
+                    public void showPopupWindow(final int position, int x, int y) {
 
-        recyclerInventory = (RecyclerView) findViewById(R.id.recycler_inventory);
+                        View view = LayoutInflater.from(MainActivity.this).inflate(
+                                R.layout.popup_item, frameView, false);
+                        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+                        y += TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
+
+                        final PopupWindow popup = new PopupWindow(MainActivity.this);
+                        popup.setContentView(view);
+                        popup.setWidth(view.getMeasuredWidth());
+                        popup.setHeight(view.getMeasuredHeight());
+                        popup.setFocusable(true);
+
+                        Button buttonDrop = (Button) view.findViewById(R.id.button_drop);
+                        buttonDrop.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Toast.makeText(MainActivity.this, "Dropped", Toast.LENGTH_SHORT)
+                                        .show();
+                                controllerInventory.dropItem(position);
+                                popup.dismiss();
+                            }
+                        });
+
+                        Button buttonInfo = (Button) view.findViewById(R.id.button_info);
+                        buttonInfo.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Toast.makeText(MainActivity.this, "Info", Toast.LENGTH_SHORT)
+                                        .show();
+                            }
+                        });
+
+                        Button buttonEquip = (Button) view.findViewById(R.id.button_equip);
+                        buttonEquip.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Toast.makeText(MainActivity.this, "Equipped", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+
+                        popup.showAtLocation(view, Gravity.NO_GRAVITY, x, y);
+
+                        Log.d(TAG, "Popup shown at (" + x + ", " + y + ")");
+
+                    }
+                });
+
+        recyclerInventory = (RecyclerView) layoutInventory.findViewById(R.id.recycler_inventory);
         recyclerInventory.setHasFixedSize(true);
         recyclerInventory.setLayoutManager(gridLayoutManager);
         recyclerInventory.setAdapter(adapterInventory);
 
+        buttonItems = (Button) layoutInventory.findViewById(R.id.button_items);
+        buttonStats = (Button) layoutInventory.findViewById(R.id.button_stats);
+        buttonCrafting = (Button) layoutInventory.findViewById(R.id.button_crafting);
+
+    }
+
+    private void loadAndSetBackground(View view, int resourceId) {
+        // Force inScaled off to prevent a blurry texture
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
+                resourceId, options);
+
+        Drawable background;
+
+        if (bitmap.getNinePatchChunk() != null) {
+            background = new NinePatchDrawable(getResources(), bitmap, bitmap.getNinePatchChunk(), new Rect(), null);
+        }
+        else {
+            background = new BitmapDrawable(getResources(), bitmap);
+        }
+
+        background.setDither(false);
+        background.setFilterBitmap(false);
+
+        view.setBackground(background);
     }
 
     private void applyFullscreen() {
@@ -216,16 +393,12 @@ public class MainActivity extends AppCompatActivity implements FragmentInventory
 
     @Override
     public void onBackPressed() {
-        if (recyclerInventory.isShown()) {
-            recyclerInventory.setVisibility(View.GONE);
+        if (frameView.isShown()) {
+            frameView.setVisibility(View.GONE);
         }
         else {
             super.onBackPressed();
         }
     }
 
-    @Override
-    public ControllerInventory getControllerInventory() {
-        return controllerInventory;
-    }
 }

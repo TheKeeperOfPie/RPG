@@ -260,6 +260,10 @@ import java.util.List;
         this.location = location;
     }
 
+    public void setLocation(float x, float y) {
+        location.set(x, y);
+    }
+
     public long getLastFrameTime() {
         return lastFrameTime;
     }

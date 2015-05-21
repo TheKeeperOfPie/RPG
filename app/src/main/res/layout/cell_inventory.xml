@@ -5,18 +5,25 @@
     android:layout_height="match_parent"
     >
 
-    <ImageView
+    <com.winsonchiu.rpg.ImageViewSquare
         android:id="@+id/image_icon"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
+        android:layout_margin="4dp"
         />
 
-    <TextView
-        android:id="@+id/text_name"
-        android:layout_below="@id/image_icon"
-        android:layout_width="match_parent"
+    <com.winsonchiu.rpg.TextViewShadow
+        android:id="@+id/text_quantity"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignEnd="@id/image_icon"
+        android:layout_alignBottom="@id/image_icon"
+        android:layout_margin="8dp"
+        android:ellipsize="marquee"
+        android:textAppearance="?android:textAppearanceMedium"
+        android:shadowColor="@android:color/black"
+        android:shadowRadius="3"
         />
 
 </RelativeLayout>

@@ -51,12 +51,11 @@
         android:layout_marginTop="48dp"
         />
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/recycler_inventory"
+    <FrameLayout
+        android:id="@+id/frame_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
-        android:layout_margin="24dp"
         />
 
 </RelativeLayout>

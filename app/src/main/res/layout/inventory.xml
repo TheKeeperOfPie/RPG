@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background_inventory"
+    android:layout_margin="24dp"
+    >
+
+    <ScrollView
+        android:id="@+id/scroll_container_buttons"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_toStartOf="@+id/button_close"
+        android:layout_alignParentTop="true"
+        android:layout_margin="16dp"
+        >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            >
+
+            <Button
+                android:id="@+id/button_items"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/button_items"
+                />
+
+            <Button
+                android:id="@+id/button_stats"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/button_stats"
+                />
+
+            <Button
+                android:id="@+id/button_crafting"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/button_crafting"
+                />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <ImageButton
+        android:id="@+id/button_close"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="16dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        />
+
+    <ImageView
+        android:id="@+id/image_avatar"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/recycler_inventory"
+        android:layout_below="@id/scroll_container_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="16dp"
+        />
+
+</RelativeLayout>
