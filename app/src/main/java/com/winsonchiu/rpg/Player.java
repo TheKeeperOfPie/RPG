@@ -4,9 +4,6 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by TheKeeperOfPie on 5/2/2015.
  */
@@ -185,21 +182,8 @@ public class Player extends Entity {
             renderer.offsetCamera(getOffsetX(), 0);
         }
 
-        if (getMovementX() < 0) {
-            setLastDirection(Direction.WEST);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 4));
-        }
-        else if (getMovementX() > 0) {
-            setLastDirection(Direction.EAST);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 8));
-        }
-        else if (getMovementY() > 0) {
-            setLastDirection(Direction.NORTH);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
-        }
-        else if (getMovementY() < 0) {
-            setLastDirection(Direction.SOUTH);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
+        if (Math.abs(getMovementX()) > 0 || Math.abs(getMovementY()) > 0) {
+            calculateAnimationFrame();
         }
 
         renderer.getWorldMap()
@@ -209,28 +193,106 @@ public class Player extends Entity {
 
     }
 
+    private void calculateAnimationFrame() {
+        double angle = Math.atan(getOffsetY() / getOffsetX());
+
+        if (getMovementX() > 0) {
+
+            if (angle > Math.PI / 3) {
+                setLastDirection(Direction.NORTH);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+            }
+            else if (angle > Math.PI / 6) {
+                setLastDirection(Direction.NORTHEAST);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+            }
+            else if (angle < -Math.PI / 3) {
+                setLastDirection(Direction.SOUTH);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+            }
+            else if (angle < -Math.PI / 6) {
+                setLastDirection(Direction.SOUTHEAST);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+            }
+            else {
+                setLastDirection(Direction.EAST);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 8));
+            }
+
+        }
+        else if (getMovementX() < 0){
+            if (angle > Math.PI / 3) {
+                setLastDirection(Direction.SOUTH);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+            }
+            else if (angle > Math.PI / 6) {
+                setLastDirection(Direction.SOUTHWEST);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+            }
+            else if (angle < -Math.PI / 3) {
+                setLastDirection(Direction.NORTH);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+            }
+            else if (angle < -Math.PI / 6) {
+                setLastDirection(Direction.NORTHWEST);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+            }
+            else {
+                setLastDirection(Direction.WEST);
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 4));
+            }
+        }
+        else if (getMovementY() > 0) {
+            setLastDirection(Direction.NORTH);
+            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+        }
+        else {
+            setLastDirection(Direction.SOUTH);
+            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+        }
+    }
+
     public void startNewAttack(Renderer renderer) {
 
         // TODO: Redo offsets to start centered on player
 
         PointF start = new PointF(getLocation().x, getLocation().y);
         PointF end = new PointF(getLocation().x, getLocation().y);
-        if (getMovementX() < 0 || getLastDirection() == Direction.WEST) {
-            start.offset(-1 * WIDTH_RATIO, 0);
-            end.offset(getVelocityX() * 500 - 3, 0);
-        }
-        else if (getMovementX() > 0 || getLastDirection() == Direction.EAST) {
-            start.offset(1 * WIDTH_RATIO, 0);
-            end.offset(getVelocityX() * 500 + 3, 0);
-        }
 
-        if (getMovementY() < 0 || getLastDirection() == Direction.SOUTH) {
-            start.offset(0, -1 * HEIGHT_RATIO);
-            end.offset(0, getVelocityY() * 500 - 3);
-        }
-        else if (getMovementY() > 0 || getLastDirection() == Direction.NORTH) {
-            start.offset(0, 1 * HEIGHT_RATIO);
-            end.offset(0, getVelocityY() * 500 + 3);
+        switch (getLastDirection()) {
+
+            case NORTH:
+                start.offset(0, 1 * HEIGHT_RATIO);
+                end.offset(0, getVelocityY() * 500 + 3);
+                break;
+            case NORTHEAST:
+                start.offset(1 * WIDTH_RATIO, 1 * HEIGHT_RATIO);
+                end.offset(getVelocityX() * 500 + 3, getVelocityY() * 500 + 3);
+                break;
+            case EAST:
+                start.offset(1 * WIDTH_RATIO, 0);
+                end.offset(getVelocityX() * 500 + 3, 0);
+                break;
+            case SOUTHEAST:
+                start.offset(1 * WIDTH_RATIO, -1 * HEIGHT_RATIO);
+                end.offset(getVelocityX() * 500 + 3, getVelocityY() * 500 - 3);
+                break;
+            case SOUTH:
+                start.offset(0, -1 * HEIGHT_RATIO);
+                end.offset(0, getVelocityY() * 500 - 3);
+                break;
+            case SOUTHWEST:
+                start.offset(-1 * WIDTH_RATIO, -1 * HEIGHT_RATIO);
+                end.offset(getVelocityX() * 500 - 3, getVelocityY() * 500 - 3);
+                break;
+            case WEST:
+                start.offset(-1 * WIDTH_RATIO, 0);
+                end.offset(getVelocityX() * 500 - 3, 0);
+                break;
+            case NORTHWEST:
+                start.offset(-1 * WIDTH_RATIO, 1 * HEIGHT_RATIO);
+                end.offset(getVelocityX() * 500 - 3, getVelocityY() * 500 + 3);
+                break;
         }
 
         renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));

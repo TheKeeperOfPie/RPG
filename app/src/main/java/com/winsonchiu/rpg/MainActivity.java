@@ -1,13 +1,5 @@
 package com.winsonchiu.rpg;
 
-import android.app.Activity;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.NinePatchDrawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,14 +9,12 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -35,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
+import com.winsonchiu.rpg.items.Item;
 
 import io.fabric.sdk.android.Fabric;
 
@@ -279,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
                         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 
                         ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
-                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), item.getItemId().getDrawable()));
+                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), item.getItemId().getResourceId()));
 
                         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 
@@ -377,6 +368,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        renderer.release();
         super.onStop();
     }
 

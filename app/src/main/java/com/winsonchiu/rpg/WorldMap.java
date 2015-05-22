@@ -5,15 +5,19 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.util.Log;
 
+import com.winsonchiu.rpg.items.Item;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 
 /**
@@ -37,10 +41,10 @@ public class WorldMap {
     private static final String IS_DOORWAY = "Doorway";
     private static final String IS_COLLIDE = "Collide";
     private static final String IS_ABOVE = "Above";
-    private static final int MAX_ROOM_WIDTH = 17;
-    private static final int MIN_ROOM_WIDTH = 9;
-    private static final int MAX_ROOM_HEIGHT = 17;
-    private static final int MIN_ROOM_HEIGHT = 9;
+    private static final int MAX_ROOM_WIDTH = 13;
+    private static final int MIN_ROOM_WIDTH = 7;
+    private static final int MAX_ROOM_HEIGHT = 13;
+    private static final int MIN_ROOM_HEIGHT = 7;
     private static final int AREA_PER_ROOM = 60;
     private static final int ATTEMPT_RATIO = 3;
 
@@ -76,6 +80,7 @@ public class WorldMap {
     private int height;
     private Random random;
     private boolean[][] itemLocations;
+    private Rect roomStart;
 
     public WorldMap(int width, int height) {
 
@@ -89,8 +94,8 @@ public class WorldMap {
 
         this.width = width;
         this.height = height;
-        items = new ArrayList<>();
-        random = new Random(55);
+        items = Collections.synchronizedList(new ArrayList<Item>());
+        random = new Random();
         rooms = new ArrayList<>();
         walls = new byte[width][height];
         itemLocations = new boolean[width][height];
@@ -103,34 +108,15 @@ public class WorldMap {
         return items;
     }
 
-    public void renderItems(Renderer renderer, float[] matrixProjection, float[] matrixView) {
-
-        synchronized (items) {
-            for (Item item : items) {
-                if (item.getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
-                        item.getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
-                        item.getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
-                        item.getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
-                    item.render(renderer, matrixProjection, matrixView);
-                }
-            }
-        }
-
+    public void addItem(Item item) {
+        itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
+        items.add(item);
     }
 
-    public void addItem(Item item) {
-        synchronized (items) {
+    public void addItems(List<Item> newItems) {
+        for (Item item : newItems) {
             itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
             items.add(item);
-        }
-    }
-
-    public void addItems(List<Item> items) {
-        synchronized (items) {
-            for (Item item : items) {
-                itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = true;
-                this.items.add(item);
-            }
         }
     }
 
@@ -159,19 +145,19 @@ public class WorldMap {
                     break;
                 }
             }
-        }
 
-        if (indexItem < 0) {
-            return null;
-        }
-        Item item = items.get(indexItem);
+            if (indexItem < 0) {
+                return null;
+            }
+            Item item = items.get(indexItem);
 
-        if (item.getQuantity() <= 1) {
-            itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
-            return items.remove(indexItem);
-        }
-        else {
-            return item.decrementQuantity();
+            if (item.getQuantity() <= 1) {
+                itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
+                return items.remove(indexItem);
+            }
+            else {
+                return item.decrementQuantity();
+            }
         }
     }
 
@@ -193,7 +179,7 @@ public class WorldMap {
         return isCollide;
     }
 
-    public void generateRectangular() {
+    public void generateRectangular(Renderer renderer) {
 
         generateRooms();
         generateMaze();
@@ -203,10 +189,67 @@ public class WorldMap {
 
         setTiles();
 
+        roomStart = rooms.get(0);
+
+        spawnMobs(renderer);
+        spawnItems();
+
     }
 
+    public void refreshPlayerTrail(PointF point) {
+
+        for (int x = 0; x < playerTrail.length; x++) {
+            for (int y = 0; y < playerTrail[0].length; y++) {
+                if (playerTrail[x][y] > 0) {
+                    playerTrail[x][y]--;
+                }
+            }
+        }
+
+        playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
+    }
+
+    private void spawnMobs(Renderer renderer) {
+
+        List<Entity> mobs = new ArrayList<>();
+        Set<PointF> usedPoints = new HashSet<>(4);
+
+        for (Rect room : rooms) {
+            usedPoints.clear();
+            int iterations = random.nextInt(3) + 1;
+
+            for (int iteration = 0; iteration < iterations; iteration++) {
+
+                float roomX = random.nextInt(room.width());
+                float roomY = random.nextInt(room.width());
+
+                PointF location = new PointF(roomX + room.left, roomY + room.top);
+
+                // TODO: This is not a good programming practice. Use a better system.
+                while (!usedPoints.add(location)) {
+                    roomX = random.nextInt(room.width());
+                    roomY = random.nextInt(room.width());
+
+                    location = new PointF(roomX + room.left, roomY + room.top);
+                }
+
+                mobs.add(new MobAggressive(5, 0, renderer.getTileSize(), MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f, room, 8));
+
+            }
+
+        }
+
+        renderer.addEntities(mobs);
+
+    }
+
+    private void spawnItems() {
+        
+    }
+
+    //region Generation
     private void generateRooms() {
-        int numRooms = 1;//width * height / AREA_PER_ROOM;
+        int numRooms = width * height / AREA_PER_ROOM;
         int maxAttempts = numRooms * ATTEMPT_RATIO;
         int attempt = 0;
 
@@ -560,21 +603,13 @@ public class WorldMap {
 
         }
     }
-
-    public void refreshPlayerTrail(PointF point) {
-
-        for (int x = 0; x < playerTrail.length; x++) {
-            for (int y = 0; y < playerTrail[0].length; y++) {
-                if (playerTrail[x][y] > 0) {
-                    playerTrail[x][y]--;
-                }
-            }
-        }
-
-        playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
-    }
+    //endregion
 
     //region Getters and setters
+    public PointF getStartPoint() {
+        return new PointF(roomStart.centerX(), roomStart.centerY());
+    }
+
     private void setTiles() {
         tilesBelow.clear();
         tilesAbove.clear();

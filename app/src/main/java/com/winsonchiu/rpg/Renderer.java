@@ -11,8 +11,9 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
+
+import com.winsonchiu.rpg.items.Item;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,9 +26,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Random;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -114,8 +115,8 @@ public class Renderer implements GLSurfaceView.Renderer {
         this.activity = activity;
         this.eventListener = eventListener;
         random = new Random();
-        entityMobs = new ArrayList<>();
-        entityAttacks = new ArrayList<>();
+        entityMobs = Collections.synchronizedList(new ArrayList<Entity>());
+        entityAttacks = Collections.synchronizedList(new ArrayList<Attack>());
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
         DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
@@ -125,19 +126,49 @@ public class Renderer implements GLSurfaceView.Renderer {
         tilesOnScreenY = displayMetrics.heightPixels / tileSize;
     }
 
-    private void initialize() {
-        programId = GLES20.glCreateProgram();
-        int vertexShaderId = RenderUtils.loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
-        int fragmentShaderId = RenderUtils.loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
-        GLES20.glAttachShader(programId, vertexShaderId);
-        GLES20.glAttachShader(programId, fragmentShaderId);
-        GLES20.glLinkProgram(programId);
-        GLES20.glUseProgram(programId);
-        Renderer.positionLocation = GLES20.glGetAttribLocation(programId, "positionCoordinate");
-        Renderer.textureLocation = GLES20.glGetAttribLocation(programId, "textureCoordinateVertex");
-        Renderer.matrixLocation = GLES20.glGetUniformLocation(programId, "matrix");
-        Renderer.alphaLocation = GLES20.glGetUniformLocation(programId, "opacity");
-        Renderer.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
+    public boolean dropItem(Item item) {
+
+        PointF centerLocation = new PointF(player.getLocation().x + player.getWidthRatio() / 2, player.getLocation().y + player.getHeightRatio() / 2);
+
+        Direction direction = player.getLastDirection();
+
+        List<PointF> validLocations = new ArrayList<>();
+
+        for (int offsetDirection = -2; offsetDirection <= 2; offsetDirection++) {
+
+            Direction directionDrop = Direction.offset(direction, offsetDirection);
+            validLocations.add(new PointF(centerLocation.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2,
+                    centerLocation.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
+
+        }
+
+        Iterator<PointF> iterator = validLocations.iterator();
+        while (iterator.hasNext()) {
+
+            PointF point = iterator.next();
+
+            if (worldMap.isCollide(new Point((int) point.x, (int) point.y)) ||
+                    worldMap.isCollide(
+                            new Point((int) (point.x + item.getWidthRatio()), (int) point.y)) ||
+                    worldMap.isCollide(
+                            new Point((int) point.x, (int) (point.y + item.getHeightRatio()))) ||
+                    worldMap.isCollide(new Point((int) (point.x + item.getWidthRatio()),
+                            (int) (point.y + item.getHeightRatio())))) {
+                iterator.remove();
+            }
+
+        }
+
+        if (validLocations.isEmpty()) {
+            return false;
+        }
+
+        PointF pointDrop = validLocations.get(random.nextInt(validLocations.size()));
+
+        item.setLocation(pointDrop);
+        worldMap.addItem(item);
+
+        return true;
     }
 
     @Override
@@ -148,7 +179,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         loadTextures();
 
         worldMap = new WorldMap(133, 125);
-        worldMap.generateRectangular();
+        worldMap.generateRectangular(this);
 
         quadTree = new QuadTree(0, new RectF(0, 0, 133, 125));
 
@@ -178,61 +209,15 @@ public class Renderer implements GLSurfaceView.Renderer {
                     MobAggressive.HEIGHT_RATIO,
                     new PointF(room.exactCenterX(), room.exactCenterY() - 1),
                     4f, 4f, room, 8));
-
-//            int item = 0;
-//
-//            for (int x = room.left + 1; x < room.right - 1; x++) {
-//                for (int y = room.top + 1; y < room.bottom - 1; y++) {
-//                    worldMap.addItem(new Item("Health Vial", item++, 0, 0, 0, 0, tileSize,
-//                            new PointF(x, y)));
-//                }
-//            }
         }
 
-        byte[][] walls = worldMap.getWalls();
+        PointF pointStart = worldMap.getStartPoint();
 
+        player = new Player(tileSize, pointStart);
+        offsetCameraX = pointStart.x;
+        offsetCameraY = pointStart.y;
 
-        int playerX = -1;
-        int playerY = -1;
-
-        for (int x = Player.OUT_BOUND_X; x < walls.length - 1; x++) {
-            for (int y = Player.OUT_BOUND_Y; y < walls[0].length - 1; y++) {
-                if (walls[x][y] == WorldMap.CORRIDOR_CONNECTED) {
-                    playerX = x;
-                    playerY = y;
-                    break;
-                }
-            }
-            if (playerX >= 0) {
-                break;
-            }
-        }
-
-        if (playerX <= Player.OUT_BOUND_X) {
-            playerX += Player.OUT_BOUND_X;
-        }
-        else if (playerX >= worldMap.getWidth() - Player.OUT_BOUND_X) {
-            playerX -= Player.OUT_BOUND_X;
-        }
-
-        if (playerY <= Player.OUT_BOUND_Y) {
-            playerY += Player.OUT_BOUND_Y;
-        }
-        else if (playerY >= worldMap.getHeight() - Player.OUT_BOUND_Y) {
-            playerY -= Player.OUT_BOUND_Y;
-        }
-
-        Log.d(TAG, "playerX: " + playerX);
-        Log.d(TAG, "playerY: " + playerY);
-
-        player = new Player(tileSize, new PointF(playerX, playerY));
-        offsetCameraX = playerX - Player.OUT_BOUND_X;
-        offsetCameraY = playerY - Player.OUT_BOUND_Y;
-
-//        if (!isInitialized) {
-            loadVbo();
-            isInitialized = true;
-//        }
+        loadVbo();
 
         GLES20.glClearColor(0f, 0f, 0f, 1f);
     }
@@ -256,6 +241,148 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         setCamera();
 
+    }
+
+    @Override
+    public void onDrawFrame(GL10 gl) {
+
+        try {
+            endTime = System.currentTimeMillis();
+            frameTime = endTime - startTime;
+            if (frameTime < targetFrameTime) {
+                Thread.sleep(targetFrameTime - frameTime);
+            }
+
+            startTime = System.currentTimeMillis();
+        }
+        catch (InterruptedException e) {
+        }
+
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+
+        android.opengl.Matrix.multiplyMM(matrixProjectionAndView,
+                0,
+                matrixProjection,
+                0,
+                matrixView,
+                0);
+
+        quadTree.clear();
+        for (Entity entity : entityMobs) {
+            quadTree.insert(entity);
+        }
+        quadTree.insert(player);
+
+        renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
+                .size() * 18);
+
+        renderEntities();
+
+        renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
+                .size() * 18);
+    }
+
+    private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
+
+        GLES20.glUseProgram(programId);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
+        GLES20.glEnableVertexAttribArray(positionLocation);
+        GLES20.glEnableVertexAttribArray(textureLocation);
+
+        GLES20.glUniform1i(samplerLocation, 0);
+        GLES20.glUniform1f(alphaLocation, 1.0f);
+        GLES20.glUniformMatrix4fv(matrixLocation, 1, false, matrixProjectionAndView,
+                0);
+
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
+        GLES20.glVertexAttribPointer(positionLocation, POSITION_DATA_SIZE,
+                GLES20.GL_FLOAT, false, 0, 0);
+
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, textureBufferId);
+        GLES20.glVertexAttribPointer(textureLocation, TEXTURE_DATA_SIZE,
+                GLES20.GL_FLOAT, false, 0, 0);
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, size);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+
+        GLES20.glDisableVertexAttribArray(positionLocation);
+        GLES20.glDisableVertexAttribArray(textureLocation);
+    }
+
+    private void renderEntities() {
+
+        GLES20.glUseProgram(Entity.getProgram());
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ITEMS]);
+
+        synchronized (worldMap.getItems()) {
+            Iterator<Item> iterator = worldMap.getItems().iterator();
+            while (iterator.hasNext()) {
+                Item item = iterator.next();
+                if (item.getLocation().x + 2.0f > getOffsetCameraX() &&
+                        item.getLocation().x - 2.0f < getOffsetCameraX() + getTilesOnScreenX() &&
+                        item.getLocation().y + 2.0f > getOffsetCameraY() &&
+                        item.getLocation().y - 2.0f < getOffsetCameraY() + getTilesOnScreenY()) {
+                    if (RectF.intersects(item.getBounds(), player.getBounds())) {
+                        iterator.remove();
+                        eventListener.pickUpItem(item);
+                    }
+                    else {
+                        item.render(this, matrixProjection, matrixView);
+                    }
+                }
+            }
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_PLAYER]);
+
+        player.render(this, matrixProjection, matrixView);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_MOBS]);
+
+        synchronized (entityMobs) {
+            Iterator<Entity> iterator = entityMobs.iterator();
+            while (iterator.hasNext()) {
+                Entity entity = iterator.next();
+                entity.render(this, matrixProjection, matrixView);
+                if (entity.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ATTACKS]);
+
+        synchronized (entityAttacks) {
+            Iterator<Attack> iterator = entityAttacks.iterator();
+            while (iterator.hasNext()) {
+                Attack attack = iterator.next();
+                attack.render(this, matrixProjection, matrixView);
+                if (attack.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
+
+    }
+
+    //region Setup and teardown
+    private void initialize() {
+        programId = GLES20.glCreateProgram();
+        int vertexShaderId = RenderUtils.loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
+        int fragmentShaderId = RenderUtils.loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+        GLES20.glAttachShader(programId, vertexShaderId);
+        GLES20.glAttachShader(programId, fragmentShaderId);
+        GLES20.glLinkProgram(programId);
+        GLES20.glUseProgram(programId);
+        Renderer.positionLocation = GLES20.glGetAttribLocation(programId, "positionCoordinate");
+        Renderer.textureLocation = GLES20.glGetAttribLocation(programId, "textureCoordinateVertex");
+        Renderer.matrixLocation = GLES20.glGetUniformLocation(programId, "matrix");
+        Renderer.alphaLocation = GLES20.glGetUniformLocation(programId, "opacity");
+        Renderer.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
     }
 
     private void loadVbo() {
@@ -379,149 +506,6 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
     }
 
-    public void pause() {
-        isPaused = true;
-    }
-
-    @Override
-    public void onDrawFrame(GL10 gl) {
-
-        try {
-            endTime = System.currentTimeMillis();
-            frameTime = endTime - startTime;
-            if (frameTime < targetFrameTime) {
-                Thread.sleep(targetFrameTime - frameTime);
-            }
-
-            startTime = System.currentTimeMillis();
-        }
-        catch (InterruptedException e) {
-        }
-
-        GLES20.glEnable(GLES20.GL_BLEND);
-        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-
-        android.opengl.Matrix.multiplyMM(matrixProjectionAndView,
-                0,
-                matrixProjection,
-                0,
-                matrixView,
-                0);
-
-        quadTree.clear();
-        for (Entity entity : entityMobs) {
-            quadTree.insert(entity);
-        }
-        quadTree.insert(player);
-
-        renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
-                .size() * 18);
-
-        renderEntities();
-
-        renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
-                .size() * 18);
-    }
-
-    private void renderEntities() {
-
-        GLES20.glUseProgram(Entity.getProgram());
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ITEMS]);
-
-        synchronized (worldMap.getItems()) {
-            Iterator<Item> iterator = worldMap.getItems().iterator();
-            while (iterator.hasNext()) {
-                Item item = iterator.next();
-                if (item.getLocation().x + 2.0f > getOffsetCameraX() &&
-                        item.getLocation().x - 2.0f < getOffsetCameraX() + getTilesOnScreenX() &&
-                        item.getLocation().y + 2.0f > getOffsetCameraY() &&
-                        item.getLocation().y - 2.0f < getOffsetCameraY() + getTilesOnScreenY()) {
-                    if (RectF.intersects(item.getBounds(), player.getBounds())) {
-                        iterator.remove();
-                        eventListener.pickUpItem(item);
-                    }
-                    else {
-                        item.render(this, matrixProjection, matrixView);
-                    }
-                }
-            }
-        }
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_PLAYER]);
-
-        player.render(this, matrixProjection, matrixView);
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_MOBS]);
-
-        synchronized (entityMobs) {
-            Iterator<Entity> iterator = entityMobs.iterator();
-            while (iterator.hasNext()) {
-                Entity entity = iterator.next();
-                entity.render(this, matrixProjection, matrixView);
-                if (entity.getToDestroy()) {
-                    iterator.remove();
-                }
-            }
-        }
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ATTACKS]);
-
-        synchronized (entityAttacks) {
-            Iterator<Attack> iterator = entityAttacks.iterator();
-            while (iterator.hasNext()) {
-                Attack attack = iterator.next();
-                attack.render(this, matrixProjection, matrixView);
-                if (attack.getToDestroy()) {
-                    iterator.remove();
-                }
-            }
-        }
-
-    }
-
-    private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
-
-        GLES20.glUseProgram(programId);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-        GLES20.glEnableVertexAttribArray(positionLocation);
-        GLES20.glEnableVertexAttribArray(textureLocation);
-
-        GLES20.glUniform1i(samplerLocation, 0);
-        GLES20.glUniform1f(alphaLocation, 1.0f);
-        GLES20.glUniformMatrix4fv(matrixLocation, 1, false, matrixProjectionAndView,
-                                  0);
-
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, positionBufferId);
-        GLES20.glVertexAttribPointer(positionLocation, POSITION_DATA_SIZE,
-                GLES20.GL_FLOAT, false, 0, 0);
-
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, textureBufferId);
-        GLES20.glVertexAttribPointer(textureLocation, TEXTURE_DATA_SIZE,
-                GLES20.GL_FLOAT, false, 0, 0);
-
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, size);
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
-
-        GLES20.glDisableVertexAttribArray(positionLocation);
-        GLES20.glDisableVertexAttribArray(textureLocation);
-    }
-
-    public void offsetCamera(float x, float y) {
-        offsetCameraX += x;
-        offsetCameraY += y;
-        setCamera();
-    }
-
-    private void setCamera() {
-        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX * tileSize,
-                offsetCameraY * tileSize, 2f,
-                offsetCameraX * tileSize, offsetCameraY * tileSize, 1f,
-                0.0f, 1.0f, 0.0f);
-    }
-
     private void loadTextures() {
         textureNames = new int[NUM_TEXTURES];
         GLES20.glGenTextures(NUM_TEXTURES, textureNames, 0);
@@ -590,6 +574,21 @@ public class Renderer implements GLSurfaceView.Renderer {
             GLES20.glDeleteTextures(textureNames.length, textureNames, 0);
         }
     }
+    //endregion
+
+    //region Getters, setters, changers
+    private void setCamera() {
+        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX * tileSize,
+                offsetCameraY * tileSize, 2f,
+                offsetCameraX * tileSize, offsetCameraY * tileSize, 1f,
+                0.0f, 1.0f, 0.0f);
+    }
+
+    public void offsetCamera(float x, float y) {
+        offsetCameraX += x;
+        offsetCameraY += y;
+        setCamera();
+    }
 
     public float getOffsetCameraX() {
         return offsetCameraX;
@@ -624,15 +623,15 @@ public class Renderer implements GLSurfaceView.Renderer {
     }
 
     public void addEntity(Entity entity) {
-        synchronized (entityMobs) {
-            entityMobs.add(entity);
-        }
+        entityMobs.add(entity);
+    }
+
+    public void addEntities(List<Entity> entities) {
+        entityMobs.addAll(entities);
     }
 
     public void addAttack(Attack attack) {
-        synchronized (entityAttacks) {
-            entityAttacks.add(attack);
-        }
+        entityAttacks.add(attack);
     }
 
     public float getTilesOnScreenX() {
@@ -643,50 +642,10 @@ public class Renderer implements GLSurfaceView.Renderer {
         return tilesOnScreenY;
     }
 
-    public void showInventory() {
-        showInventory = true;
+    public int getTileSize() {
+        return tileSize;
     }
-
-    public boolean dropItem(Item item) {
-
-        PointF centerLocation = new PointF(player.getLocation().x + player.getWidthRatio() / 2, player.getLocation().y + player.getHeightRatio() / 2);
-
-        Direction direction = player.getLastDirection();
-
-        List<PointF> validLocations = new ArrayList<>();
-
-        for (int offsetDirection = -2; offsetDirection <= 2; offsetDirection++) {
-
-            Direction directionDrop = Direction.offset(direction, offsetDirection);
-            validLocations.add(new PointF(centerLocation.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2, centerLocation.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
-
-        }
-
-        Iterator<PointF> iterator = validLocations.iterator();
-        while (iterator.hasNext()) {
-
-            PointF point = iterator.next();
-
-            if (worldMap.isCollide(new Point((int) point.x, (int) point.y)) ||
-                    worldMap.isCollide(new Point((int) (point.x + item.getWidthRatio()), (int) point.y)) ||
-                    worldMap.isCollide(new Point((int) point.x, (int) (point.y + item.getHeightRatio()))) ||
-                    worldMap.isCollide(new Point((int) (point.x + item.getWidthRatio()), (int) (point.y + item.getHeightRatio())))) {
-                iterator.remove();
-            }
-
-        }
-
-        if (validLocations.isEmpty()) {
-            return false;
-        }
-
-        PointF pointDrop = validLocations.get(random.nextInt(validLocations.size()));
-
-        item.setLocation(pointDrop);
-        worldMap.addItem(item);
-
-        return true;
-    }
+    //endregion
 
     public interface EventListener {
         void pickUpItem(Item item);

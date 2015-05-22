@@ -4,18 +4,16 @@ import android.app.Activity;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
-import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.NinePatchDrawable;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.winsonchiu.rpg.items.Item;
 
 /**
  * Created by TheKeeperOfPie on 5/14/2015.
@@ -62,7 +60,7 @@ public class AdapterInventory extends RecyclerView.Adapter<AdapterInventory.View
         Item item = controllerInventory.getItem(position);
 
         Drawable drawable = new BitmapDrawable(resources, BitmapFactory.decodeResource(resources,
-                item.getItemId().getDrawable(), options));
+                item.getItemId().getResourceId(), options));
 
         viewHolder.onBind(item, drawable);
 

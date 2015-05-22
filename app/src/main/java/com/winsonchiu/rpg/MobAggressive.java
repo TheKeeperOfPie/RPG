@@ -4,7 +4,9 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.util.Log;
+
+import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.ItemIds;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -63,9 +65,9 @@ public class MobAggressive extends Entity {
         Player player = renderer.getPlayer();
         PointF playerLocation = renderer.getPlayer().getLocation();
 
-        if (MathUtils.distance(playerLocation, getLocation()) < 2f && System.currentTimeMillis() > attackEndTime) {
+        if (MathUtils.distance(playerLocation, getLocation()) < 3f && System.currentTimeMillis() > attackEndTime) {
             renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, getLocation(), new PointF(playerLocation.x, playerLocation.y), 250, true));
-            attackEndTime = System.currentTimeMillis() + 500;
+            attackEndTime = System.currentTimeMillis() + 1000;
         }
 
     }
@@ -75,9 +77,7 @@ public class MobAggressive extends Entity {
 
         List<Item> drops = new ArrayList<>();
 
-        drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
-        drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
-        drops.add(new Item(ItemIds.GOLD, 0, 0, 0, 0, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+        drops.add(new Item(ItemIds.GOLD, getTileSize(), new PointF(getLocation().x, getLocation().y)));
 
         return drops;
     }
@@ -544,47 +544,55 @@ public class MobAggressive extends Entity {
 
             if (angle > Math.PI / 3) {
                 setLastDirection(Direction.NORTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
             }
             else if (angle > Math.PI / 6) {
                 setLastDirection(Direction.NORTHEAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
             }
             else if (angle < -Math.PI / 3) {
                 setLastDirection(Direction.SOUTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
             }
             else if (angle < -Math.PI / 6) {
                 setLastDirection(Direction.SOUTHEAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
             }
             else {
                 setLastDirection(Direction.EAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 8));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 8));
             }
 
         }
-        else {
+        else if (getMovementX() < 0) {
             if (angle > Math.PI / 3) {
                 setLastDirection(Direction.SOUTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
             }
             else if (angle > Math.PI / 6) {
                 setLastDirection(Direction.SOUTHWEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
             }
             else if (angle < -Math.PI / 3) {
                 setLastDirection(Direction.NORTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
             }
             else if (angle < -Math.PI / 6) {
                 setLastDirection(Direction.NORTHWEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
             }
             else {
                 setLastDirection(Direction.WEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 3 + 4));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 4));
             }
+        }
+        else if (getMovementY() > 0) {
+            setLastDirection(Direction.NORTH);
+            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+        }
+        else {
+            setLastDirection(Direction.SOUTH);
+            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
         }
     }
 

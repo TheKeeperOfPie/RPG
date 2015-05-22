@@ -2,8 +2,6 @@ package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 

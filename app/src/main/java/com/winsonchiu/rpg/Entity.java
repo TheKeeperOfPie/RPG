@@ -3,7 +3,8 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.opengl.GLES20;
-import android.util.Log;
+
+import com.winsonchiu.rpg.items.Item;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

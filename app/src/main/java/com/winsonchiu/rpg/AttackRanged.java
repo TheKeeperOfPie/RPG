@@ -3,6 +3,8 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.graphics.RectF;
 
+import com.winsonchiu.rpg.items.Item;
+
 import java.util.List;
 
 /**
