@@ -126,51 +126,6 @@ public class Renderer implements GLSurfaceView.Renderer {
         tilesOnScreenY = displayMetrics.heightPixels / tileSize;
     }
 
-    public boolean dropItem(Item item) {
-
-        PointF centerLocation = new PointF(player.getLocation().x + player.getWidthRatio() / 2, player.getLocation().y + player.getHeightRatio() / 2);
-
-        Direction direction = player.getLastDirection();
-
-        List<PointF> validLocations = new ArrayList<>();
-
-        for (int offsetDirection = -2; offsetDirection <= 2; offsetDirection++) {
-
-            Direction directionDrop = Direction.offset(direction, offsetDirection);
-            validLocations.add(new PointF(centerLocation.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2,
-                    centerLocation.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
-
-        }
-
-        Iterator<PointF> iterator = validLocations.iterator();
-        while (iterator.hasNext()) {
-
-            PointF point = iterator.next();
-
-            if (worldMap.isCollide(new Point((int) point.x, (int) point.y)) ||
-                    worldMap.isCollide(
-                            new Point((int) (point.x + item.getWidthRatio()), (int) point.y)) ||
-                    worldMap.isCollide(
-                            new Point((int) point.x, (int) (point.y + item.getHeightRatio()))) ||
-                    worldMap.isCollide(new Point((int) (point.x + item.getWidthRatio()),
-                            (int) (point.y + item.getHeightRatio())))) {
-                iterator.remove();
-            }
-
-        }
-
-        if (validLocations.isEmpty()) {
-            return false;
-        }
-
-        PointF pointDrop = validLocations.get(random.nextInt(validLocations.size()));
-
-        item.setLocation(pointDrop);
-        worldMap.addItem(item);
-
-        return true;
-    }
-
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
@@ -243,11 +198,7 @@ public class Renderer implements GLSurfaceView.Renderer {
                 matrixView,
                 0);
 
-        quadTree.clear();
-        for (Entity entity : entityMobs) {
-            quadTree.insert(entity);
-        }
-        quadTree.insert(player);
+        refillQuadTree();
 
         renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
                 .size() * 18);
@@ -256,6 +207,17 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
                 .size() * 18);
+    }
+
+    private void refillQuadTree() {
+        quadTree.clear();
+        for (Entity entity : entityMobs) {
+            quadTree.insert(entity);
+        }
+        for (Entity entity : entityAttacks) {
+            quadTree.insert(entity);
+        }
+        quadTree.insert(player);
     }
 
     private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
@@ -616,6 +578,10 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     public int getTileSize() {
         return tileSize;
+    }
+
+    public QuadTree getQuadTree() {
+        return quadTree;
     }
     //endregion
 

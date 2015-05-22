@@ -7,11 +7,13 @@ import android.graphics.RectF;
 
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.ItemIds;
+import com.winsonchiu.rpg.items.ResourceGold;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Random;
 
 /**
  * Created by TheKeeperOfPie on 5/5/2015.
@@ -52,17 +54,13 @@ public class MobAggressive extends Entity {
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
         if (System.currentTimeMillis() > getStunEndTime()) {
-            calculateNextPosition(renderer, matrixProjection, matrixView);
-
-            calculateAttack(renderer);
-
+            calculateNextPosition(renderer);
         }
 
         super.render(renderer, matrixProjection, matrixView);
     }
 
     private void calculateAttack(Renderer renderer) {
-        Player player = renderer.getPlayer();
         PointF playerLocation = renderer.getPlayer().getLocation();
 
         if (MathUtils.distance(playerLocation, getLocation()) < 3f && System.currentTimeMillis() > attackEndTime) {
@@ -77,14 +75,16 @@ public class MobAggressive extends Entity {
 
         List<Item> drops = new ArrayList<>();
 
-        drops.add(new Item(ItemIds.GOLD, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+        Random random = new Random();
+        int numDrops = random.nextInt(2) + 1;
+        for (int iteration = 0; iteration < numDrops; iteration++) {
+            drops.add(new ResourceGold(getTileSize(), getNewCenterLocation()));
+        }
 
         return drops;
     }
 
-    private void calculateNextPosition(Renderer renderer,
-            float[] matrixProjection,
-            float[] matrixView) {
+    private void calculateNextPosition(Renderer renderer) {
 
 
         Player player = renderer.getPlayer();
@@ -177,6 +177,8 @@ public class MobAggressive extends Entity {
                         new PointF(targetLocation.x + getWidthRatio(), targetLocation.y), walls)) {
             return;
         }
+
+        calculateAttack(renderer);
 
         long timeDifference = (System.currentTimeMillis() - getLastFrameTime());
         float offset = timeDifference * getMovementSpeed();

@@ -173,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void dropItem(Item item) {
-                if (!renderer.dropItem(item)) {
+                if (!renderer.getWorldMap().dropItem(item, renderer.getPlayer())) {
                     Toast.makeText(MainActivity.this, "No room to drop item", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -263,14 +263,14 @@ public class MainActivity extends AppCompatActivity {
                         });
 
                         TextView textName = (TextView) view.findViewById(R.id.text_name);
-                        textName.setText(item.getItemId().getName());
+                        textName.setText(item.getName());
 
                         TextView textDescription = (TextView) view.findViewById(R.id.text_description);
-                        textDescription.setText(item.getItemId().getDescription());
+                        textDescription.setText(item.getDescription());
                         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 
                         ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
-                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), item.getItemId().getResourceId()));
+                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), item.getResourceId()));
 
                         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 

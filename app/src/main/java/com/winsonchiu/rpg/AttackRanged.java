@@ -5,6 +5,7 @@ import android.graphics.RectF;
 
 import com.winsonchiu.rpg.items.Item;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,7 +31,6 @@ public class AttackRanged extends Attack {
             setToDestroy(true);
         }
 
-
         float ratio = (System.currentTimeMillis() - startTime) / (float) (endTime - startTime);
 
         float offsetX = (endLocation.x - startLocation.x) * ratio;
@@ -45,6 +45,7 @@ public class AttackRanged extends Attack {
 
         if (checkFirstX < 0 || checkFirstY < 0 || checkSecondX >= walls.length || checkSecondY >= walls[0].length || walls[checkFirstX][checkFirstY] == WorldMap.COLLIDE || walls[checkSecondX][checkSecondY] == WorldMap.COLLIDE) {
             setToDestroy(true);
+            return;
         }
 
         getLocation().set(startLocation.x + offsetX, startLocation.y + offsetY);
@@ -56,13 +57,13 @@ public class AttackRanged extends Attack {
             }
         }
         else {
-            // TODO: Move to a single pass check using a QuadTree
-            for (Entity entity : renderer.getEntityMobs()) {
-
-                if (RectF.intersects(entity.getBounds(), getBounds()) && entity instanceof MobAggressive) {
-                    List<Item> drops = entity.applyAttack(this);
-                    if (drops != null) {
-                        renderer.getWorldMap().addItems(drops);
+            List<Entity> possibleCollisions = new ArrayList<>();
+            renderer.getQuadTree().retrieve(possibleCollisions, getBounds());
+            for (Entity entity : possibleCollisions) {
+                if (entity instanceof MobAggressive && RectF.intersects(entity.getBounds(), getBounds())) {
+                    if (entity.applyAttack(this)) {
+                        List<Item> drops = entity.calculateDrops();
+                        renderer.getWorldMap().dropItems(drops, entity);
                     }
                     setToDestroy(true);
                     break;

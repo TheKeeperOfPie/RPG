@@ -20,20 +20,41 @@ public class Item extends Entity {
     private static final float TEXTURE_ROW_COUNT = 14f;
     private static final float TEXTURE_COL_COUNT = 29f;
 
-    private ItemIds itemId;
+    protected int healthBoost;
+    protected int armorBoost;
+    protected int damageBoost;
+    protected int speedBoost;
+    protected int duration;
+    protected int resourceId;
+    protected int textureId;
+    protected String name;
+    protected String description;
     private int quantity = 1;
 
     // TODO: Move enum constants to some database implementation
-    public Item(ItemIds itemId, int tileSize, PointF location) {
-        super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x + 0.125f, location.y + 0.125f), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+    public Item(int tileSize, PointF location) {
+        super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x - WIDTH_RATIO / 2, location.y - HEIGHT_RATIO / 2), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
-        this.itemId = itemId;
-        setLastAnimationFrame(itemId.getTextureId());
     }
 
-    @Override
-    public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
-        super.render(renderer, matrixProjection, matrixView);
+    public Item(Item item) {
+        super(0, 0, item.getTileSize(), WIDTH_RATIO, HEIGHT_RATIO, new PointF(item.getLocation().x, item.getLocation().y), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+                0);
+        this.name = item.getName();
+        this.description = item.getDescription();
+        this.healthBoost = item.getHealthBoost();
+        this.armorBoost = item.getArmorBoost();
+        this.damageBoost = item.getDamageBoost();
+        this.speedBoost = item.getSpeedBoost();
+    }
+
+    //region Getters, setters, changers
+    public int getTextureId() {
+        return textureId;
+    }
+
+    public int getResourceId() {
+        return resourceId;
     }
 
     public int getQuantity() {
@@ -56,7 +77,7 @@ public class Item extends Entity {
 
         quantity--;
 
-        return new Item(itemId, getTileSize(), new PointF(getLocation().x, getLocation().y));
+        return new Item(this);
 
     }
 
@@ -70,33 +91,38 @@ public class Item extends Entity {
 
         List<Item> removed = new ArrayList<>(amount);
         for (int num = 0; num < amount; num++) {
-            removed.add(new Item(itemId, getTileSize(), new PointF(getLocation().x, getLocation().y)));
+            removed.add(new Item(this));
         }
 
         return removed;
     }
 
-    public ItemIds getItemId() {
-        return itemId;
+    public int getHealthBoost() {
+        return healthBoost;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Item item = (Item) o;
-
-        return getItemId() == item.getItemId();
-
+    public int getArmorBoost() {
+        return armorBoost;
     }
 
-    @Override
-    public int hashCode() {
-        return getItemId().hashCode();
+    public int getDamageBoost() {
+        return damageBoost;
     }
+
+    public int getSpeedBoost() {
+        return speedBoost;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+    //endregion
 }

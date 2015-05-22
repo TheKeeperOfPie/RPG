@@ -154,8 +154,7 @@ public class WorldMap {
             if (item.getQuantity() <= 1) {
                 itemLocations[(int) item.getLocation().x][(int) item.getLocation().y] = false;
                 return items.remove(indexItem);
-            }
-            else {
+            } else {
                 return item.decrementQuantity();
             }
         }
@@ -209,6 +208,57 @@ public class WorldMap {
         playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
     }
 
+    public boolean dropItem(Item item, Entity entity) {
+
+        PointF centerLocation = new PointF(entity.getLocation().x + entity.getWidthRatio() / 2, entity.getLocation().y + entity.getHeightRatio() / 2);
+
+        Direction direction = entity.getLastDirection();
+
+        List<PointF> validLocations = new ArrayList<>();
+
+        for (int offsetDirection = -2; offsetDirection <= 2; offsetDirection++) {
+
+            Direction directionDrop = Direction.offset(direction, offsetDirection);
+            validLocations.add(new PointF(centerLocation.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2,
+                    centerLocation.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
+
+        }
+
+        Iterator<PointF> iterator = validLocations.iterator();
+        while (iterator.hasNext()) {
+
+            PointF point = iterator.next();
+
+            if (isCollide(new Point((int) point.x, (int) point.y)) ||
+                    isCollide(
+                            new Point((int) (point.x + item.getWidthRatio()), (int) point.y)) ||
+                    isCollide(
+                            new Point((int) point.x, (int) (point.y + item.getHeightRatio()))) ||
+                    isCollide(new Point((int) (point.x + item.getWidthRatio()),
+                            (int) (point.y + item.getHeightRatio())))) {
+                iterator.remove();
+            }
+
+        }
+
+        if (validLocations.isEmpty()) {
+            return false;
+        }
+
+        PointF pointDrop = validLocations.get(random.nextInt(validLocations.size()));
+
+        item.setLocation(pointDrop);
+        addItem(item);
+
+        return true;
+    }
+
+    public void dropItems(List<Item> items, Entity entity) {
+        for (Item item : items) {
+            dropItem(item, entity);
+        }
+    }
+
     private void spawnMobs(Renderer renderer) {
 
         List<Entity> mobs = new ArrayList<>();
@@ -226,7 +276,7 @@ public class WorldMap {
             for (int iteration = 0; iteration < iterations; iteration++) {
 
                 float roomX = random.nextInt(room.width() - 2) + 1;
-                float roomY = random.nextInt(room.width() - 2) + 1;
+                float roomY = random.nextInt(room.height() - 2) + 1;
 
                 PointF location = new PointF(roomX + room.left, roomY + room.top);
 
@@ -234,7 +284,7 @@ public class WorldMap {
                 attempts = 0;
                 while (!usedPoints.add(location) && attempts++ < 5) {
                     roomX = random.nextInt(room.width() - 2) + 1;
-                    roomY = random.nextInt(room.width() - 2) + 1;
+                    roomY = random.nextInt(room.height() - 2) + 1;
 
                     location = new PointF(roomX + room.left, roomY + room.top);
                 }
@@ -260,8 +310,6 @@ public class WorldMap {
         int attempt = 0;
 
         while (rooms.size() < numRooms && attempt++ < maxAttempts) {
-
-            Log.d(TAG, "Generation attempt: " + attempt);
 
             // Use of / 4 * 4 to make rooms line up properly
 
@@ -309,12 +357,8 @@ public class WorldMap {
 
         while (rooms.size() < numRooms && attempt++ < maxAttempts) {
 
-            Log.d(TAG, "Generation attempt: " + attempt);
-
-            // Use of / 4 * 4 to make rooms line up properly
-
-            int roomWidth = (9);
-            int roomHeight = (9);
+            int roomWidth = 9;
+            int roomHeight = 9;
 
             Point startPoint = new Point((random.nextInt(width - 6) + 3) / 4 * 4, (random.nextInt(height - 6) + 3) / 4 * 4);
 
@@ -322,8 +366,7 @@ public class WorldMap {
             boolean isRoomValid = true;
             if (startPoint.x + roomWidth >= width || startPoint.y + roomHeight >= height) {
                 isRoomValid = false;
-            }
-            else {
+            } else {
                 for (int x = startPoint.x - 3; x <= startPoint.x + roomWidth + 3; x++) {
                     for (int y = startPoint.y - 3; y <= startPoint.y + roomHeight + 3; y++) {
                         if (x < 0 || x >= width || y < 0 || y >= height || walls[x][y] != COLLIDE) {
@@ -435,8 +478,6 @@ public class WorldMap {
     private void connectRooms() {
         for (Rect room : rooms) {
 
-            int numConnections = 0;
-
             List<Point> connections = new ArrayList<>();
 
             for (int x = room.left; x <= room.right; x++) {
@@ -449,6 +490,7 @@ public class WorldMap {
             }
 
             if (room.top - 2 > 0) {
+                connections.clear();
                 for (int x = room.left + 2; x < room.right - 2; x++) {
                     if (walls[x][room.top - 1] != COLLIDE &&
                             walls[x - 1][room.top - 1] != COLLIDE &&
@@ -456,8 +498,10 @@ public class WorldMap {
                         connections.add(new Point(x, room.top - 1));
                     }
                 }
+                cutWall(connections, room);
             }
             if (room.bottom + 2 < height) {
+                connections.clear();
                 for (int x = room.left + 2; x < room.right - 2; x++) {
                     if (walls[x][room.bottom + 1] != COLLIDE &&
                             walls[x - 1][room.bottom + 1] != COLLIDE &&
@@ -465,8 +509,10 @@ public class WorldMap {
                         connections.add(new Point(x, room.bottom + 1));
                     }
                 }
+                cutWall(connections, room);
             }
             if (room.left - 2 > 0) {
+                connections.clear();
                 for (int y = room.top + 2; y < room.bottom - 2; y++) {
                     if (walls[room.left - 1][y] != COLLIDE &&
                             walls[room.left - 1][y - 1] != COLLIDE &&
@@ -474,8 +520,10 @@ public class WorldMap {
                         connections.add(new Point(room.left - 1, y));
                     }
                 }
+                cutWall(connections, room);
             }
             if (room.right + 2 < width) {
+                connections.clear();
                 for (int y = room.top + 2; y < room.bottom - 2; y++) {
                     if (walls[room.right + 1][y] != COLLIDE &&
                             walls[room.right + 1][y - 1] != COLLIDE &&
@@ -483,99 +531,87 @@ public class WorldMap {
                         connections.add(new Point(room.right + 1, y));
                     }
                 }
-            }
-
-            while (!connections.isEmpty()) {
-
-                Point pointStart = connections.get(random.nextInt(connections.size()));
-                List<Point> cutPoints = new ArrayList<>();
-
-                if (pointStart.x < room.left) {
-                    cutPoints.add(new Point(pointStart.x + 1, pointStart.y));
-                    cutPoints.add(new Point(pointStart.x + 1, pointStart.y - 1));
-                    cutPoints.add(new Point(pointStart.x + 1, pointStart.y + 1));
-                }
-                if (pointStart.x > room.right) {
-                    cutPoints.add(new Point(pointStart.x - 1, pointStart.y));
-                    cutPoints.add(new Point(pointStart.x - 1, pointStart.y - 1));
-                    cutPoints.add(new Point(pointStart.x - 1, pointStart.y + 1));
-                }
-                if (pointStart.y < room.top) {
-                    cutPoints.add(new Point(pointStart.x, pointStart.y + 1));
-                    cutPoints.add(new Point(pointStart.x - 1, pointStart.y + 1));
-                    cutPoints.add(new Point(pointStart.x + 1, pointStart.y + 1));
-                }
-                if (pointStart.y > room.bottom) {
-                    cutPoints.add(new Point(pointStart.x, pointStart.y - 1));
-                    cutPoints.add(new Point(pointStart.x - 1, pointStart.y - 1));
-                    cutPoints.add(new Point(pointStart.x + 1, pointStart.y - 1));
-                }
-
-                for (Point point : cutPoints) {
-                    walls[point.x][point.y] = CORRIDOR_CONNECTED;
-                }
-
-                // Fill corridor
-                if (walls[pointStart.x][pointStart.y] == CORRIDOR_DISCONNECTED) {
-
-                    Stack<Point> points = new Stack<>();
-
-                    if (pointStart.x - 1 > 0 && walls[pointStart.x - 1][pointStart.y] == CORRIDOR_DISCONNECTED) {
-                        points.add(new Point(pointStart.x - 1, pointStart.y));
-                    }
-                    if (pointStart.x + 1 < width && walls[pointStart.x + 1][pointStart.y] == CORRIDOR_DISCONNECTED) {
-                        points.add(new Point(pointStart.x + 1, pointStart.y));
-                    }
-                    if (pointStart.y - 1 > 0 && walls[pointStart.x][pointStart.y - 1] == CORRIDOR_DISCONNECTED) {
-                        points.add(new Point(pointStart.x, pointStart.y - 1));
-                    }
-                    if (pointStart.y + 1 < height && walls[pointStart.x][pointStart.y + 1] == CORRIDOR_DISCONNECTED) {
-                        points.add(new Point(pointStart.x, pointStart.y + 1));
-                    }
-
-                    while (!points.isEmpty()) {
-
-                        Point point = points.pop();
-                        walls[point.x][point.y] = CORRIDOR_CONNECTED;
-
-                        if (point.x - 1 > 0 && walls[point.x - 1][point.y] == CORRIDOR_DISCONNECTED) {
-                            points.add(new Point(point.x - 1, point.y));
-                        }
-                        if (point.x + 1 < width && walls[point.x + 1][point.y] == CORRIDOR_DISCONNECTED) {
-                            points.add(new Point(point.x + 1, point.y));
-                        }
-                        if (point.y - 1 > 0 && walls[point.x][point.y - 1] == CORRIDOR_DISCONNECTED) {
-                            points.add(new Point(point.x, point.y - 1));
-                        }
-                        if (point.y + 1 < height && walls[point.x][point.y + 1] == CORRIDOR_DISCONNECTED) {
-                            points.add(new Point(point.x, point.y + 1));
-                        }
-
-                    }
-
-                }
-
-                connections.remove(pointStart);
-                connections.remove(new Point(pointStart.x - 1, pointStart.y));
-                connections.remove(new Point(pointStart.x + 1, pointStart.y));
-                connections.remove(new Point(pointStart.x, pointStart.y - 1));
-                connections.remove(new Point(pointStart.x, pointStart.y + 1));
-
-                if (numConnections++ >= 2) {
-                    Iterator<Point> iterator = connections.iterator();
-                    while (iterator.hasNext()) {
-                        Point point = iterator.next();
-                        if (walls[point.x][point.y] == CORRIDOR_CONNECTED) {
-                            iterator.remove();
-                        }
-                    }
-                }
-
+                cutWall(connections, room);
             }
 
             room.inset(1, 1);
+        }
+    }
+
+    private void cutWall(List<Point> connections, Rect room) {
+
+        if (connections.isEmpty()) {
+            return;
+        }
+
+        Point pointStart = connections.get(random.nextInt(connections.size()));
+        List<Point> cutPoints = new ArrayList<>();
+
+        if (pointStart.x < room.left) {
+            cutPoints.add(new Point(pointStart.x + 1, pointStart.y));
+            cutPoints.add(new Point(pointStart.x + 1, pointStart.y - 1));
+            cutPoints.add(new Point(pointStart.x + 1, pointStart.y + 1));
+        }
+        if (pointStart.x > room.right) {
+            cutPoints.add(new Point(pointStart.x - 1, pointStart.y));
+            cutPoints.add(new Point(pointStart.x - 1, pointStart.y - 1));
+            cutPoints.add(new Point(pointStart.x - 1, pointStart.y + 1));
+        }
+        if (pointStart.y < room.top) {
+            cutPoints.add(new Point(pointStart.x, pointStart.y + 1));
+            cutPoints.add(new Point(pointStart.x - 1, pointStart.y + 1));
+            cutPoints.add(new Point(pointStart.x + 1, pointStart.y + 1));
+        }
+        if (pointStart.y > room.bottom) {
+            cutPoints.add(new Point(pointStart.x, pointStart.y - 1));
+            cutPoints.add(new Point(pointStart.x - 1, pointStart.y - 1));
+            cutPoints.add(new Point(pointStart.x + 1, pointStart.y - 1));
+        }
+
+        for (Point point : cutPoints) {
+            walls[point.x][point.y] = CORRIDOR_CONNECTED;
+        }
+
+        // Fill corridor
+        if (walls[pointStart.x][pointStart.y] == CORRIDOR_DISCONNECTED) {
+
+            Stack<Point> points = new Stack<>();
+
+            if (pointStart.x - 1 > 0 && walls[pointStart.x - 1][pointStart.y] == CORRIDOR_DISCONNECTED) {
+                points.add(new Point(pointStart.x - 1, pointStart.y));
+            }
+            if (pointStart.x + 1 < width && walls[pointStart.x + 1][pointStart.y] == CORRIDOR_DISCONNECTED) {
+                points.add(new Point(pointStart.x + 1, pointStart.y));
+            }
+            if (pointStart.y - 1 > 0 && walls[pointStart.x][pointStart.y - 1] == CORRIDOR_DISCONNECTED) {
+                points.add(new Point(pointStart.x, pointStart.y - 1));
+            }
+            if (pointStart.y + 1 < height && walls[pointStart.x][pointStart.y + 1] == CORRIDOR_DISCONNECTED) {
+                points.add(new Point(pointStart.x, pointStart.y + 1));
+            }
+
+            while (!points.isEmpty()) {
+
+                Point point = points.pop();
+                walls[point.x][point.y] = CORRIDOR_CONNECTED;
+
+                if (point.x - 1 > 0 && walls[point.x - 1][point.y] == CORRIDOR_DISCONNECTED) {
+                    points.add(new Point(point.x - 1, point.y));
+                }
+                if (point.x + 1 < width && walls[point.x + 1][point.y] == CORRIDOR_DISCONNECTED) {
+                    points.add(new Point(point.x + 1, point.y));
+                }
+                if (point.y - 1 > 0 && walls[point.x][point.y - 1] == CORRIDOR_DISCONNECTED) {
+                    points.add(new Point(point.x, point.y - 1));
+                }
+                if (point.y + 1 < height && walls[point.x][point.y + 1] == CORRIDOR_DISCONNECTED) {
+                    points.add(new Point(point.x, point.y + 1));
+                }
+
+            }
 
         }
+
     }
 
     // TODO: Reimplement dead end checks
@@ -591,7 +627,7 @@ public class WorldMap {
                 if (x - 1 > 0 && walls[x - 1][y] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (x + 1 < width && walls[x +  1][y] == COLLIDE) {
+                if (x + 1 < width && walls[x + 1][y] == COLLIDE) {
                     adjacentWalls++;
                 }
                 if (y - 1 > 0 && walls[x][y - 1] == COLLIDE) {
@@ -639,7 +675,7 @@ public class WorldMap {
                 if (point.x - 1 > 0 && walls[point.x - 1][point.y] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (point.x + 1 < width && walls[point.x +  1][point.y] == COLLIDE) {
+                if (point.x + 1 < width && walls[point.x + 1][point.y] == COLLIDE) {
                     adjacentWalls++;
                 }
                 if (point.y - 1 > 0 && walls[point.x][point.y - 1] == COLLIDE) {
@@ -852,8 +888,7 @@ public class WorldMap {
 
             if (layer.getString("name").contains(IS_DOORWAY)) {
                 type = DOORWAY;
-            }
-            else if (layer.getString("name").contains(IS_COLLIDE)) {
+            } else if (layer.getString("name").contains(IS_COLLIDE)) {
                 type = COLLIDE;
             }
 
@@ -866,8 +901,7 @@ public class WorldMap {
                     if (value > 0) {
                         if (isAbove) {
                             tilesAbove.add(new Tile(new PointF(x, height - 1 - y), value));
-                        }
-                        else {
+                        } else {
                             tilesBelow.add(new Tile(new PointF(x, height - 1 - y), value));
                         }
                         if (type > 0) {
@@ -885,4 +919,5 @@ public class WorldMap {
         return worldMap;
 
     }
+
 }

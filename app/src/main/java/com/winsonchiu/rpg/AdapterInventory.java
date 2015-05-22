@@ -24,12 +24,10 @@ public class AdapterInventory extends RecyclerView.Adapter<AdapterInventory.View
     private final BitmapDrawable backgroundItem;
     private final BitmapFactory.Options options;
     private final EventCallback eventCallback;
-    private Activity activity;
     private Resources resources;
     private ControllerInventory controllerInventory;
 
     public AdapterInventory(Activity activity, ControllerInventory controllerInventory, EventCallback eventCallback) {
-        this.activity = activity;
         this.controllerInventory = controllerInventory;
         this.eventCallback = eventCallback;
         this.resources = activity.getResources();
@@ -60,7 +58,7 @@ public class AdapterInventory extends RecyclerView.Adapter<AdapterInventory.View
         Item item = controllerInventory.getItem(position);
 
         Drawable drawable = new BitmapDrawable(resources, BitmapFactory.decodeResource(resources,
-                item.getItemId().getResourceId(), options));
+                item.getResourceId(), options));
 
         viewHolder.onBind(item, drawable);
 

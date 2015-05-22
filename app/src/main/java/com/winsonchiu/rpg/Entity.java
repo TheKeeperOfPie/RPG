@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -111,19 +112,19 @@ import java.util.List;
 
     }
 
-    public List<Item> applyAttack(Attack attack) {
+    public boolean applyAttack(Attack attack) {
         health -= attack.calculateDamage();
         stunEndTime = System.currentTimeMillis() + 250;
         damageEndTime = System.currentTimeMillis() + 250;
         if (health <= 0) {
             setToDestroy(true);
-            return calculateDrops();
+            return true;
         }
-        return null;
+        return false;
     }
 
     public List<Item> calculateDrops() {
-        return null;
+        return new ArrayList<>();
     }
 
     //region Rendering
@@ -188,6 +189,10 @@ import java.util.List;
     //endregion
 
     //region Getters and Setters
+
+    public PointF getNewCenterLocation() {
+        return new PointF(getLocation().x + getWidthRatio() / 2, getLocation().y + getHeightRatio() / 2);
+    }
 
     public RectF getBounds() {
         return new RectF(getLocation().x, getLocation().y, getLocation().x + widthRatio, getLocation().y + heightRatio);
@@ -371,7 +376,7 @@ import java.util.List;
     }
     //endregion
 
-    //region intializers
+    //region Intializers
     private void setupBuffers() {
         float[] uvs = new float[]{
                 0.0f, 0.0f,
