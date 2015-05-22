@@ -41,11 +41,11 @@ public class WorldMap {
     private static final String IS_DOORWAY = "Doorway";
     private static final String IS_COLLIDE = "Collide";
     private static final String IS_ABOVE = "Above";
-    private static final int MAX_ROOM_WIDTH = 13;
-    private static final int MIN_ROOM_WIDTH = 7;
-    private static final int MAX_ROOM_HEIGHT = 13;
-    private static final int MIN_ROOM_HEIGHT = 7;
-    private static final int AREA_PER_ROOM = 60;
+    private static final int MAX_ROOM_WIDTH = 17;
+    private static final int MIN_ROOM_WIDTH = 9;
+    private static final int MAX_ROOM_HEIGHT = 17;
+    private static final int MIN_ROOM_HEIGHT = 9;
+    private static final int AREA_PER_ROOM = 50;
     private static final int ATTEMPT_RATIO = 3;
 
     private static final int PATH_FLOOR = 920;
@@ -213,22 +213,28 @@ public class WorldMap {
 
         List<Entity> mobs = new ArrayList<>();
         Set<PointF> usedPoints = new HashSet<>(4);
+        int attempts = 0;
 
         for (Rect room : rooms) {
+            if (room == roomStart) {
+                continue;
+            }
+
             usedPoints.clear();
             int iterations = random.nextInt(3) + 1;
 
             for (int iteration = 0; iteration < iterations; iteration++) {
 
-                float roomX = random.nextInt(room.width());
-                float roomY = random.nextInt(room.width());
+                float roomX = random.nextInt(room.width() - 2) + 1;
+                float roomY = random.nextInt(room.width() - 2) + 1;
 
                 PointF location = new PointF(roomX + room.left, roomY + room.top);
 
                 // TODO: This is not a good programming practice. Use a better system.
-                while (!usedPoints.add(location)) {
-                    roomX = random.nextInt(room.width());
-                    roomY = random.nextInt(room.width());
+                attempts = 0;
+                while (!usedPoints.add(location) && attempts++ < 5) {
+                    roomX = random.nextInt(room.width() - 2) + 1;
+                    roomY = random.nextInt(room.width() - 2) + 1;
 
                     location = new PointF(roomX + room.left, roomY + room.top);
                 }
@@ -244,7 +250,7 @@ public class WorldMap {
     }
 
     private void spawnItems() {
-        
+
     }
 
     //region Generation
@@ -261,6 +267,54 @@ public class WorldMap {
 
             int roomWidth = (random.nextInt(MAX_ROOM_WIDTH - MIN_ROOM_WIDTH) + MIN_ROOM_WIDTH) / 4 * 4 + 1;
             int roomHeight = (random.nextInt(MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT) + MIN_ROOM_HEIGHT) / 4 * 4 + 1;
+
+            Point startPoint = new Point((random.nextInt(width - 6) + 3) / 4 * 4, (random.nextInt(height - 6) + 3) / 4 * 4);
+
+            // TODO: Change to check intersection with list of rooms
+            boolean isRoomValid = true;
+            if (startPoint.x + roomWidth >= width || startPoint.y + roomHeight >= height) {
+                isRoomValid = false;
+            }
+            else {
+                for (int x = startPoint.x - 3; x <= startPoint.x + roomWidth + 3; x++) {
+                    for (int y = startPoint.y - 3; y <= startPoint.y + roomHeight + 3; y++) {
+                        if (x < 0 || x >= width || y < 0 || y >= height || walls[x][y] != COLLIDE) {
+                            isRoomValid = false;
+                            break;
+                        }
+                    }
+                    if (!isRoomValid) {
+                        break;
+                    }
+                }
+            }
+
+            if (!isRoomValid) {
+                continue;
+            }
+            for (int x = startPoint.x; x < startPoint.x + roomWidth; x++) {
+                for (int y = startPoint.y; y < startPoint.y + roomHeight; y++) {
+                    walls[x][y] = ROOM;
+                }
+            }
+
+            Rect room = new Rect(startPoint.x, startPoint.y, startPoint.x + roomWidth - 1, startPoint.y + roomHeight - 1);
+            rooms.add(room);
+
+        }
+
+        numRooms = width * height / AREA_PER_ROOM;
+        maxAttempts = numRooms * ATTEMPT_RATIO;
+        attempt = 0;
+
+        while (rooms.size() < numRooms && attempt++ < maxAttempts) {
+
+            Log.d(TAG, "Generation attempt: " + attempt);
+
+            // Use of / 4 * 4 to make rooms line up properly
+
+            int roomWidth = (9);
+            int roomHeight = (9);
 
             Point startPoint = new Point((random.nextInt(width - 6) + 3) / 4 * 4, (random.nextInt(height - 6) + 3) / 4 * 4);
 

@@ -183,34 +183,6 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         quadTree = new QuadTree(0, new RectF(0, 0, 133, 125));
 
-        for (Rect room : worldMap.getRooms()) {
-
-            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
-                    MobAggressive.HEIGHT_RATIO,
-                    new PointF(room.exactCenterX(), room.exactCenterY()), 4f, 4f,
-                    room, 8));
-            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
-                    MobAggressive.HEIGHT_RATIO,
-                    new PointF(room.exactCenterX() + 1, room.exactCenterY()),
-                    4f, 4f, room, 8));
-            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
-                    MobAggressive.HEIGHT_RATIO,
-                    new PointF(room.exactCenterX(), room.exactCenterY() + 1),
-                    4f, 4f, room, 8));
-            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
-                    MobAggressive.HEIGHT_RATIO,
-                    new PointF(room.exactCenterX() + 1, room.exactCenterY() + 1),
-                    4f, 4f, room, 8));
-            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
-                    MobAggressive.HEIGHT_RATIO,
-                    new PointF(room.exactCenterX() - 1, room.exactCenterY()),
-                    4f, 4f, room, 8));
-            entityMobs.add(new MobAggressive(5, 1, tileSize, MobAggressive.WIDTH_RATIO,
-                    MobAggressive.HEIGHT_RATIO,
-                    new PointF(room.exactCenterX(), room.exactCenterY() - 1),
-                    4f, 4f, room, 8));
-        }
-
         PointF pointStart = worldMap.getStartPoint();
 
         player = new Player(tileSize, pointStart);

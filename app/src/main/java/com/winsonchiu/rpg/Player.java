@@ -13,7 +13,7 @@ public class Player extends Entity {
     public static final int OUT_BOUND_Y = 5;
     public static final float WIDTH_RATIO = 0.59999999999f;
     public static final float HEIGHT_RATIO = 0.9f;
-    private static final float SPEED = 0.007f;
+    private static final float SPEED = 0.0055f;
     private static final int BASE_HEALTH = 20;
     private static final int BASE_ARMOR = 1;
 
@@ -295,6 +295,7 @@ public class Player extends Entity {
                 break;
         }
 
-        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
+//        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
+        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, new PointF(getLocation().x, getLocation().y), end, 500, false));
     }
 }
