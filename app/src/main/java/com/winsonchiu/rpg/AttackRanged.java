@@ -29,7 +29,7 @@ public class AttackRanged extends Attack {
             PointF endLocation,
             long time,
             boolean hostile) {
-        super(tileSize, damage, range, accuracy, new PointF(startLocation.x, startLocation.y), time, SPEED, hostile);
+        super(tileSize, damage, range, accuracy, 1f, 1f, new PointF(startLocation.x, startLocation.y), time, SPEED, hostile);
         this.startLocation = startLocation;
         this.endLocation = endLocation;
         this.time = time;
@@ -77,10 +77,7 @@ public class AttackRanged extends Attack {
             }
         }
         else {
-            List<Entity> possibleCollisions = new ArrayList<>();
-            renderer.getQuadTree()
-                    .retrieve(possibleCollisions, getBounds());
-            for (Entity entity : possibleCollisions) {
+            for (Entity entity : renderer.getEntityMobs()) {
                 if (entity instanceof MobAggressive && RectF.intersects(entity.getBounds(),
                         getBounds())) {
                     if (entity.applyAttack(this)) {

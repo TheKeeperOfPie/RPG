@@ -72,12 +72,12 @@ public class MobAggressive extends Entity {
         float differenceX = playerLocation.x - getLocation().x;
         float differenceY = playerLocation.y - getLocation().y;
 
-        PointF endLocation = new PointF(playerLocation.x + differenceX, playerLocation.y + differenceY);
-
         double distance = MathUtils.distance(playerLocation, getLocation());
 
-        if (distance < 2 && System.currentTimeMillis() > attackEndTime) {
+        if (distance < 2 && System.currentTimeMillis() > attackEndTime && System.currentTimeMillis() / 250 % 8 == 0) {
             renderer.addAttack(new AttackMelee(getTileSize(), getDamage(), 1, 1, getLocation(), 250, true, getLastDirection(), this));
+
+//            PointF endLocation = new PointF(playerLocation.x + differenceX, playerLocation.y + differenceY);
 //            renderer.addAttack(new AttackRanged(getTileSize(), getDamage(), 1, 1, getLocation(), endLocation,
 //                    (long) (distance * 200), true));
             attackEndTime = System.currentTimeMillis() + 2000;

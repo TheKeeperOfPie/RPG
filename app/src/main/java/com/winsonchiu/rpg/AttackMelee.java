@@ -25,6 +25,7 @@ public class AttackMelee extends Attack {
     private boolean isHostile;
     private long endTime;
     private List<Entity> entities;
+    private RectF bounds;
 
     public AttackMelee(int tileSize,
             int damage,
@@ -35,10 +36,11 @@ public class AttackMelee extends Attack {
             boolean isHostile,
             Direction direction,
             Entity source) {
-        super(tileSize, damage, range + 1, accuracy, location, time, 0, isHostile);
+        super(tileSize, damage, range, accuracy, 1f, range * 2, location, time, 0, isHostile);
         this.isHostile = isHostile;
         this.time = time;
         entities = new ArrayList<>();
+        bounds = new RectF();
         setLastAnimationFrame(1);
         setLastDirection(direction);
 
@@ -87,9 +89,6 @@ public class AttackMelee extends Attack {
             return;
         }
 
-        Log.d(TAG, "player bounds: " + renderer.getPlayer()
-                .getBounds());
-
         PointF centerLocation = new PointF(getLocation().x + widthRatioOffset / 2, getLocation().y + heightRatioOffset / 2);
 
         float storeX = getLocation().x;
@@ -102,10 +101,7 @@ public class AttackMelee extends Attack {
 
         super.render(renderer, matrixProjection, matrixView);
 
-        float range = this.range * 0.5f;
-
         // TODO: Move to a rotation based algorithm
-        RectF bounds = getBounds();
         switch (getLastDirection()) {
 
             case NORTH:
@@ -134,8 +130,6 @@ public class AttackMelee extends Attack {
                 break;
         }
 
-        Log.d(TAG, "attack bounds: " + bounds);
-
         if (isHostile) {
             if (!entities.contains(renderer.getPlayer()) && RectF.intersects(bounds, renderer.getPlayer()
                     .getBounds())) {
@@ -145,10 +139,7 @@ public class AttackMelee extends Attack {
             }
         }
         else {
-            List<Entity> possibleCollisions = new ArrayList<>();
-            renderer.getQuadTree()
-                    .retrieve(possibleCollisions, getBounds());
-            for (Entity entity : possibleCollisions) {
+            for (Entity entity : renderer.getEntityMobs()) {
                 if (entity instanceof MobAggressive && !entities.contains(entity) && RectF.intersects(entity.getBounds(),
                         bounds)) {
                     if (entity.applyAttack(this)) {
@@ -156,7 +147,6 @@ public class AttackMelee extends Attack {
                         renderer.getWorldMap()
                                 .dropItems(drops, entity);
                     }
-                    Log.d(TAG, "entity bounds: " + entity.getBounds());
                     entities.add(entity);
                     break;
                 }
@@ -165,5 +155,10 @@ public class AttackMelee extends Attack {
 
         getLocation().set(storeX, storeY);
 
+    }
+
+    @Override
+    public RectF getBounds() {
+        return bounds;
     }
 }

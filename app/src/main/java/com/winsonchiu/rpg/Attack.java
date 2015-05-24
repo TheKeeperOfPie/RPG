@@ -26,8 +26,8 @@ public abstract class Attack extends Entity {
     protected long time;
     protected boolean isHostile;
 
-    public Attack(int tileSize, int damage, float range, int accuracy, PointF location, long time, float movementSpeed, boolean isHostile) {
-        super(0, 0, damage, tileSize, WIDTH_RATIO, range, location, 1f, 2f, movementSpeed);
+    public Attack(int tileSize, int damage, float range, int accuracy, float widthRatio, float heightRatio, PointF location, long time, float movementSpeed, boolean isHostile) {
+        super(0, 0, damage, tileSize, widthRatio, heightRatio, location, 1f, 2f, movementSpeed);
         this.tileSize = tileSize;
         this.damage = damage;
         this.range = range;
