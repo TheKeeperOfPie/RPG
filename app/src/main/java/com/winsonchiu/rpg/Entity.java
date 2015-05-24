@@ -81,6 +81,7 @@ import java.util.List;
     private float textureColCount;
     private float widthRatio;
     private float heightRatio;
+    private float angle;
     private boolean toDestroy;
 
     private int health;
@@ -92,7 +93,8 @@ import java.util.List;
     private long damageEndTime;
     protected Attack attack;
 
-    public Entity(int health,
+    public Entity(
+            int health,
             int armor,
             int damage,
             int tileSize,
@@ -142,6 +144,19 @@ import java.util.List;
         GLES20.glEnableVertexAttribArray(textureLocation);
 
         android.opengl.Matrix.setIdentityM(getTransMatrix(), 0);
+
+        android.opengl.Matrix.translateM(transMatrix,
+                0,
+                (getLocation().x - renderer.getOffsetCameraX() + getWidthRatio() / 2f) * getTileSize(),
+                (getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f) * getTileSize(),
+                0);
+        android.opengl.Matrix.rotateM(transMatrix, 0, angle, 0.0f, 0.0f, 1.0f);
+        android.opengl.Matrix.translateM(transMatrix,
+                0,
+                -(getLocation().x - renderer.getOffsetCameraX() + getWidthRatio() / 2f) * getTileSize(),
+                -(getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f) * getTileSize(),
+                0);
+
         android.opengl.Matrix.translateM(getTransMatrix(), 0, getLocation().x * tileSize, getLocation().y * tileSize,
                                          0f);
 
@@ -413,6 +428,118 @@ import java.util.List;
         this.damage = damage;
     }
 
+    public float getAngle() {
+        return angle;
+    }
+
+    public void setAngle(float angle) {
+        this.angle = angle;
+    }
+
+    public static int getProgramId() {
+        return programId;
+    }
+
+    public static void setProgramId(int programId) {
+        Entity.programId = programId;
+    }
+
+    public static int getSamplerLocation() {
+        return samplerLocation;
+    }
+
+    public static void setSamplerLocation(int samplerLocation) {
+        Entity.samplerLocation = samplerLocation;
+    }
+
+    public static int getPositionLocation() {
+        return positionLocation;
+    }
+
+    public static void setPositionLocation(int positionLocation) {
+        Entity.positionLocation = positionLocation;
+    }
+
+    public static int getTextureLocation() {
+        return textureLocation;
+    }
+
+    public static void setTextureLocation(int textureLocation) {
+        Entity.textureLocation = textureLocation;
+    }
+
+    public static int getMatrixLocation() {
+        return matrixLocation;
+    }
+
+    public static void setMatrixLocation(int matrixLocation) {
+        Entity.matrixLocation = matrixLocation;
+    }
+
+    public static int getAlphaLocation() {
+        return alphaLocation;
+    }
+
+    public static void setAlphaLocation(int alphaLocation) {
+        Entity.alphaLocation = alphaLocation;
+    }
+
+    public static int getAnimationFrameLocation() {
+        return animationFrameLocation;
+    }
+
+    public static void setAnimationFrameLocation(int animationFrameLocation) {
+        Entity.animationFrameLocation = animationFrameLocation;
+    }
+
+    public static int getRowCountLocation() {
+        return rowCountLocation;
+    }
+
+    public static void setRowCountLocation(int rowCountLocation) {
+        Entity.rowCountLocation = rowCountLocation;
+    }
+
+    public static int getColCountLocation() {
+        return colCountLocation;
+    }
+
+    public static void setColCountLocation(int colCountLocation) {
+        Entity.colCountLocation = colCountLocation;
+    }
+
+    public static int getDamageLocation() {
+        return damageLocation;
+    }
+
+    public static void setDamageLocation(int damageLocation) {
+        Entity.damageLocation = damageLocation;
+    }
+
+    public float getTextureRowCount() {
+        return textureRowCount;
+    }
+
+    public void setTextureRowCount(float textureRowCount) {
+        this.textureRowCount = textureRowCount;
+    }
+
+    public float getTextureColCount() {
+        return textureColCount;
+    }
+
+    public void setTextureColCount(float textureColCount) {
+        this.textureColCount = textureColCount;
+    }
+
+    public long getDamageEndTime() {
+        return damageEndTime;
+    }
+
+    public void setDamageEndTime(long damageEndTime) {
+        this.damageEndTime = damageEndTime;
+    }
+
     //endregion
 
     //region Intializers
@@ -437,7 +564,6 @@ import java.util.List;
                 tileSize * widthRatio, tileSize * heightRatio, -5f
         };
 
-        // The vertex buffer.
         ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
         bb.order(ByteOrder.nativeOrder());
         vertexBuffer = bb.asFloatBuffer();
@@ -446,7 +572,6 @@ import java.util.List;
 
         indices = new short[]{0, 1, 2, 0, 2, 3};
 
-        // initialize byte buffer for the draw list
         ByteBuffer dlb = ByteBuffer.allocateDirect(indices.length * 2);
 
         dlb.order(ByteOrder.nativeOrder());

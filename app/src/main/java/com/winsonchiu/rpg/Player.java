@@ -266,7 +266,8 @@ public class Player extends Entity {
                 break;
         }
 
-        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
+        renderer.addAttack(new AttackMelee(getTileSize(), getDamage(), 2, 1, getLocation(), 300, false, getLastDirection(), this));
+//        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
     }
 
     public interface EventListener {

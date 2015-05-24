@@ -135,7 +135,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         Entity.initialize();
         loadTextures();
 
-        worldMap = new WorldMap(150, 150);
+        worldMap = new WorldMap(50, 50);
         worldMap.generateRectangular(this);
 
         quadTree = new QuadTree(0, new RectF(0, 0, 133, 125));

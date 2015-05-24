@@ -10,8 +10,8 @@ import java.nio.ShortBuffer;
  */
 public abstract class Attack extends Entity {
 
-    public static final float HEIGHT_RATIO = 0.9f;
-    public static final float WIDTH_RATIO = 0.6f;
+    public static final float HEIGHT_RATIO = 1f;
+    public static final float WIDTH_RATIO = 1f;
     protected float[] matrixProjectionAndView = new float[16];
     protected float[] transMatrix = new float[16];
     protected FloatBuffer uvBuffer;
@@ -21,26 +21,19 @@ public abstract class Attack extends Entity {
 
     protected int tileSize;
     protected int damage;
-    protected int range;
+    protected float range;
     protected int accuracy;
-    protected PointF startLocation;
-    protected PointF endLocation;
-    protected long startTime;
-    protected long endTime;
     protected long time;
-    protected boolean hostile;
+    protected boolean isHostile;
 
-    public Attack(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, float movementSpeed, boolean hostile) {
-        super(0, 0, damage, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(startLocation.x, startLocation.y), 1f, 1f,
-              movementSpeed);
+    public Attack(int tileSize, int damage, float range, int accuracy, PointF location, long time, float movementSpeed, boolean isHostile) {
+        super(0, 0, damage, tileSize, WIDTH_RATIO, range, location, 1f, 2f, movementSpeed);
         this.tileSize = tileSize;
         this.damage = damage;
         this.range = range;
         this.accuracy = accuracy;
-        this.startLocation = startLocation;
-        this.endLocation = endLocation;
         this.time = time;
-        this.hostile = hostile;
+        this.isHostile = isHostile;
     }
 
     public int calculateDamage() {

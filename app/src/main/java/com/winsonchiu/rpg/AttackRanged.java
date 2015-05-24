@@ -15,9 +15,25 @@ public class AttackRanged extends Attack {
 
     private static final String TAG = AttackRanged.class.getCanonicalName();
     private static final float SPEED = 0.01f;
+    private long time;
+    private PointF startLocation;
+    private PointF endLocation;
+    private long startTime;
+    private long endTime;
 
-    public AttackRanged(int tileSize, int damage, int range, int accuracy, PointF startLocation, PointF endLocation, long time, boolean hostile) {
-        super(tileSize, damage, range, accuracy, startLocation, endLocation, time, SPEED, hostile);
+    public AttackRanged(int tileSize,
+            int damage,
+            int range,
+            int accuracy,
+            PointF startLocation,
+            PointF endLocation,
+            long time,
+            boolean hostile) {
+        super(tileSize, damage, range, accuracy, new PointF(startLocation.x, startLocation.y), time, SPEED, hostile);
+        this.startLocation = startLocation;
+        this.endLocation = endLocation;
+        this.time = time;
+        setLastAnimationFrame(0);
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
@@ -29,6 +45,7 @@ public class AttackRanged extends Attack {
 
         if (System.currentTimeMillis() > endTime) {
             setToDestroy(true);
+            return;
         }
 
         float ratio = (System.currentTimeMillis() - startTime) / (float) (endTime - startTime);
@@ -36,7 +53,8 @@ public class AttackRanged extends Attack {
         float offsetX = (endLocation.x - startLocation.x) * ratio;
         float offsetY = (endLocation.y - startLocation.y) * ratio;
 
-        byte[][] walls = renderer.getWorldMap().getWalls();
+        byte[][] walls = renderer.getWorldMap()
+                .getWalls();
 
         int checkFirstX = (int) (startLocation.x + offsetX);
         int checkFirstY = (int) (startLocation.y + offsetY);
@@ -50,20 +68,25 @@ public class AttackRanged extends Attack {
 
         getLocation().set(startLocation.x + offsetX, startLocation.y + offsetY);
 
-        if (hostile) {
-            if (RectF.intersects(getBounds(), renderer.getPlayer().getBounds())) {
-                renderer.getPlayer().applyAttack(this);
+        if (isHostile) {
+            if (RectF.intersects(getBounds(), renderer.getPlayer()
+                    .getBounds())) {
+                renderer.getPlayer()
+                        .applyAttack(this);
                 setToDestroy(true);
             }
         }
         else {
             List<Entity> possibleCollisions = new ArrayList<>();
-            renderer.getQuadTree().retrieve(possibleCollisions, getBounds());
+            renderer.getQuadTree()
+                    .retrieve(possibleCollisions, getBounds());
             for (Entity entity : possibleCollisions) {
-                if (entity instanceof MobAggressive && RectF.intersects(entity.getBounds(), getBounds())) {
+                if (entity instanceof MobAggressive && RectF.intersects(entity.getBounds(),
+                        getBounds())) {
                     if (entity.applyAttack(this)) {
                         List<Item> drops = entity.calculateDrops();
-                        renderer.getWorldMap().dropItems(drops, entity);
+                        renderer.getWorldMap()
+                                .dropItems(drops, entity);
                     }
                     setToDestroy(true);
                     break;
