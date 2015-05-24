@@ -3,9 +3,7 @@ package com.winsonchiu.rpg;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Point;
 import android.graphics.PointF;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -14,6 +12,8 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.utils.QuadTree;
+import com.winsonchiu.rpg.utils.RenderUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -83,7 +83,8 @@ public class Renderer implements GLSurfaceView.Renderer {
                     "}";
 
     private Activity activity;
-    private EventListener eventListener;
+    private EventListener eventListenerRenderer;
+    private Player.EventListener eventListenerPlayer;
     private int screenWidth;
     private int screenHeight;
     private float[] matrixProjection = new float[16];
@@ -110,10 +111,11 @@ public class Renderer implements GLSurfaceView.Renderer {
     private Random random;
     private QuadTree quadTree;
 
-    public Renderer(Activity activity, EventListener eventListener) {
+    public Renderer(Activity activity, EventListener eventListenerRenderer, Player.EventListener eventListenerPlayer) {
         super();
         this.activity = activity;
-        this.eventListener = eventListener;
+        this.eventListenerRenderer = eventListenerRenderer;
+        this.eventListenerPlayer = eventListenerPlayer;
         random = new Random();
         entityMobs = Collections.synchronizedList(new ArrayList<Entity>());
         entityAttacks = Collections.synchronizedList(new ArrayList<Attack>());
@@ -133,16 +135,16 @@ public class Renderer implements GLSurfaceView.Renderer {
         Entity.initialize();
         loadTextures();
 
-        worldMap = new WorldMap(133, 125);
+        worldMap = new WorldMap(150, 150);
         worldMap.generateRectangular(this);
 
         quadTree = new QuadTree(0, new RectF(0, 0, 133, 125));
 
         PointF pointStart = worldMap.getStartPoint();
 
-        player = new Player(tileSize, pointStart);
-        offsetCameraX = pointStart.x;
-        offsetCameraY = pointStart.y;
+        player = new Player(tileSize, pointStart, getTilesOnScreenX() / 7 * 3, getTilesOnScreenY() / 7 * 3, eventListenerPlayer);
+        offsetCameraX = pointStart.x - getTilesOnScreenX() / 2;
+        offsetCameraY = pointStart.y - getTilesOnScreenY() / 2;
 
         loadVbo();
 
@@ -262,7 +264,7 @@ public class Renderer implements GLSurfaceView.Renderer {
                         item.getLocation().y - 2.0f < getOffsetCameraY() + getTilesOnScreenY()) {
                     if (RectF.intersects(item.getBounds(), player.getBounds())) {
                         iterator.remove();
-                        eventListener.pickUpItem(item);
+                        eventListenerRenderer.pickUpItem(item);
                     }
                     else {
                         item.render(this, matrixProjection, matrixView);
@@ -460,7 +462,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glUseProgram(Entity.getProgram());
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
-                        R.drawable.character_sheet, options),
+                        R.drawable.player_sheet, options),
                 textureNames[TEXTURE_PLAYER]);
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),

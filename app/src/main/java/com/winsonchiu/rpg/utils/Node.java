@@ -1,4 +1,4 @@
-package com.winsonchiu.rpg;
+package com.winsonchiu.rpg.utils;
 
 import android.graphics.Point;
 import android.graphics.PointF;

@@ -5,4 +5,8 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <style name="ProgressBarHealth" parent="Widget.AppCompat.ProgressBar.Horizontal">
+        <item name="android:progressDrawable">@drawable/progress_bar_health</item>
+    </style>
+    
 </resources>

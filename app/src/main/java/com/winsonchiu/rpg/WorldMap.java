@@ -6,6 +6,9 @@ import android.graphics.Rect;
 import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.utils.Edge;
+import com.winsonchiu.rpg.utils.Graph;
+import com.winsonchiu.rpg.utils.MathUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,12 +44,13 @@ public class WorldMap {
     private static final String IS_DOORWAY = "Doorway";
     private static final String IS_COLLIDE = "Collide";
     private static final String IS_ABOVE = "Above";
-    private static final int MAX_ROOM_WIDTH = 17;
-    private static final int MIN_ROOM_WIDTH = 9;
-    private static final int MAX_ROOM_HEIGHT = 17;
-    private static final int MIN_ROOM_HEIGHT = 9;
+    private static final int MAX_ROOM_WIDTH = 15;
+    private static final int MIN_ROOM_WIDTH = 7;
+    private static final int MAX_ROOM_HEIGHT = 15;
+    private static final int MIN_ROOM_HEIGHT = 7;
     private static final int AREA_PER_ROOM = 50;
-    private static final int ATTEMPT_RATIO = 3;
+    private static final int ATTEMPT_RATIO = 5;
+    private static final int CYCLE_RATIO = 10;
 
     private static final int PATH_FLOOR = 920;
     private static final int PATH_TOP_LEFT = 862;
@@ -81,6 +85,7 @@ public class WorldMap {
     private Random random;
     private boolean[][] itemLocations;
     private Rect roomStart;
+    private Set<Edge> roomConnections;
 
     public WorldMap(int width, int height) {
 
@@ -160,6 +165,10 @@ public class WorldMap {
         }
     }
 
+    public boolean isCollide(int x, int y) {
+        return walls[x][y] == COLLIDE;
+    }
+
     public boolean isCollide(Point point) {
         return walls[point.x][point.y] == COLLIDE;
     }
@@ -180,18 +189,18 @@ public class WorldMap {
 
     public void generateRectangular(Renderer renderer) {
 
+        long startTime = System.currentTimeMillis();
+
         generateRooms();
-        generateMaze();
-        connectRooms();
-
-//        removeDeadEnds();
-
+        generateConnections();
         setTiles();
 
         roomStart = rooms.get(0);
 
         spawnMobs(renderer);
         spawnItems();
+
+        Log.d(TAG, "Time to generate map: " + (System.currentTimeMillis() - startTime));
 
     }
 
@@ -210,7 +219,7 @@ public class WorldMap {
 
     public boolean dropItem(Item item, Entity entity) {
 
-        PointF centerLocation = new PointF(entity.getLocation().x + entity.getWidthRatio() / 2, entity.getLocation().y + entity.getHeightRatio() / 2);
+        PointF centerLocation = entity.getNewCenterLocation();
 
         Direction direction = entity.getLastDirection();
 
@@ -289,7 +298,7 @@ public class WorldMap {
                     location = new PointF(roomX + room.left, roomY + room.top);
                 }
 
-                mobs.add(new MobAggressive(5, 0, renderer.getTileSize(), MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f, room, 8));
+                mobs.add(new MobAggressive(5, 0, 1, renderer.getTileSize(), MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f, room, 8));
 
             }
 
@@ -311,12 +320,11 @@ public class WorldMap {
 
         while (rooms.size() < numRooms && attempt++ < maxAttempts) {
 
-            // Use of / 4 * 4 to make rooms line up properly
 
-            int roomWidth = (random.nextInt(MAX_ROOM_WIDTH - MIN_ROOM_WIDTH) + MIN_ROOM_WIDTH) / 4 * 4 + 1;
-            int roomHeight = (random.nextInt(MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT) + MIN_ROOM_HEIGHT) / 4 * 4 + 1;
+            int roomWidth = random.nextInt(MAX_ROOM_WIDTH - MIN_ROOM_WIDTH) + MIN_ROOM_WIDTH;
+            int roomHeight = random.nextInt(MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT) + MIN_ROOM_HEIGHT;
 
-            Point startPoint = new Point((random.nextInt(width - 6) + 3) / 4 * 4, (random.nextInt(height - 6) + 3) / 4 * 4);
+            Point startPoint = new Point((random.nextInt(width - 8) + 4), (random.nextInt(height - 8) + 4));
 
             // TODO: Change to check intersection with list of rooms
             boolean isRoomValid = true;
@@ -350,48 +358,95 @@ public class WorldMap {
             rooms.add(room);
 
         }
+    }
 
-        numRooms = width * height / AREA_PER_ROOM;
-        maxAttempts = numRooms * ATTEMPT_RATIO;
-        attempt = 0;
+    private void generateConnections() {
 
-        while (rooms.size() < numRooms && attempt++ < maxAttempts) {
+        Graph graph = new Graph();
 
-            int roomWidth = 9;
-            int roomHeight = 9;
+        for (int row = 0; row < rooms.size(); row++) {
+            for (int col = 0; col < row; col++) {
 
-            Point startPoint = new Point((random.nextInt(width - 6) + 3) / 4 * 4, (random.nextInt(height - 6) + 3) / 4 * 4);
+                Rect first = rooms.get(row);
+                Rect second = rooms.get(col);
 
-            // TODO: Change to check intersection with list of rooms
-            boolean isRoomValid = true;
-            if (startPoint.x + roomWidth >= width || startPoint.y + roomHeight >= height) {
-                isRoomValid = false;
-            } else {
-                for (int x = startPoint.x - 3; x <= startPoint.x + roomWidth + 3; x++) {
-                    for (int y = startPoint.y - 3; y <= startPoint.y + roomHeight + 3; y++) {
-                        if (x < 0 || x >= width || y < 0 || y >= height || walls[x][y] != COLLIDE) {
-                            isRoomValid = false;
-                            break;
-                        }
-                    }
-                    if (!isRoomValid) {
-                        break;
-                    }
-                }
+                graph.addEdge(row, col,
+                        (int) MathUtils.distance(first.centerX(),
+                                first.centerY(),
+                                second.centerX(),
+                                second.centerY()));
+
             }
 
-            if (!isRoomValid) {
-                continue;
+        }
+
+        roomConnections = MathUtils.createMinimumSpanningTree(graph);
+        List<Edge> edges = new ArrayList<>(graph.getEdgeSet());
+
+        for (int iteration = 0; iteration < graph.getConnectedVertices().size() / CYCLE_RATIO; iteration++) {
+            roomConnections.add(edges.get(random.nextInt(edges.size())));
+        }
+
+        for (Edge edge : roomConnections) {
+
+            Rect roomFirst = rooms.get(edge.getSource());
+            Rect roomSecond = rooms.get(edge.getDestination());
+
+            // Randomly carve vertically or horizontally first
+            if (random.nextBoolean()) {
+                carveLine(new Point(roomFirst.centerX(), roomFirst.centerY()),
+                        new Point(roomSecond.centerX(), roomFirst.centerY()));
+                carveLine(new Point(roomSecond.centerX(), roomFirst.centerY()),
+                        new Point(roomSecond.centerX(), roomSecond.centerY()));
             }
-            for (int x = startPoint.x; x < startPoint.x + roomWidth; x++) {
-                for (int y = startPoint.y; y < startPoint.y + roomHeight; y++) {
-                    walls[x][y] = ROOM;
-                }
+            else {
+                carveLine(new Point(roomFirst.centerX(), roomFirst.centerY()),
+                        new Point(roomFirst.centerX(), roomSecond.centerY()));
+                carveLine(new Point(roomFirst.centerX(), roomSecond.centerY()),
+                        new Point(roomSecond.centerX(), roomSecond.centerY()));
             }
 
-            Rect room = new Rect(startPoint.x, startPoint.y, startPoint.x + roomWidth - 1, startPoint.y + roomHeight - 1);
-            rooms.add(room);
+        }
 
+    }
+
+    private void carveLine(Point source, Point target) {
+
+        int start;
+        int end;
+        if (source.x == target.x) {
+            if (source.y < target.y) {
+                start = source.y;
+                end = target.y;
+            }
+            else {
+                start = target.y;
+                end = source.y;
+            }
+
+            for (int y = start; y <= end; y++) {
+                walls[source.x - 1][y] = CORRIDOR_CONNECTED;
+                walls[source.x][y] = CORRIDOR_CONNECTED;
+                walls[source.x + 1][y] = CORRIDOR_CONNECTED;
+            }
+        }
+        else if (source.y == target.y) {
+            if (source.x < target.x) {
+                start = source.x;
+                end = target.x;
+            }
+            else {
+                start = target.x;
+                end = source.x;
+            }
+            for (int x = start; x <= end; x++) {
+                walls[x][source.y - 1] = CORRIDOR_CONNECTED;
+                walls[x][source.y] = CORRIDOR_CONNECTED;
+                walls[x][source.y + 1] = CORRIDOR_CONNECTED;
+            }
+        }
+        else {
+            throw new IllegalArgumentException("Diagonal lines are not supported");
         }
     }
 
@@ -432,7 +487,7 @@ public class WorldMap {
                         if (point.y + 4 < height - 4 && walls[point.x][point.y + 4] == COLLIDE && walls[point.x - 1][point.y + 4] == COLLIDE && walls[point.x + 1][point.y + 4] == COLLIDE) {
                             adjacentWalls.add(new Point(point.x, point.y + 4));
                         }
-                        carveCorridor(point);
+                        carvePoint(point, CORRIDOR_DISCONNECTED);
 
                         if (!adjacentWalls.isEmpty()) {
                             // Try cutting maze in same direction
@@ -446,11 +501,16 @@ public class WorldMap {
                             lastOffsetY = nextPoint.y - point.y;
 
                             if (nextPoint.x != point.x) {
-                                carveCorridor(new Point(nextPoint.x < point.x ? nextPoint.x + 2 : nextPoint.x - 2, nextPoint.y));
+                                carvePoint(new Point(
+                                        nextPoint.x < point.x ? nextPoint.x + 2 : nextPoint.x - 2,
+                                        nextPoint.y), CORRIDOR_DISCONNECTED);
                             }
 
                             if (nextPoint.y != point.y) {
-                                carveCorridor(new Point(nextPoint.x, nextPoint.y < point.y ? nextPoint.y + 2 : nextPoint.y - 2));
+                                carvePoint(new Point(nextPoint.x,
+                                                nextPoint.y < point.y ? nextPoint.y + 2 :
+                                                        nextPoint.y - 2),
+                                        CORRIDOR_DISCONNECTED);
                             }
 
                             points.add(nextPoint);
@@ -463,16 +523,16 @@ public class WorldMap {
         }
     }
 
-    private void carveCorridor(Point point) {
-        walls[point.x][point.y] = CORRIDOR_DISCONNECTED;
-        walls[point.x][point.y - 1] = CORRIDOR_DISCONNECTED;
-        walls[point.x][point.y + 1] = CORRIDOR_DISCONNECTED;
-        walls[point.x - 1][point.y] = CORRIDOR_DISCONNECTED;
-        walls[point.x + 1][point.y] = CORRIDOR_DISCONNECTED;
-        walls[point.x - 1][point.y - 1] = CORRIDOR_DISCONNECTED;
-        walls[point.x - 1][point.y + 1] = CORRIDOR_DISCONNECTED;
-        walls[point.x + 1][point.y - 1] = CORRIDOR_DISCONNECTED;
-        walls[point.x + 1][point.y + 1] = CORRIDOR_DISCONNECTED;
+    private void carvePoint(Point point, byte type) {
+        walls[point.x][point.y] = type;
+        walls[point.x][point.y - 1] = type;
+        walls[point.x][point.y + 1] = type;
+        walls[point.x - 1][point.y] = type;
+        walls[point.x + 1][point.y] = type;
+        walls[point.x - 1][point.y - 1] = type;
+        walls[point.x - 1][point.y + 1] = type;
+        walls[point.x + 1][point.y - 1] = type;
+        walls[point.x + 1][point.y + 1] = type;
     }
 
     private void connectRooms() {
@@ -491,10 +551,10 @@ public class WorldMap {
 
             if (room.top - 2 > 0) {
                 connections.clear();
-                for (int x = room.left + 2; x < room.right - 2; x++) {
-                    if (walls[x][room.top - 1] != COLLIDE &&
-                            walls[x - 1][room.top - 1] != COLLIDE &&
-                            walls[x + 1][room.top - 1] != COLLIDE) {
+                for (int x = room.left + 2; x <= room.right - 2; x++) {
+                    if (walls[x][room.top - 2] != COLLIDE &&
+                            walls[x - 1][room.top - 2] != COLLIDE &&
+                            walls[x + 1][room.top - 2] != COLLIDE) {
                         connections.add(new Point(x, room.top - 1));
                     }
                 }
@@ -502,10 +562,10 @@ public class WorldMap {
             }
             if (room.bottom + 2 < height) {
                 connections.clear();
-                for (int x = room.left + 2; x < room.right - 2; x++) {
-                    if (walls[x][room.bottom + 1] != COLLIDE &&
-                            walls[x - 1][room.bottom + 1] != COLLIDE &&
-                            walls[x + 1][room.bottom + 1] != COLLIDE) {
+                for (int x = room.left + 2; x <= room.right - 2; x++) {
+                    if (walls[x][room.bottom + 2] != COLLIDE &&
+                            walls[x - 1][room.bottom + 2] != COLLIDE &&
+                            walls[x + 1][room.bottom + 2] != COLLIDE) {
                         connections.add(new Point(x, room.bottom + 1));
                     }
                 }
@@ -513,10 +573,10 @@ public class WorldMap {
             }
             if (room.left - 2 > 0) {
                 connections.clear();
-                for (int y = room.top + 2; y < room.bottom - 2; y++) {
-                    if (walls[room.left - 1][y] != COLLIDE &&
-                            walls[room.left - 1][y - 1] != COLLIDE &&
-                            walls[room.left - 1][y + 1] != COLLIDE) {
+                for (int y = room.top + 2; y <= room.bottom - 2; y++) {
+                    if (walls[room.left - 2][y] != COLLIDE &&
+                            walls[room.left - 2][y - 1] != COLLIDE &&
+                            walls[room.left - 2][y + 1] != COLLIDE) {
                         connections.add(new Point(room.left - 1, y));
                     }
                 }
@@ -524,17 +584,16 @@ public class WorldMap {
             }
             if (room.right + 2 < width) {
                 connections.clear();
-                for (int y = room.top + 2; y < room.bottom - 2; y++) {
+                for (int y = room.top + 2; y <= room.bottom - 2; y++) {
                     if (walls[room.right + 1][y] != COLLIDE &&
-                            walls[room.right + 1][y - 1] != COLLIDE &&
-                            walls[room.right + 1][y + 1] != COLLIDE) {
+                            walls[room.right + 2][y - 1] != COLLIDE &&
+                            walls[room.right + 2][y + 1] != COLLIDE) {
                         connections.add(new Point(room.right + 1, y));
                     }
                 }
                 cutWall(connections, room);
             }
 
-            room.inset(1, 1);
         }
     }
 
@@ -619,21 +678,22 @@ public class WorldMap {
 
         Stack<Point> deadEnds = new Stack<>();
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
+        for (int x = 2; x < width - 2; x += 4) {
+            for (int y = 2; y < height - 2; y += 4) {
+
                 Point point = new Point(x, y);
                 int adjacentWalls = 0;
 
-                if (x - 1 > 0 && walls[x - 1][y] == COLLIDE) {
+                if (x - 2 > 0 && walls[x - 2][y] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (x + 1 < width && walls[x + 1][y] == COLLIDE) {
+                if (x + 2 < width && walls[x + 2][y] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (y - 1 > 0 && walls[x][y - 1] == COLLIDE) {
+                if (y - 2 > 0 && walls[x][y - 2] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (y + 1 < height && walls[x][y + 1] == COLLIDE) {
+                if (y + 2 < height && walls[x][y + 2] == COLLIDE) {
                     adjacentWalls++;
                 }
 
@@ -651,37 +711,37 @@ public class WorldMap {
             if (walls[deadEnd.x][deadEnd.y] == COLLIDE) {
                 continue;
             }
-            walls[deadEnd.x][deadEnd.y] = COLLIDE;
+            carvePoint(deadEnd, COLLIDE);
 
             List<Point> adjacent = new ArrayList<>(4);
 
-            if (deadEnd.x - 1 > 0 && walls[deadEnd.x - 1][deadEnd.y] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x - 1, deadEnd.y));
+            if (deadEnd.x - 2 > 0 && walls[deadEnd.x - 2][deadEnd.y] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x - 2, deadEnd.y));
             }
-            if (deadEnd.x + 1 < width && walls[deadEnd.x + 1][deadEnd.y] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x + 1, deadEnd.y));
+            else if (deadEnd.x + 2 < width && walls[deadEnd.x + 2][deadEnd.y] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x + 2, deadEnd.y));
             }
-            if (deadEnd.y - 1 > 0 && walls[deadEnd.x][deadEnd.y - 1] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x, deadEnd.y - 1));
+            else if (deadEnd.y - 2 > 0 && walls[deadEnd.x][deadEnd.y - 2] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x, deadEnd.y - 2));
             }
-            if (deadEnd.y + 1 < height && walls[deadEnd.x][deadEnd.y + 1] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x, deadEnd.y + 1));
+            else if (deadEnd.y + 2 < height && walls[deadEnd.x][deadEnd.y + 2] == CORRIDOR_CONNECTED) {
+                adjacent.add(new Point(deadEnd.x, deadEnd.y + 2));
             }
 
             for (Point point : adjacent) {
 
                 int adjacentWalls = 0;
 
-                if (point.x - 1 > 0 && walls[point.x - 1][point.y] == COLLIDE) {
+                if (point.x - 2 > 0 && walls[point.x - 2][point.y] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (point.x + 1 < width && walls[point.x + 1][point.y] == COLLIDE) {
+                if (point.x + 2 < width && walls[point.x + 2][point.y] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (point.y - 1 > 0 && walls[point.x][point.y - 1] == COLLIDE) {
+                if (point.y - 2 > 0 && walls[point.x][point.y - 2] == COLLIDE) {
                     adjacentWalls++;
                 }
-                if (point.y + 1 < height && walls[point.x][point.y + 1] == COLLIDE) {
+                if (point.y + 2 < height && walls[point.x][point.y + 2] == COLLIDE) {
                     adjacentWalls++;
                 }
 

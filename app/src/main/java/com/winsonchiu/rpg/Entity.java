@@ -5,6 +5,7 @@ import android.graphics.RectF;
 import android.opengl.GLES20;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.utils.RenderUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -83,7 +84,9 @@ import java.util.List;
     private boolean toDestroy;
 
     private int health;
+    private int maxHealth;
     private int armor;
+    private int damage;
     private float movementSpeed;
     private long stunEndTime;
     private long damageEndTime;
@@ -91,6 +94,7 @@ import java.util.List;
 
     public Entity(int health,
             int armor,
+            int damage,
             int tileSize,
             float widthRatio,
             float heightRatio,
@@ -99,7 +103,9 @@ import java.util.List;
             float textureColCount,
             float movementSpeed) {
         this.health = health;
+        this.maxHealth = health;
         this.armor = armor;
+        this.damage = damage;
         this.tileSize = tileSize;
         this.widthRatio = widthRatio;
         this.heightRatio = heightRatio;
@@ -107,7 +113,7 @@ import java.util.List;
         this.textureRowCount = textureRowCount;
         this.textureColCount = textureColCount;
         this.movementSpeed = movementSpeed;
-
+        this.lastDirection = Direction.SOUTH;
         setupBuffers();
 
     }
@@ -374,6 +380,39 @@ import java.util.List;
     public void setHeightRatio(float heightRatio) {
         this.heightRatio = heightRatio;
     }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
+    }
+
+    public int getArmor() {
+        return armor;
+    }
+
+    public void setArmor(int armor) {
+        this.armor = armor;
+    }
+
+    public int getDamage() {
+        return damage;
+    }
+
+    public void setDamage(int damage) {
+        this.damage = damage;
+    }
+
     //endregion
 
     //region Intializers
@@ -451,4 +490,5 @@ import java.util.List;
         this.attack = attack;
     }
     //endregion
+
 }

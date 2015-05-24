@@ -1,6 +1,8 @@
-package com.winsonchiu.rpg;
+package com.winsonchiu.rpg.utils;
 
 import android.graphics.RectF;
+
+import com.winsonchiu.rpg.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,13 +43,13 @@ public class QuadTree {
 
         float x = bounds.left;
         float y = bounds.top;
-        float width = bounds.width() / 2;
-        float height = bounds.height() / 2;
+        float width = bounds.width() / 2f;
+        float height = bounds.height() / 2f;
 
         children[0] = new QuadTree(level + 1, new RectF(x, y, x + width, y + height));
-        children[1] = new QuadTree(level + 1, new RectF(x + width, y, x + 2 * width, y + height));
-        children[2] = new QuadTree(level + 1, new RectF(x, y + height, x + width, y + 2 * height));
-        children[3] = new QuadTree(level + 1, new RectF(x + width, y + height, x + 2 * width, y + 2 * height));
+        children[1] = new QuadTree(level + 1, new RectF(x + width, y, bounds.right, y + height));
+        children[2] = new QuadTree(level + 1, new RectF(x, y + height, x + width, bounds.bottom));
+        children[3] = new QuadTree(level + 1, new RectF(x + width, y + height, bounds.right, bounds.bottom));
 
     }
 
@@ -64,7 +66,7 @@ public class QuadTree {
         // Object can completely fit within the left quadrants
         if (target.left < verticalMidpoint && target.left + target.width() < verticalMidpoint) {
             if (topQuadrant) {
-                index = 1;
+                index = 0;
             }
             else if (bottomQuadrant) {
                 index = 2;
@@ -73,7 +75,7 @@ public class QuadTree {
         // Object can completely fit within the right quadrants
         else if (target.left > verticalMidpoint) {
             if (topQuadrant) {
-                index = 0;
+                index = 1;
             }
             else if (bottomQuadrant) {
                 index = 3;
@@ -89,7 +91,6 @@ public class QuadTree {
 
             if (index != -1) {
                 children[index].insert(entity);
-
                 return;
             }
         }

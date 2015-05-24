@@ -4,12 +4,15 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
-import com.winsonchiu.rpg.items.ItemIds;
 import com.winsonchiu.rpg.items.ResourceGold;
+import com.winsonchiu.rpg.utils.MathUtils;
+import com.winsonchiu.rpg.utils.Node;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -21,8 +24,8 @@ import java.util.Random;
 public class MobAggressive extends Entity {
 
     private static final String TAG = MobAggressive.class.getCanonicalName();
-    private static final float SPEED = 0.004f;
-    public static final float WIDTH_RATIO = 0.59999999999f;
+    private static final float SPEED = 0.003f;
+    public static final float WIDTH_RATIO = 0.6f;
     public static final float HEIGHT_RATIO = 0.9f;
     private RectF homeRoom;
     private int searchRadius;
@@ -30,9 +33,11 @@ public class MobAggressive extends Entity {
     private Point homeLocation;
     private boolean isAlerted;
     private long attackEndTime;
+    private List<PointF> path;
 
     public MobAggressive(int health,
             int armor,
+            int damage,
             int tileSize,
             float widthRatio,
             float heightRatio,
@@ -41,13 +46,14 @@ public class MobAggressive extends Entity {
             float textureColCount,
             Rect room,
             int searchRadius) {
-        super(health, armor, tileSize, widthRatio, heightRatio, location, textureRowCount,
+        super(health, armor, damage, tileSize, widthRatio, heightRatio, location, textureRowCount,
                 textureColCount,
                 SPEED);
         this.homeLocation = new Point((int) location.x, (int) location.y);
         this.targetLocation = new PointF(location.x, location.y);
         this.homeRoom = new RectF(room.left, room.top, room.right, room.bottom);
         this.searchRadius = searchRadius;
+        path = new ArrayList<>();
     }
 
     @Override
@@ -63,9 +69,17 @@ public class MobAggressive extends Entity {
     private void calculateAttack(Renderer renderer) {
         PointF playerLocation = renderer.getPlayer().getLocation();
 
-        if (MathUtils.distance(playerLocation, getLocation()) < 3f && System.currentTimeMillis() > attackEndTime) {
-            renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, getLocation(), new PointF(playerLocation.x, playerLocation.y), 500, true));
-            attackEndTime = System.currentTimeMillis() + 2000;
+        float differenceX = playerLocation.x - getLocation().x;
+        float differenceY = playerLocation.y - getLocation().y;
+
+        PointF endLocation = new PointF(playerLocation.x + differenceX, playerLocation.y + differenceY);
+
+        double distance = MathUtils.distance(playerLocation, getLocation());
+
+        if (distance < 3 && System.currentTimeMillis() > attackEndTime) {
+            renderer.addAttack(new AttackRanged(getTileSize(), getDamage(), 1, 1, getLocation(), endLocation,
+                    (long) (distance * 200), true));
+            attackEndTime = System.currentTimeMillis() + 1250;
         }
 
     }
@@ -97,7 +111,8 @@ public class MobAggressive extends Entity {
         if (playerLocation.x < getLocation().x + searchRadius &&
                 playerLocation.x > getLocation().x - searchRadius &&
                 playerLocation.y < getLocation().y + searchRadius &&
-                playerLocation.y > getLocation().y - searchRadius) {
+                playerLocation.y > getLocation().y - searchRadius &&
+                !doesLineIntersectWalls(getNewCenterLocation(), player.getNewCenterLocation(), worldMap.getWalls())) {
 
             PointF newTargetLocation = new PointF(playerLocation.x, playerLocation.y);//new PointF(((int) playerLocation.x) + 0.2f, ((int) playerLocation.y) + 0.2f);
 
@@ -144,7 +159,9 @@ public class MobAggressive extends Entity {
                             walls)) {
                 targetLocation.set(newTargetLocation.x, newTargetLocation.y);
                 isAlerted = true;
+                path.clear();
             }
+
 
         }
         else if (isAlerted) {
@@ -157,14 +174,27 @@ public class MobAggressive extends Entity {
                 isAlerted = false;
             }
         }
-        else {
-//            List<PointF> path = searchForHome(new Point((int) getLocation().x, (int) getLocation().y), renderer.getWorldMap(), renderer);
-//            if (!path.isEmpty()) {
+        else if (path.isEmpty()) {
+            if (!homeRoom.contains(getBounds())) {
+                PointF centerPoint = getNewCenterLocation();
+                path = searchForHome(new Point((int) centerPoint.x, (int) centerPoint.y),
+                        renderer.getWorldMap(), renderer);
+                if (!path.isEmpty()) {
+                    targetLocation = path.remove(0);
 //                targetLocation = path.size() > 1 ? path.get(1) : path.get(0);
-//            }
+                }
+            }
+        }
+        else {
+            if (Math.abs(targetLocation.x - getLocation().x) < 0.15f && Math.abs(targetLocation.y - getLocation().y) < 0.15f) {
+                targetLocation = path.remove(0);
+            }
+
+            Log.d(TAG, "Location: " + getLocation());
+            Log.d(TAG, "Target: " + targetLocation);
         }
 
-        if (doesLineIntersectWalls(getLocation(), targetLocation, walls) ||
+        if (path.isEmpty() && (doesLineIntersectWalls(getLocation(), targetLocation, walls) ||
                 doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(),
                         getLocation().y + getHeightRatio()),
                         new PointF(targetLocation.x + getWidthRatio(),
@@ -174,7 +204,7 @@ public class MobAggressive extends Entity {
                         new PointF(targetLocation.x, targetLocation.y + getHeightRatio()), walls) ||
                 doesLineIntersectWalls(
                         new PointF(getLocation().x + getWidthRatio(), getLocation().y),
-                        new PointF(targetLocation.x + getWidthRatio(), targetLocation.y), walls)) {
+                        new PointF(targetLocation.x + getWidthRatio(), targetLocation.y), walls))) {
             return;
         }
 
@@ -205,6 +235,8 @@ public class MobAggressive extends Entity {
 
         setOffsetX(ratio * differenceX);
         setOffsetY(ratio * differenceY);
+        setVelocityX(getOffsetX() / timeDifference);
+        setVelocityY(getOffsetY() / timeDifference);
 
         setMovementX(targetLocation.x < getLocation().x ? -1 : 1);
         setMovementY(targetLocation.y < getLocation().y ? -1 : 1);
@@ -225,8 +257,8 @@ public class MobAggressive extends Entity {
 
         float centerX = getLocation().x + getWidthRatio() / 2;
         float centerY = getLocation().y + getHeightRatio() / 2;
-        float radiusX = getWidthRatio() / 2 + 1f;
-        float radiusY = getHeightRatio() / 2 + 1f;
+        float radiusX = getWidthRatio() / 2 + 0.5f;
+        float radiusY = getHeightRatio() / 2 + 0.5f;
 
         Point topLeft = new Point((int) (centerX - radiusX), (int) (centerY + radiusY));
         Point topLeftMost = new Point((int) (centerX - getWidthRatio() / 2), (int) (centerY + radiusY));
@@ -508,6 +540,11 @@ public class MobAggressive extends Entity {
             getLocation().set(getLocation().x, calculatedY);
         }
 
+        if (!path.isEmpty()) {
+            Log.d(TAG, "offsetX: " + getOffsetX());
+            Log.d(TAG, "offsetY: " + getOffsetY());
+        }
+
     }
 
 //    private void calculateRaytrace(WorldMap worldMap) {
@@ -600,6 +637,8 @@ public class MobAggressive extends Entity {
 
     private List<PointF> searchForHome(Point startPoint, WorldMap worldMap, Renderer renderer) {
 
+        Log.d(TAG, "searchForHome");
+
         PriorityQueue<Node> openList = new PriorityQueue<>();
         HashSet<Node> closedSet = new HashSet<>();
 
@@ -608,8 +647,28 @@ public class MobAggressive extends Entity {
         while (!openList.isEmpty()) {
 
             Node currentNode = openList.poll();
+            Point point = currentNode.getPoint();
 
-            for (Node node : currentNode.getAdjacentNodes()) {
+            List<Node> adjacentNodes = new ArrayList<>();
+
+            if (!worldMap.isCollide(point.x - 1, point.y) &&
+                    !worldMap.isCollide(point.x - 2, point.y)) {
+                adjacentNodes.add(new Node(new Point(point.x - 1, point.y)));
+            }
+            if (!worldMap.isCollide(point.x + 1, point.y) &&
+                    !worldMap.isCollide(point.x + 2, point.y)) {
+                adjacentNodes.add(new Node(new Point(point.x + 1, point.y)));
+            }
+            if (!worldMap.isCollide(point.x, point.y - 1) &&
+                    !worldMap.isCollide(point.x, point.y - 2)) {
+                adjacentNodes.add(new Node(new Point(point.x, point.y - 1)));
+            }
+            if (!worldMap.isCollide(point.x, point.y + 1) &&
+                    !worldMap.isCollide(point.x, point.y + 2)) {
+                adjacentNodes.add(new Node(new Point(point.x, point.y + 1)));
+            }
+
+            for (Node node : adjacentNodes) {
 
                 if (node.getPoint()
                         .equals(homeLocation)) {
@@ -623,6 +682,8 @@ public class MobAggressive extends Entity {
                         worldMap.getWalls()[node.getPoint().x][node.getPoint().y] != WorldMap.COLLIDE) {
 
                     boolean intersect = false;
+
+                    // TODO: Trace through collision code
 
                     for (Entity entity : renderer.getEntityMobs()) {
                         if (entity != this && RectF.intersects(entity.getBounds(),
@@ -767,6 +828,8 @@ public class MobAggressive extends Entity {
             path.add(new PointF(currentNode.getPoint()));
             currentNode = currentNode.getParent();
         }
+
+        Collections.reverse(path);
 
         return path;
     }

@@ -33,12 +33,12 @@ public class Item extends Entity {
 
     // TODO: Move enum constants to some database implementation
     public Item(int tileSize, PointF location) {
-        super(0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x - WIDTH_RATIO / 2, location.y - HEIGHT_RATIO / 2), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+        super(0, 0, 0, tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x - WIDTH_RATIO / 2, location.y - HEIGHT_RATIO / 2), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
     }
 
     public Item(Item item) {
-        super(0, 0, item.getTileSize(), WIDTH_RATIO, HEIGHT_RATIO, new PointF(item.getLocation().x, item.getLocation().y), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+        super(0, 0, 0, item.getTileSize(), WIDTH_RATIO, HEIGHT_RATIO, new PointF(item.getLocation().x, item.getLocation().y), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
         this.name = item.getName();
         this.description = item.getDescription();
@@ -125,4 +125,58 @@ public class Item extends Entity {
         return description;
     }
     //endregion
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Item item = (Item) o;
+
+        if (getHealthBoost() != item.getHealthBoost()) {
+            return false;
+        }
+        if (getArmorBoost() != item.getArmorBoost()) {
+            return false;
+        }
+        if (getDamageBoost() != item.getDamageBoost()) {
+            return false;
+        }
+        if (getSpeedBoost() != item.getSpeedBoost()) {
+            return false;
+        }
+        if (getDuration() != item.getDuration()) {
+            return false;
+        }
+        if (getResourceId() != item.getResourceId()) {
+            return false;
+        }
+        if (getTextureId() != item.getTextureId()) {
+            return false;
+        }
+        if (!getName().equals(item.getName())) {
+            return false;
+        }
+        return getDescription().equals(item.getDescription());
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getHealthBoost();
+        result = 31 * result + getArmorBoost();
+        result = 31 * result + getDamageBoost();
+        result = 31 * result + getSpeedBoost();
+        result = 31 * result + getDuration();
+        result = 31 * result + getResourceId();
+        result = 31 * result + getTextureId();
+        result = 31 * result + getName().hashCode();
+        result = 31 * result + getDescription().hashCode();
+        return result;
+    }
 }

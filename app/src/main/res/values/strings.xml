@@ -15,4 +15,8 @@
     <string name="button_drop">Drop</string>
     <string name="button_info">Info</string>
     <string name="button_equip">Equip</string>
+    <string name="health">Health:</string>
+    <string name="armor">Armor:</string>
+    <string name="damage">Damage:</string>
+    <string name="speed">Speed:</string>
 </resources>

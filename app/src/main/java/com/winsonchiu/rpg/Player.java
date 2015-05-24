@@ -4,30 +4,39 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by TheKeeperOfPie on 5/2/2015.
  */
 public class Player extends Entity {
 
-    public static final int OUT_BOUND_X = 5;
-    public static final int OUT_BOUND_Y = 5;
-    public static final float WIDTH_RATIO = 0.59999999999f;
-    public static final float HEIGHT_RATIO = 0.9f;
-    private static final float SPEED = 0.0055f;
+    public static final float WIDTH_RATIO = 1f;
+    public static final float HEIGHT_RATIO = 1f;
+    private static final float SPEED = 0.006f;
     private static final int BASE_HEALTH = 20;
     private static final int BASE_ARMOR = 1;
+    private static final int BASE_DAMAGE = 1;
 
     private static final String TAG = Player.class.getCanonicalName();
+    private final EventListener eventListener;
 
-    public Player(int tileSize, PointF location) {
-        super(BASE_HEALTH, BASE_ARMOR, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 4f, 4f,
+    private float outBoundX;
+    private float outBoundY;
+
+    public Player(int tileSize, PointF location, float outBoundX, float outBoundY, EventListener eventListener) {
+        super(BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 21f, 13f,
                 SPEED);
+        setLastAnimationFrame(130);
+        this.outBoundX = outBoundX;
+        this.outBoundY = outBoundY;
+        this.eventListener = eventListener;
+        eventListener.onHealthChanged(getHealth(), getMaxHealth());
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
 
-        float x = getLocation().x;
-        float y = getLocation().y;
         boolean moveY = true;
         boolean moveX = true;
 
@@ -43,26 +52,32 @@ public class Player extends Entity {
             byte[][] walls = renderer.getWorldMap()
                     .getWalls();
 
-            float boundOffset = 0.1f;
+            float boundOffsetX = getWidthRatio() / 12;
+            float boundOffsetY = getHeightRatio() / 8;
 
-            RectF boundLeft = new RectF(getLocation().x - boundOffset, getLocation().y,
-                    getLocation().x - boundOffset + getWidthRatio(),
+            RectF boundLeft = new RectF(getLocation().x - boundOffsetX, getLocation().y,
+                    getLocation().x - boundOffsetX + getWidthRatio(),
                     getLocation().y + getHeightRatio());
 
-            RectF boundRight = new RectF(getLocation().x + boundOffset, getLocation().y,
-                    getLocation().x + boundOffset + getWidthRatio(),
+            RectF boundRight = new RectF(getLocation().x + boundOffsetX, getLocation().y,
+                    getLocation().x + boundOffsetX + getWidthRatio(),
                     getLocation().y + getHeightRatio());
 
-            RectF boundUp = new RectF(getLocation().x, getLocation().y + boundOffset,
+            RectF boundUp = new RectF(getLocation().x, getLocation().y + boundOffsetY,
                     getLocation().x + getWidthRatio(),
-                    getLocation().y + boundOffset + getHeightRatio());
+                    getLocation().y + boundOffsetY + getHeightRatio());
 
-            RectF boundDown = new RectF(getLocation().x, getLocation().y - boundOffset,
+            RectF boundDown = new RectF(getLocation().x, getLocation().y - boundOffsetY,
                     getLocation().x + getWidthRatio(),
-                    getLocation().y - boundOffset + getHeightRatio());
+                    getLocation().y - boundOffsetY + getHeightRatio());
+
+//            List<Entity> possibleCollisions = new ArrayList<>();
+//            renderer.getQuadTree().retrieve(possibleCollisions, new RectF(getLocation().x - 5f, getLocation().y - 5f, getLocation().x + getWidthRatio() + 5f, getLocation().y + getHeightRatio() + 5f));
+
+            // TODO: Fix QuadTree and use it to check for collisions
 
             for (Entity entity : renderer.getEntityMobs()) {
-                if (entity != this) {
+                if (entity instanceof MobAggressive) {
                     if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(), boundLeft)) || (getMovementX() > 0 && RectF.intersects(
                             entity.getBounds(), boundRight))) {
                         moveX = false;
@@ -84,26 +99,6 @@ public class Player extends Entity {
                             walls[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
                             walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
 
-//                    int nextX = (int) getLocation().x;
-//                    int nextY = (int) getLocation().y;
-//
-//                    if ((walls[nextX][nextY - 1] == WorldMap.COLLIDE || walls[((int) (getLocation().x + getWidthRatio() * 0.9f))][nextY - 1] == WorldMap.COLLIDE) && yCalculated < nextY) {
-//                        moveY = false;
-//                        getLocation().set(getLocation().x, nextY);
-//                    }
-//
-
-                    if ((walls[(int) (x + getWidthRatio())][(int) (y - getHeightRatio())] == WorldMap.COLLIDE)) {
-                        Log.d(TAG, "Collide x + width");
-                    }
-                    if ((walls[(int) x][(int) (y - getHeightRatio())] == WorldMap.COLLIDE)) {
-                        Log.d(TAG, "Collide x");
-                    }
-
-//                    if ((walls[(int) (x + getWidthRatio() * 0.9f)][(int) (y - getHeightRatio())] == WorldMap.COLLIDE || walls[(int) x][(int) (y - getHeightRatio())] == WorldMap.COLLIDE) && yCalculated < ((int) getLocation().y)) {
-//                        moveY = false;
-//                        getLocation().set(getLocation().x, (int) getLocation().y);
-//                    }
                 }
                 else {
                     yCalculated = getLocation().y + getOffsetY();
@@ -112,21 +107,6 @@ public class Player extends Entity {
                             walls[((int) getLocation().x)][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE &&
                             walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE;
 
-//                    int nextX = (int) getLocation().x;
-//                    int nextY = (int) getLocation().y;
-//
-//                    Log.d(TAG, "currentY: " + getLocation().y);
-//                    Log.d(TAG, "nextY: " + nextY);
-//
-//                    if ((walls[nextX][nextY + 1] == WorldMap.COLLIDE || walls[((int) (getLocation().x + getWidthRatio() * 0.9f))][nextY + 1] == WorldMap.COLLIDE) && yCalculated - getHeightRatio() > nextY) {
-//                        moveY = false;
-//                        getLocation().set(getLocation().x, nextY + 1 - getHeightRatio());
-//                    }
-
-//                    if ((walls[(int) (x + getWidthRatio() * 0.9f)][(int) (y + getHeightRatio())] == WorldMap.COLLIDE || walls[(int) x][(int) (y + getHeightRatio())] == WorldMap.COLLIDE) && yCalculated + getHeightRatio() > ((int) getLocation().y) + 1) {
-//                        moveX = false;
-//                        getLocation().set(getLocation().x, ((int) getLocation().y) + 1 - getHeightRatio());
-//                    }
                 }
 
                 if (moveY) {
@@ -144,10 +124,6 @@ public class Player extends Entity {
                             walls[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
                             walls[((int) xCalculated)][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE;
 
-//                    if ((walls[(int) (x - getWidthRatio())][(int) (y + getHeightRatio() * 0.9f)] == WorldMap.COLLIDE || walls[(int) (x - getWidthRatio())][(int) y] == WorldMap.COLLIDE) && xCalculated < ((int) getLocation().x)) {
-//                        moveX = false;
-//                        getLocation().set((int) getLocation().x, getLocation().y);
-//                    }
                 }
                 else {
                     xCalculated = getLocation().x + getOffsetX();
@@ -156,10 +132,6 @@ public class Player extends Entity {
                             walls[((int) (xCalculated + getWidthRatio()))][((int) getLocation().y)] != WorldMap.COLLIDE &&
                             walls[((int) (xCalculated + getWidthRatio()))][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE;
 
-//                    if ((walls[(int) (x + getWidthRatio())][(int) (y + getHeightRatio() * 0.9f)] == WorldMap.COLLIDE || walls[(int) (x + getWidthRatio())][(int) y] == WorldMap.COLLIDE) && xCalculated + getWidthRatio() > ((int) getLocation().x) + 1) {
-//                        moveX = false;
-//                        getLocation().set(((int) getLocation().x) + 1 - getWidthRatio(), getLocation().y);
-//                    }
                 }
 
                 if (moveX) {
@@ -169,17 +141,17 @@ public class Player extends Entity {
             }
         }
 
-        if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - OUT_BOUND_Y && getOffsetY() > 0) {
-            renderer.offsetCamera(0, getOffsetY());
-        }
-        else if (getLocation().y < renderer.getOffsetCameraY() + (OUT_BOUND_Y - 1) && getOffsetY() < 0) {
-            renderer.offsetCamera(0, getOffsetY());
-        }
-        if (getLocation().x > renderer.getOffsetCameraX() + renderer.getScreenWidth() / getTileSize() - OUT_BOUND_X && getOffsetX() > 0) {
+        if (getLocation().x > renderer.getOffsetCameraX() + renderer.getScreenWidth() / getTileSize() - outBoundX && getOffsetX() > 0) {
             renderer.offsetCamera(getOffsetX(), 0);
         }
-        else if (getLocation().x < renderer.getOffsetCameraX() + (OUT_BOUND_X - 1) && getOffsetX() < 0) {
+        else if (getLocation().x < renderer.getOffsetCameraX() + (outBoundX - 1) && getOffsetX() < 0) {
             renderer.offsetCamera(getOffsetX(), 0);
+        }
+        if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - outBoundY && getOffsetY() > 0) {
+            renderer.offsetCamera(0, getOffsetY());
+        }
+        else if (getLocation().y < renderer.getOffsetCameraY() + (outBoundY - 1) && getOffsetY() < 0) {
+            renderer.offsetCamera(0, getOffsetY());
         }
 
         if (Math.abs(getMovementX()) > 0 || Math.abs(getMovementY()) > 0) {
@@ -200,102 +172,106 @@ public class Player extends Entity {
 
             if (angle > Math.PI / 3) {
                 setLastDirection(Direction.NORTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else if (angle > Math.PI / 6) {
                 setLastDirection(Direction.NORTHEAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else if (angle < -Math.PI / 3) {
                 setLastDirection(Direction.SOUTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else if (angle < -Math.PI / 6) {
                 setLastDirection(Direction.SOUTHEAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else {
                 setLastDirection(Direction.EAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 8));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 143));
             }
 
         }
         else if (getMovementX() < 0){
             if (angle > Math.PI / 3) {
                 setLastDirection(Direction.SOUTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else if (angle > Math.PI / 6) {
                 setLastDirection(Direction.SOUTHWEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else if (angle < -Math.PI / 3) {
                 setLastDirection(Direction.NORTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else if (angle < -Math.PI / 6) {
                 setLastDirection(Direction.NORTHWEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else {
                 setLastDirection(Direction.WEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 4));
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 117));
             }
         }
         else if (getMovementY() > 0) {
             setLastDirection(Direction.NORTH);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
+            setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
         }
         else {
             setLastDirection(Direction.SOUTH);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
+            setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
         }
+    }
+
+    @Override
+    public boolean applyAttack(Attack attack) {
+        boolean returnValue = super.applyAttack(attack);
+        eventListener.onHealthChanged(getHealth(), getMaxHealth());
+
+        return returnValue;
     }
 
     public void startNewAttack(Renderer renderer) {
 
-        // TODO: Redo offsets to start centered on player
-
-        PointF start = new PointF(getLocation().x, getLocation().y);
         PointF end = new PointF(getLocation().x, getLocation().y);
+        PointF start = getNewCenterLocation();
+        start.offset(-0.6f / 2, -0.9f / 2);
 
         switch (getLastDirection()) {
 
             case NORTH:
-                start.offset(0, 1 * HEIGHT_RATIO);
                 end.offset(0, getVelocityY() * 500 + 3);
                 break;
             case NORTHEAST:
-                start.offset(1 * WIDTH_RATIO, 1 * HEIGHT_RATIO);
                 end.offset(getVelocityX() * 500 + 3, getVelocityY() * 500 + 3);
                 break;
             case EAST:
-                start.offset(1 * WIDTH_RATIO, 0);
                 end.offset(getVelocityX() * 500 + 3, 0);
                 break;
             case SOUTHEAST:
-                start.offset(1 * WIDTH_RATIO, -1 * HEIGHT_RATIO);
                 end.offset(getVelocityX() * 500 + 3, getVelocityY() * 500 - 3);
                 break;
             case SOUTH:
-                start.offset(0, -1 * HEIGHT_RATIO);
                 end.offset(0, getVelocityY() * 500 - 3);
                 break;
             case SOUTHWEST:
-                start.offset(-1 * WIDTH_RATIO, -1 * HEIGHT_RATIO);
                 end.offset(getVelocityX() * 500 - 3, getVelocityY() * 500 - 3);
                 break;
             case WEST:
-                start.offset(-1 * WIDTH_RATIO, 0);
                 end.offset(getVelocityX() * 500 - 3, 0);
                 break;
             case NORTHWEST:
-                start.offset(-1 * WIDTH_RATIO, 1 * HEIGHT_RATIO);
                 end.offset(getVelocityX() * 500 - 3, getVelocityY() * 500 + 3);
                 break;
         }
 
-//        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
-        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, new PointF(getLocation().x, getLocation().y), end, 500, false));
+        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
     }
+
+    public interface EventListener {
+
+        void onHealthChanged(int health, int maxHealth);
+    }
+
 }

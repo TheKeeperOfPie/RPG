@@ -1,5 +1,7 @@
 package com.winsonchiu.rpg;
 
+import android.content.pm.ActivityInfo;
+import android.graphics.drawable.Drawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -9,6 +11,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,13 +22,18 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.utils.RenderUtils;
+
+import java.text.BreakIterator;
 
 import io.fabric.sdk.android.Fabric;
 
@@ -41,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageInventoryControl;
     private FastOutLinearInInterpolator interpolator;
 
+    private ProgressBar progressBarHealth;
+
     // Inventory screen
     private RelativeLayout layoutInventory;
     private RecyclerView recyclerInventory;
@@ -52,37 +62,28 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonStats;
     private Button buttonCrafting;
     private FrameLayout frameView;
+    private LinearLayout layoutHealth;
+    private ImageView imageQuickSlot1;
+    private ImageView imageQuickSlot2;
+    private ImageView imageQuickSlot3;
+    private TextView textHealth;
+    private TextView textArmor;
+    private TextView textDamage;
+    private TextView textSpeed;
+    private LinearLayout layoutStats;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         super.onCreate(savedInstanceState);
         Fabric.with(this, new Crashlytics());
 
         applyFullscreen();
-
         setContentView(R.layout.activity_main);
 
         controllerInventory = new ControllerInventory();
 
         interpolator = new FastOutLinearInInterpolator();
-
-        renderer = new Renderer(this, new Renderer.EventListener() {
-            @Override
-            public void pickUpItem(Item item) {
-                controllerInventory.addItem(item);
-            }
-
-            @Override
-            public ControllerInventory getControllerInventory() {
-                return controllerInventory;
-            }
-        });
-
-        glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
-        glSurfaceView.setEGLContextClientVersion(2);
-        glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        glSurfaceView.setPreserveEGLContextOnPause(true);
-        glSurfaceView.setRenderer(renderer);
 
         imageDirectionControls = (ImageView) findViewById(R.id.image_direction_controls);
         imageDirectionControls.setOnTouchListener(new View.OnTouchListener() {
@@ -99,31 +100,43 @@ public class MainActivity extends AppCompatActivity {
                     case MotionEvent.ACTION_MOVE:
                         if (event.getY() < height / 5 * 2) {
                             // Move up
-                            renderer.getPlayer().setMovementY(interpolator.getInterpolation((event.getY() - height) / height * -2 - 0.8f));
+                            renderer.getPlayer()
+                                    .setMovementY(interpolator.getInterpolation(
+                                            (event.getY() - height) / height * -2 - 0.8f));
                         }
                         else if (event.getY() > height / 5 * 3) {
                             // Move down
-                            renderer.getPlayer().setMovementY(interpolator.getInterpolation((event.getY() - height) / height * 2 + 1.2f) * -1);
+                            renderer.getPlayer()
+                                    .setMovementY(interpolator.getInterpolation(
+                                            (event.getY() - height) / height * 2 + 1.2f) * -1);
                         }
                         else {
-                            renderer.getPlayer().setMovementY(0);
+                            renderer.getPlayer()
+                                    .setMovementY(0);
                         }
 
                         if (event.getX() < width / 5 * 2) {
                             // Move left
-                            renderer.getPlayer().setMovementX(interpolator.getInterpolation((event.getX() - width) / width * -2 - 0.8f) * -1);
+                            renderer.getPlayer()
+                                    .setMovementX(interpolator.getInterpolation(
+                                            (event.getX() - width) / width * -2 - 0.8f) * -1);
                         }
                         else if (event.getX() > width / 5 * 3) {
                             // Move right
-                            renderer.getPlayer().setMovementX(interpolator.getInterpolation((event.getX() - width) / width * 2 + 1.2f));
+                            renderer.getPlayer()
+                                    .setMovementX(interpolator.getInterpolation(
+                                            (event.getX() - width) / width * 2 + 1.2f));
                         }
                         else {
-                            renderer.getPlayer().setMovementX(0);
+                            renderer.getPlayer()
+                                    .setMovementX(0);
                         }
                         break;
                     case MotionEvent.ACTION_UP:
-                        renderer.getPlayer().setMovementX(0);
-                        renderer.getPlayer().setMovementY(0);
+                        renderer.getPlayer()
+                                .setMovementX(0);
+                        renderer.getPlayer()
+                                .setMovementY(0);
                         break;
                 }
 
@@ -148,22 +161,90 @@ public class MainActivity extends AppCompatActivity {
         imageInventoryControl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                setPlayerStatistics();
                 frameView.removeAllViewsInLayout();
                 frameView.addView(layoutInventory);
                 frameView.setVisibility(View.VISIBLE);
             }
         });
 
+        layoutHealth = (LinearLayout) findViewById(R.id.layout_health);
+        layoutHealth.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_inventory));
+        layoutHealth.getLayoutParams().width = getResources().getDisplayMetrics().widthPixels / 4;
+
+        progressBarHealth = (ProgressBar) findViewById(R.id.progress_bar_health);
+
+        Drawable backgroundItem = RenderUtils.getPixelatedDrawable(getResources(),
+                R.drawable.background_item);
+
+        imageQuickSlot1 = (ImageView) findViewById(R.id.cell_quick_slot_1).findViewById(
+                R.id.image_icon);
+        imageQuickSlot2 = (ImageView) findViewById(R.id.cell_quick_slot_2).findViewById(
+                R.id.image_icon);
+        imageQuickSlot3 = (ImageView) findViewById(R.id.cell_quick_slot_3).findViewById(
+                R.id.image_icon);
+
+        imageQuickSlot1.setBackground(backgroundItem);
+        imageQuickSlot2.setBackground(backgroundItem);
+        imageQuickSlot3.setBackground(backgroundItem);
+
         frameView = (FrameLayout) findViewById(R.id.frame_view);
 
         inflateInventory();
 
+        renderer = new Renderer(this, new Renderer.EventListener() {
+            @Override
+            public void pickUpItem(Item item) {
+                controllerInventory.addItem(item);
+            }
+
+            @Override
+            public ControllerInventory getControllerInventory() {
+                return controllerInventory;
+            }
+        }, new Player.EventListener() {
+            @Override
+            public void onHealthChanged(final int health, final int maxHealth) {
+                progressBarHealth.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressBarHealth.setMax(maxHealth);
+                        progressBarHealth.setProgress(health);
+                    }
+                });
+            }
+        });
+
+        glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
+        glSurfaceView.setEGLContextClientVersion(2);
+        glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        glSurfaceView.setPreserveEGLContextOnPause(true);
+        glSurfaceView.setRenderer(renderer);
+
+    }
+
+    private void setPlayerStatistics() {
+        Player player = renderer.getPlayer();
+        textHealth.setText(
+                getString(
+                        R.string.health) + " " + player.getHealth() + " / " + player.getMaxHealth());
+        textArmor.setText(getString(R.string.armor) + " " + player.getArmor());
+        textDamage.setText(getString(R.string.damage) + " " + player.getDamage());
+        textSpeed.setText(getString(R.string.speed) + " " + player.getMovementSpeed());
     }
 
     private void inflateInventory() {
-        layoutInventory = (RelativeLayout) LayoutInflater.from(this).inflate(R.layout.inventory,
-                frameView, false);
-        layoutInventory.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_inventory));
+        layoutInventory = (RelativeLayout) LayoutInflater.from(this)
+                .inflate(R.layout.inventory,
+                        frameView, false);
+        layoutInventory.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_inventory));
+        layoutInventory.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+        layoutStats = (LinearLayout) layoutInventory.findViewById(R.id.layout_stats);
+        layoutStats.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
 
         inventoryListener = new ControllerInventory.InventoryListener() {
             @Override
@@ -173,8 +254,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void dropItem(Item item) {
-                if (!renderer.getWorldMap().dropItem(item, renderer.getPlayer())) {
-                    Toast.makeText(MainActivity.this, "No room to drop item", Toast.LENGTH_SHORT).show();
+                if (!renderer.getWorldMap()
+                        .dropItem(item, renderer.getPlayer())) {
+                    Toast.makeText(MainActivity.this, "No room to drop item", Toast.LENGTH_SHORT)
+                            .show();
                 }
             }
 
@@ -225,14 +308,14 @@ public class MainActivity extends AppCompatActivity {
         };
 
         gridLayoutManager = new GridLayoutManager(this, 4, LinearLayoutManager.VERTICAL, false);
-
         adapterInventory = new AdapterInventory(this, controllerInventory,
                 new AdapterInventory.EventCallback() {
                     @Override
                     public void showPopupWindow(final int position, int x, int y) {
 
-                        View view = LayoutInflater.from(MainActivity.this).inflate(
-                                R.layout.popup_item, frameView, false);
+                        View view = LayoutInflater.from(MainActivity.this)
+                                .inflate(
+                                        R.layout.popup_item, frameView, false);
 
                         final PopupWindow popup = new PopupWindow(MainActivity.this);
                         Item item = controllerInventory.getItem(position);
@@ -265,12 +348,14 @@ public class MainActivity extends AppCompatActivity {
                         TextView textName = (TextView) view.findViewById(R.id.text_name);
                         textName.setText(item.getName());
 
-                        TextView textDescription = (TextView) view.findViewById(R.id.text_description);
+                        TextView textDescription = (TextView) view.findViewById(
+                                R.id.text_description);
                         textDescription.setText(item.getDescription());
                         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 
                         ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
-                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), item.getResourceId()));
+                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(),
+                                item.getResourceId()));
 
                         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
 
@@ -300,13 +385,22 @@ public class MainActivity extends AppCompatActivity {
                 frameView.setVisibility(View.GONE);
             }
         });
-        buttonClose.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.button_close));
+        buttonClose.setImageDrawable(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.button_close));
 
-        buttonClose.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
-        buttonItems.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
-        buttonStats.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
-        buttonCrafting.setBackground(RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonClose.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonItems.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonStats.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+        buttonCrafting.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
 
+        textHealth = (TextView) layoutInventory.findViewById(R.id.text_health);
+        textArmor = (TextView) layoutInventory.findViewById(R.id.text_armor);
+        textDamage = (TextView) layoutInventory.findViewById(R.id.text_damage);
+        textSpeed = (TextView) layoutInventory.findViewById(R.id.text_speed);
     }
 
     private void applyFullscreen() {

@@ -39,6 +39,57 @@
         android:layout_marginBottom="48dp"
         />
 
+    <LinearLayout
+        android:id="@+id/layout_health"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        >
+
+        <ProgressBar
+            style="@style/ProgressBarHealth"
+            android:id="@+id/progress_bar_health"
+            android:layout_width="match_parent"
+            android:layout_height="16dp"
+            android:layout_margin="16dp"
+            />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        >
+
+        <include
+            layout="@layout/cell_inventory"
+            android:id="@+id/cell_quick_slot_1"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_margin="2dp"
+            />
+
+        <include
+            layout="@layout/cell_inventory"
+            android:id="@+id/cell_quick_slot_2"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_margin="2dp"
+            />
+
+        <include
+            layout="@layout/cell_inventory"
+            android:id="@+id/cell_quick_slot_3"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_margin="2dp"
+            />
+
+    </LinearLayout>
+
     <ImageView
         android:id="@+id/image_inventory_control"
         android:layout_width="48dp"
