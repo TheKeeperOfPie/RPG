@@ -1,34 +1,27 @@
 package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
+import android.opengl.GLES20;
+
+import com.winsonchiu.rpg.items.Item;
 
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.List;
 
 /**
  * Created by TheKeeperOfPie on 5/3/2015.
  */
 public abstract class Attack extends Entity {
 
-    public static final float HEIGHT_RATIO = 1f;
-    public static final float WIDTH_RATIO = 1f;
-    protected float[] matrixProjectionAndView = new float[16];
-    protected float[] transMatrix = new float[16];
-    protected FloatBuffer uvBuffer;
-    protected FloatBuffer vertexBuffer;
-    protected ShortBuffer drawListBuffer;
-    protected short[] indices;
-
-    protected int tileSize;
-    protected int damage;
-    protected float range;
-    protected int accuracy;
-    protected long time;
-    protected boolean isHostile;
+    private int damage;
+    private float range;
+    private int accuracy;
+    private long time;
+    private boolean isHostile;
 
     public Attack(int tileSize, int damage, float range, int accuracy, float widthRatio, float heightRatio, PointF location, long time, float movementSpeed, boolean isHostile) {
-        super(0, 0, damage, tileSize, widthRatio, heightRatio, location, 1f, 2f, movementSpeed);
-        this.tileSize = tileSize;
+        super(tileSize, widthRatio, heightRatio, location, 1f, 2f, movementSpeed);
         this.damage = damage;
         this.range = range;
         this.accuracy = accuracy;
@@ -36,8 +29,53 @@ public abstract class Attack extends Entity {
         this.isHostile = isHostile;
     }
 
+    @Override
+    public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+        GLES20.glUniform1i(getDamageLocation(), 0);
+        super.render(renderer, matrixProjection, matrixView);
+    }
+
     public int calculateDamage() {
         return damage;
     }
 
+    public int getDamage() {
+        return damage;
+    }
+
+    public void setDamage(int damage) {
+        this.damage = damage;
+    }
+
+    public float getRange() {
+        return range;
+    }
+
+    public void setRange(float range) {
+        this.range = range;
+    }
+
+    public int getAccuracy() {
+        return accuracy;
+    }
+
+    public void setAccuracy(int accuracy) {
+        this.accuracy = accuracy;
+    }
+
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
+    }
+
+    public boolean isHostile() {
+        return isHostile;
+    }
+
+    public void setIsHostile(boolean isHostile) {
+        this.isHostile = isHostile;
+    }
 }

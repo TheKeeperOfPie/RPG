@@ -19,4 +19,8 @@
     <string name="armor">Armor:</string>
     <string name="damage">Damage:</string>
     <string name="speed">Speed:</string>
+    <string name="equipment">Equipment</string>
+    <string name="inventory">Inventory</string>
+    <string name="button_use">Use</string>
+    <string name="button_unequip">Unequip</string>
 </resources>

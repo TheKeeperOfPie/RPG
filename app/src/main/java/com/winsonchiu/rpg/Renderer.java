@@ -9,9 +9,11 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.utils.QuadTree;
 import com.winsonchiu.rpg.utils.RenderUtils;
 
@@ -41,12 +43,13 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     private static final String TAG = Renderer.class.getCanonicalName();
 
-    private static final int NUM_TEXTURES = 5;
+    private static final int NUM_TEXTURES = 6;
     private static final int TEXTURE_MAP = 0;
     private static final int TEXTURE_PLAYER = 1;
     private static final int TEXTURE_ATTACKS = 2;
     private static final int TEXTURE_MOBS = 3;
     private static final int TEXTURE_ITEMS = 4;
+    private static final int TEXTURE_NUMBERS = 5;
 
     private static final int TILES_IN_ROW = 57;
     private static final int TILES_IN_COL = 31;
@@ -101,14 +104,11 @@ public class Renderer implements GLSurfaceView.Renderer {
     private float offsetCameraX;
     private float offsetCameraY;
     private WorldMap worldMap;
-    private boolean isInitialized;
-    private final List<Entity> entityMobs;
+    private final List<Mob> entityMobs;
     private final List<Attack> entityAttacks;
+    private final List<Entity> entities;
     private float tilesOnScreenX;
     private float tilesOnScreenY;
-    private boolean showInventory;
-    private boolean isPaused;
-    private Random random;
     private QuadTree quadTree;
 
     public Renderer(Activity activity, EventListener eventListenerRenderer, Player.EventListener eventListenerPlayer) {
@@ -116,14 +116,14 @@ public class Renderer implements GLSurfaceView.Renderer {
         this.activity = activity;
         this.eventListenerRenderer = eventListenerRenderer;
         this.eventListenerPlayer = eventListenerPlayer;
-        random = new Random();
-        entityMobs = Collections.synchronizedList(new ArrayList<Entity>());
+        entities = Collections.synchronizedList(new ArrayList<Entity>());
+        entityMobs = Collections.synchronizedList(new ArrayList<Mob>());
         entityAttacks = Collections.synchronizedList(new ArrayList<Attack>());
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
         DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
-        tileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
-        tileSize = 16 * (int) Math.pow(2, tileSize / 16 / 2);
+        tileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40, displayMetrics);
+//        tileSize = 16 * (int) Math.pow(2, tileSize / 16 / 2);
         tilesOnScreenX = displayMetrics.widthPixels / tileSize;
         tilesOnScreenY = displayMetrics.heightPixels / tileSize;
     }
@@ -138,13 +138,16 @@ public class Renderer implements GLSurfaceView.Renderer {
         worldMap = new WorldMap(50, 50);
         worldMap.generateRectangular(this);
 
-        quadTree = new QuadTree(0, new RectF(0, 0, 133, 125));
+        quadTree = new QuadTree(0, new RectF(0, 0, 50, 50));
 
         PointF pointStart = worldMap.getStartPoint();
 
         player = new Player(tileSize, pointStart, getTilesOnScreenX() / 7 * 3, getTilesOnScreenY() / 7 * 3, eventListenerPlayer);
         offsetCameraX = pointStart.x - getTilesOnScreenX() / 2;
         offsetCameraY = pointStart.y - getTilesOnScreenY() / 2;
+
+        buffers = new int[4];
+        GLES20.glGenBuffers(4, buffers, 0);
 
         loadVbo();
 
@@ -174,6 +177,7 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 gl) {
+
 
         try {
             endTime = System.currentTimeMillis();
@@ -209,6 +213,7 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
                 .size() * 18);
+
     }
 
     private void refillQuadTree() {
@@ -251,7 +256,7 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     private void renderEntities() {
 
-        GLES20.glUseProgram(Entity.getProgram());
+        GLES20.glUseProgram(Entity.getProgramId());
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ITEMS]);
 
         synchronized (worldMap.getItems()) {
@@ -277,14 +282,18 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         player.render(this, matrixProjection, matrixView);
 
+        if (RectF.intersects(player.getBounds(), worldMap.getGoalBounds())) {
+            worldMap.activateGoal(this);
+        }
+
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_MOBS]);
 
         synchronized (entityMobs) {
-            Iterator<Entity> iterator = entityMobs.iterator();
+            Iterator<Mob> iterator = entityMobs.iterator();
             while (iterator.hasNext()) {
-                Entity entity = iterator.next();
-                entity.render(this, matrixProjection, matrixView);
-                if (entity.getToDestroy()) {
+                Mob mob = iterator.next();
+                mob.render(this, matrixProjection, matrixView);
+                if (mob.getToDestroy()) {
                     iterator.remove();
                 }
             }
@@ -303,6 +312,17 @@ public class Renderer implements GLSurfaceView.Renderer {
             }
         }
 
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_NUMBERS]);
+        synchronized (entities) {
+            Iterator<Entity> iterator = entities.iterator();
+            while (iterator.hasNext()) {
+                Entity entity = iterator.next();
+                entity.render(this, matrixProjection, matrixView);
+                if (entity.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
     }
 
     //region Setup and teardown
@@ -321,32 +341,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         Renderer.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
     }
 
-    private void loadVbo() {
-
-        InputStream is = activity.getResources().openRawResource(R.raw.level);
-        Writer writer = new StringWriter();
-        char[] writeBuffer = new char[1024];
-        try {
-            Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-            int n;
-            while ((n = reader.read(writeBuffer)) != -1) {
-                writer.write(writeBuffer, 0, n);
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-        finally {
-            try {
-                is.close();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        buffers = new int[4];
-        GLES20.glGenBuffers(4, buffers, 0);
+    public void loadVbo() {
 
         bindBufferFromTiles(worldMap.getTilesBelow(), buffers[0], buffers[1]);
         bindBufferFromTiles(worldMap.getTilesAbove(), buffers[2], buffers[3]);
@@ -459,7 +454,7 @@ public class Renderer implements GLSurfaceView.Renderer {
                         R.drawable.texture_sheet, options),
                 textureNames[TEXTURE_MAP]);
 
-        GLES20.glUseProgram(Entity.getProgram());
+        GLES20.glUseProgram(Entity.getProgramId());
 
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
                         R.drawable.player_sheet, options),
@@ -476,6 +471,10 @@ public class Renderer implements GLSurfaceView.Renderer {
         bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
                         R.drawable.item_sheet, options),
                 textureNames[TEXTURE_ITEMS]);
+
+        bindAndRecycleTexture(BitmapFactory.decodeResource(activity.getResources(),
+                        R.drawable.number_sheet, options),
+                textureNames[TEXTURE_NUMBERS]);
 
     }
 
@@ -554,16 +553,20 @@ public class Renderer implements GLSurfaceView.Renderer {
         return worldMap;
     }
 
-    public List<Entity> getEntityMobs() {
+    public List<Mob> getEntityMobs() {
         return entityMobs;
     }
 
     public void addEntity(Entity entity) {
-        entityMobs.add(entity);
+        entities.add(entity);
     }
 
-    public void addEntities(List<Entity> entities) {
-        entityMobs.addAll(entities);
+    public void addMob(Mob mob) {
+        entityMobs.add(mob);
+    }
+
+    public void addMobs(List<Mob> mobs) {
+        entityMobs.addAll(mobs);
     }
 
     public void addAttack(Attack attack) {

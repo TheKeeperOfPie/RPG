@@ -2,7 +2,11 @@ package com.winsonchiu.rpg;
 
 import android.support.v7.widget.RecyclerView;
 
+import com.winsonchiu.rpg.items.Accessory;
+import com.winsonchiu.rpg.items.Armor;
+import com.winsonchiu.rpg.items.Equipment;
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.Weapon;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,6 +20,9 @@ public class ControllerInventory {
 
     private Set<InventoryListener> listeners;
     private List<Item> itemList;
+    private Weapon weapon;
+    private Armor armor;
+    private Accessory accessory;
 
     public ControllerInventory() {
         listeners = new HashSet<>();
@@ -43,7 +50,7 @@ public class ControllerInventory {
         int index = itemList.indexOf(item);
 
         if (index > -1) {
-            itemList.get(index).incrementQuantity(1);
+            itemList.get(index).incrementQuantity(item.getQuantity());
             for (InventoryListener listener : listeners) {
                 listener.notifyItemChanged(index);
             }
@@ -79,10 +86,115 @@ public class ControllerInventory {
         return item;
     }
 
+    public Item removeItem(Item item) {
+        int removeIndex = itemList.indexOf(item);
+
+        if (item.getQuantity() > 1) {
+            item = item.decrementQuantity();
+            for (InventoryListener listener : listeners) {
+                listener.notifyItemChanged(removeIndex);
+            }
+        }
+        else {
+            item = itemList.remove(removeIndex);
+            for (InventoryListener listener : listeners) {
+                listener.notifyItemRemoved(removeIndex);
+            }
+        }
+        return item;
+    }
+
     public void dropItem(int position) {
         for (InventoryListener listener : listeners) {
             listener.dropItem(removeItem(position));
         }
+    }
+
+    public void dropItem(Item item) {
+        for (InventoryListener listener : listeners) {
+            listener.dropItem(removeItem(item));
+        }
+    }
+
+    public void equip(Item item) {
+        if (itemList.contains(item)) {
+            item = removeItem(item);
+        }
+
+        if (item instanceof Weapon) {
+            if (weapon != null) {
+                itemList.add(weapon);
+            }
+            weapon = (Weapon) item;
+        }
+        else if (item instanceof Armor) {
+            if (armor != null) {
+                itemList.add(armor);
+            }
+            armor = (Armor) item;
+        }
+        else if (item instanceof Accessory) {
+            if (accessory != null) {
+                itemList.add(accessory);
+            }
+            accessory = (Accessory) item;
+        }
+
+        for (InventoryListener listener : listeners) {
+            listener.notifyDataSetChanged();
+            listener.onEquipmentChanged();
+        }
+
+    }
+
+    public boolean hasWeapon() {
+        return weapon != null;
+    }
+
+    public Weapon getWeapon() {
+        return weapon;
+    }
+
+    public boolean hasArmor() {
+        return armor != null;
+    }
+
+    public Armor getArmor() {
+        return armor;
+    }
+
+    public boolean hasAccessory() {
+        return accessory != null;
+    }
+
+    public Accessory getAccessory() {
+        return accessory;
+    }
+
+    public void dropEquipment(Equipment equipment) {
+        if (equipment instanceof Weapon && hasWeapon()) {
+            weapon = null;
+        }
+        else if (equipment instanceof Armor && hasArmor()) {
+            armor = null;
+        }
+        else if (equipment instanceof Accessory && hasAccessory()) {
+            accessory = null;
+        }
+        dropItem(equipment);
+    }
+
+    public void unequip(Equipment equipment) {
+        if (equipment instanceof Weapon && hasWeapon()) {
+            weapon = null;
+        }
+        else if (equipment instanceof Armor && hasArmor()) {
+            armor = null;
+        }
+        else if (equipment instanceof Accessory && hasAccessory()) {
+            accessory = null;
+        }
+        addItem(equipment);
     }
 
     public interface InventoryListener {
@@ -94,6 +206,7 @@ public class ControllerInventory {
         void notifyItemRemoved(int position);
         void notifyDataSetChanged();
         void notifyItemChanged(int position);
+        void onEquipmentChanged();
     }
 
 }

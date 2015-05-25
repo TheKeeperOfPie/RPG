@@ -10,8 +10,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -30,10 +30,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
+import com.winsonchiu.rpg.items.Accessory;
+import com.winsonchiu.rpg.items.Armor;
+import com.winsonchiu.rpg.items.Consumable;
+import com.winsonchiu.rpg.items.Equipment;
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.Weapon;
 import com.winsonchiu.rpg.utils.RenderUtils;
-
-import java.text.BreakIterator;
 
 import io.fabric.sdk.android.Fabric;
 
@@ -50,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
     private FastOutLinearInInterpolator interpolator;
 
     private ProgressBar progressBarHealth;
+    private LinearLayout layoutHealth;
+    private ImageView imageQuickSlot1;
+    private ImageView imageQuickSlot2;
+    private ImageView imageQuickSlot3;
 
     // Inventory screen
     private RelativeLayout layoutInventory;
@@ -58,28 +65,29 @@ public class MainActivity extends AppCompatActivity {
     private AdapterInventory adapterInventory;
     private ControllerInventory.InventoryListener inventoryListener;
     private ImageButton buttonClose;
-    private Button buttonItems;
-    private Button buttonStats;
-    private Button buttonCrafting;
     private FrameLayout frameView;
-    private LinearLayout layoutHealth;
-    private ImageView imageQuickSlot1;
-    private ImageView imageQuickSlot2;
-    private ImageView imageQuickSlot3;
     private TextView textHealth;
     private TextView textArmor;
     private TextView textDamage;
     private TextView textSpeed;
+    private ImageView imageEquipSlotWeapon;
+    private ImageView imageEquipSlotArmor;
+    private ImageView imageEquipSlotAccessory;
     private LinearLayout layoutStats;
+    private LinearLayout layoutEquipment;
+    private Drawable drawableWeapon;
+    private Drawable drawableArmor;
+    private Drawable drawableAccessory;
+    private Button buttonEquipment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         super.onCreate(savedInstanceState);
         Fabric.with(this, new Crashlytics());
+        setContentView(R.layout.activity_main);
 
         applyFullscreen();
-        setContentView(R.layout.activity_main);
 
         controllerInventory = new ControllerInventory();
 
@@ -150,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     renderer.getPlayer()
-                            .startNewAttack(renderer);
+                            .calculateAttack(renderer);
                     return true;
                 }
                 return false;
@@ -158,6 +166,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         imageInventoryControl = (ImageView) findViewById(R.id.image_inventory_control);
+        imageInventoryControl.setImageDrawable(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.i_chest01));
+        imageInventoryControl.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_inventory));
         imageInventoryControl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -211,8 +223,27 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         progressBarHealth.setMax(maxHealth);
                         progressBarHealth.setProgress(health);
+                        textHealth.setText(getString(R.string.health) + " " + health + " / " + maxHealth);
                     }
                 });
+            }
+
+            @Override
+            public int calculateDamage() {
+
+                int damage = 0;
+                if (controllerInventory.hasWeapon()) {
+                    damage += controllerInventory.getWeapon().getDamageBoost();
+                }
+                if (controllerInventory.hasArmor()) {
+                    damage += controllerInventory.getArmor().getDamageBoost();
+                }
+
+                if (controllerInventory.hasAccessory()) {
+                    damage += controllerInventory.getAccessory().getDamageBoost();
+                }
+
+                return damage > 0 ? damage : 1;
             }
         });
 
@@ -221,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
         glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         glSurfaceView.setPreserveEGLContextOnPause(true);
         glSurfaceView.setRenderer(renderer);
+        glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
     }
 
@@ -244,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
 
         layoutStats = (LinearLayout) layoutInventory.findViewById(R.id.layout_stats);
         layoutStats.setBackground(
-                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_stats));
 
         inventoryListener = new ControllerInventory.InventoryListener() {
             @Override
@@ -255,7 +287,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void dropItem(Item item) {
                 if (!renderer.getWorldMap()
-                        .dropItem(item, renderer.getPlayer())) {
+                        .dropItem(item, renderer.getPlayer().getLastDirection(), renderer.getPlayer().getNewCenterLocation())) {
                     Toast.makeText(MainActivity.this, "No room to drop item", Toast.LENGTH_SHORT)
                             .show();
                 }
@@ -305,6 +337,28 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             }
+
+            @Override
+            public void onEquipmentChanged() {
+                if (controllerInventory.hasWeapon()) {
+                    imageEquipSlotWeapon.setImageDrawable(
+                            RenderUtils.getPixelatedDrawable(getResources(),
+                                    controllerInventory.getWeapon()
+                                            .getResourceId()));
+                }
+                if (controllerInventory.hasArmor()) {
+                    imageEquipSlotArmor.setImageDrawable(
+                            RenderUtils.getPixelatedDrawable(getResources(),
+                                    controllerInventory.getArmor()
+                                            .getResourceId()));
+                }
+                if (controllerInventory.hasAccessory()) {
+                    imageEquipSlotAccessory.setImageDrawable(
+                            RenderUtils.getPixelatedDrawable(getResources(),
+                                    controllerInventory.getAccessory()
+                                            .getResourceId()));
+                }
+            }
         };
 
         gridLayoutManager = new GridLayoutManager(this, 4, LinearLayoutManager.VERTICAL, false);
@@ -313,59 +367,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void showPopupWindow(final int position, int x, int y) {
 
-                        View view = LayoutInflater.from(MainActivity.this)
-                                .inflate(
-                                        R.layout.popup_item, frameView, false);
-
-                        final PopupWindow popup = new PopupWindow(MainActivity.this);
-                        Item item = controllerInventory.getItem(position);
-
-                        Button buttonDrop = (Button) view.findViewById(R.id.button_drop);
-                        buttonDrop.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                controllerInventory.dropItem(position);
-                                popup.dismiss();
-                            }
-                        });
-
-                        Button buttonInfo = (Button) view.findViewById(R.id.button_info);
-                        buttonInfo.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                // TODO: Add item info
-                            }
-                        });
-
-                        Button buttonEquip = (Button) view.findViewById(R.id.button_equip);
-                        buttonEquip.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                // TODO: Add equipable item
-                            }
-                        });
-
-                        TextView textName = (TextView) view.findViewById(R.id.text_name);
-                        textName.setText(item.getName());
-
-                        TextView textDescription = (TextView) view.findViewById(
-                                R.id.text_description);
-                        textDescription.setText(item.getDescription());
-                        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-
-                        ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
-                        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(),
-                                item.getResourceId()));
-
-                        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-
-                        popup.setContentView(view);
-                        popup.setWidth(view.getMeasuredWidth());
-                        popup.setHeight(view.getMeasuredHeight());
-                        popup.setFocusable(true);
-                        popup.showAtLocation(view, Gravity.NO_GRAVITY, x, y);
-
-                        Log.d(TAG, "Popup shown at (" + x + ", " + y + ")");
+                        showPopup(controllerInventory.getItem(position), x, y);
 
                     }
                 });
@@ -375,32 +377,214 @@ public class MainActivity extends AppCompatActivity {
         recyclerInventory.setLayoutManager(gridLayoutManager);
         recyclerInventory.setAdapter(adapterInventory);
 
-        buttonItems = (Button) layoutInventory.findViewById(R.id.button_items);
-        buttonStats = (Button) layoutInventory.findViewById(R.id.button_stats);
-        buttonCrafting = (Button) layoutInventory.findViewById(R.id.button_crafting);
         buttonClose = (ImageButton) layoutInventory.findViewById(R.id.button_close);
         buttonClose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                layoutEquipment.setVisibility(View.GONE);
                 frameView.setVisibility(View.GONE);
             }
         });
         buttonClose.setImageDrawable(
                 RenderUtils.getPixelatedDrawable(getResources(), R.drawable.button_close));
-
         buttonClose.setBackground(
-                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
-        buttonItems.setBackground(
-                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
-        buttonStats.setBackground(
-                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
-        buttonCrafting.setBackground(
                 RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
 
         textHealth = (TextView) layoutInventory.findViewById(R.id.text_health);
         textArmor = (TextView) layoutInventory.findViewById(R.id.text_armor);
         textDamage = (TextView) layoutInventory.findViewById(R.id.text_damage);
         textSpeed = (TextView) layoutInventory.findViewById(R.id.text_speed);
+
+        layoutEquipment = (LinearLayout) layoutInventory.findViewById(R.id.layout_equipment);
+        layoutEquipment.setBackground(
+                RenderUtils.getPixelatedDrawable(getResources(), R.drawable.background_item));
+
+
+        Drawable backgroundItem = RenderUtils.getPixelatedDrawable(getResources(),
+                R.drawable.background_item);
+
+        buttonEquipment = (Button) layoutInventory.findViewById(R.id.button_equipment);
+        buttonEquipment.setBackground(backgroundItem);
+        buttonEquipment.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                layoutEquipment.setVisibility(layoutEquipment.isShown() ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        imageEquipSlotWeapon = (ImageView) layoutInventory.findViewById(R.id.cell_equip_slot_1).findViewById(
+                R.id.image_icon);
+        imageEquipSlotArmor = (ImageView) layoutInventory.findViewById(R.id.cell_equip_slot_2).findViewById(
+                R.id.image_icon);
+        imageEquipSlotAccessory = (ImageView) layoutInventory.findViewById(R.id.cell_equip_slot_3).findViewById(
+                R.id.image_icon);
+
+        imageEquipSlotWeapon.setBackground(backgroundItem);
+        imageEquipSlotArmor.setBackground(backgroundItem);
+        imageEquipSlotAccessory.setBackground(backgroundItem);
+
+        imageEquipSlotWeapon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int[] location = new int[2];
+                imageEquipSlotWeapon.getLocationOnScreen(location);
+                if (controllerInventory.hasWeapon()) {
+                    showEquipmentPopup(controllerInventory.getWeapon(), location[0], location[1]);
+                }
+            }
+        });
+
+        imageEquipSlotArmor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int[] location = new int[2];
+                imageEquipSlotArmor.getLocationOnScreen(location);
+                if (controllerInventory.hasArmor()) {
+                    showEquipmentPopup(controllerInventory.getArmor(), location[0], location[1]);
+                }
+            }
+        });
+
+        imageEquipSlotAccessory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int[] location = new int[2];
+                imageEquipSlotAccessory.getLocationOnScreen(location);
+                if (controllerInventory.hasAccessory()) {
+                    showEquipmentPopup(controllerInventory.getAccessory(), location[0], location[1]);
+                }
+            }
+        });
+
+        drawableWeapon = RenderUtils.getPixelatedDrawable(getResources(), R.drawable.placeholder_weapon);
+        drawableArmor = RenderUtils.getPixelatedDrawable(getResources(), R.drawable.placeholder_armor);
+        drawableAccessory = RenderUtils.getPixelatedDrawable(getResources(), R.drawable.placeholder_accessory);
+
+        imageEquipSlotWeapon.setImageDrawable(drawableWeapon);
+        imageEquipSlotArmor.setImageDrawable(drawableArmor);
+        imageEquipSlotAccessory.setImageDrawable(drawableAccessory);
+    }
+
+    private void showEquipmentPopup(final Equipment equipment, int x, int y) {
+
+        View view = LayoutInflater.from(MainActivity.this)
+                .inflate(
+                        R.layout.popup_item, frameView, false);
+
+        final PopupWindow popup = new PopupWindow(MainActivity.this);
+
+        Button buttonDrop = (Button) view.findViewById(R.id.button_drop);
+        buttonDrop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                controllerInventory.dropEquipment(equipment);
+                popup.dismiss();
+            }
+        });
+
+        Button buttonUnequip = (Button) view.findViewById(R.id.button_unequip);
+        buttonUnequip.setVisibility(View.VISIBLE);
+        buttonUnequip.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                controllerInventory.unequip(equipment);
+                popup.dismiss();
+            }
+        });
+
+        TextView textName = (TextView) view.findViewById(R.id.text_name);
+        textName.setText(equipment.getName());
+
+        TextView textDescription = (TextView) view.findViewById(
+                R.id.text_description);
+        textDescription.setText(equipment.getDescription());
+        textDescription.setMovementMethod(new ScrollingMovementMethod());
+
+        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+        ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
+        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(),
+                equipment.getResourceId()));
+
+        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+        popup.setContentView(view);
+        popup.setWidth(view.getMeasuredWidth());
+        popup.setHeight(view.getMeasuredHeight());
+        popup.setFocusable(true);
+        popup.showAtLocation(view, Gravity.NO_GRAVITY, x, y);
+        applyFullscreen();
+
+        Log.d(TAG, "Popup shown at (" + x + ", " + y + ")");
+    }
+
+    private void showPopup(final Item item, int x, int y) {
+
+        View view = LayoutInflater.from(MainActivity.this)
+                .inflate(
+                        R.layout.popup_item, frameView, false);
+
+        final PopupWindow popup = new PopupWindow(MainActivity.this);
+
+        Button buttonDrop = (Button) view.findViewById(R.id.button_drop);
+        buttonDrop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                controllerInventory.dropItem(item);
+                popup.dismiss();
+            }
+        });
+
+        Button buttonUse = (Button) view.findViewById(R.id.button_use);
+        buttonUse.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ((Consumable) item).consume(renderer.getPlayer());
+                controllerInventory.removeItem(item);
+                popup.dismiss();
+            }
+        });
+
+        Button buttonEquip = (Button) view.findViewById(R.id.button_equip);
+        buttonEquip.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                controllerInventory.equip((Equipment) item);
+                popup.dismiss();
+            }
+        });
+
+        if (item instanceof Consumable) {
+            buttonUse.setVisibility(View.VISIBLE);
+        }
+        if (item instanceof Equipment) {
+            buttonEquip.setVisibility(View.VISIBLE);
+        }
+
+        TextView textName = (TextView) view.findViewById(R.id.text_name);
+        textName.setText(item.getName());
+
+        TextView textDescription = (TextView) view.findViewById(
+                R.id.text_description);
+        textDescription.setText(item.getDescription());
+        textDescription.setMovementMethod(new ScrollingMovementMethod());
+
+        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+        ImageView imageIcon = (ImageView) view.findViewById(R.id.image_icon);
+        imageIcon.setImageDrawable(RenderUtils.getPixelatedDrawable(getResources(),
+                item.getResourceId()));
+
+        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+
+        popup.setContentView(view);
+        popup.setWidth(view.getMeasuredWidth());
+        popup.setHeight(view.getMeasuredHeight());
+        popup.setFocusable(true);
+        popup.showAtLocation(view, Gravity.NO_GRAVITY, x, y);
+        applyFullscreen();
+
+        Log.d(TAG, "Popup shown at (" + x + ", " + y + ")");
     }
 
     private void applyFullscreen() {
@@ -452,10 +636,12 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         applyFullscreen();
         controllerInventory.addListener(inventoryListener);
+        glSurfaceView.onResume();
     }
 
     @Override
     protected void onPause() {
+        glSurfaceView.onPause();
         controllerInventory.removeListener(inventoryListener);
         super.onPause();
     }

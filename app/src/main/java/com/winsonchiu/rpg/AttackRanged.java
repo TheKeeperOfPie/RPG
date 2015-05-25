@@ -4,8 +4,9 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.mobs.Mob;
+import com.winsonchiu.rpg.mobs.MobAggressive;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -68,7 +69,7 @@ public class AttackRanged extends Attack {
 
         getLocation().set(startLocation.x + offsetX, startLocation.y + offsetY);
 
-        if (isHostile) {
+        if (isHostile()) {
             if (RectF.intersects(getBounds(), renderer.getPlayer()
                     .getBounds())) {
                 renderer.getPlayer()
@@ -77,13 +78,13 @@ public class AttackRanged extends Attack {
             }
         }
         else {
-            for (Entity entity : renderer.getEntityMobs()) {
-                if (entity instanceof MobAggressive && RectF.intersects(entity.getBounds(),
+            for (Mob mob : renderer.getEntityMobs()) {
+                if (mob instanceof MobAggressive && RectF.intersects(mob.getBounds(),
                         getBounds())) {
-                    if (entity.applyAttack(this)) {
-                        List<Item> drops = entity.calculateDrops();
+                    if (mob.applyAttack(this)) {
+                        List<Item> drops = mob.calculateDrops();
                         renderer.getWorldMap()
-                                .dropItems(drops, entity);
+                                .dropItems(drops, mob.getLastDirection(), mob.getNewCenterLocation());
                     }
                     setToDestroy(true);
                     break;

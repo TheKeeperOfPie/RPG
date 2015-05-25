@@ -2,13 +2,12 @@ package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
 import android.graphics.RectF;
-import android.opengl.GLES20;
-import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.mobs.Mob;
+import com.winsonchiu.rpg.mobs.MobAggressive;
+import com.winsonchiu.rpg.utils.Number;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,28 +104,28 @@ public class AttackMelee extends Attack {
         switch (getLastDirection()) {
 
             case NORTH:
-                bounds.set(centerLocation.x - getWidthRatio() / 2, centerLocation.y, centerLocation.x + getWidthRatio() / 2, centerLocation.y + range);
+                bounds.set(centerLocation.x - getWidthRatio() / 2, centerLocation.y, centerLocation.x + getWidthRatio() / 2, centerLocation.y + getRange());
                 break;
             case NORTHEAST:
-                bounds.set(centerLocation.x, centerLocation.y, centerLocation.x + range, centerLocation.y + range);
+                bounds.set(centerLocation.x, centerLocation.y, centerLocation.x + getRange(), centerLocation.y + getRange());
                 break;
             case EAST:
-                bounds.set(centerLocation.x, centerLocation.y - getWidthRatio() / 2, centerLocation.x + range, centerLocation.y + getWidthRatio() / 2);
+                bounds.set(centerLocation.x, centerLocation.y - getWidthRatio() / 2, centerLocation.x + getRange(), centerLocation.y + getWidthRatio() / 2);
                 break;
             case SOUTHEAST:
-                bounds.set(centerLocation.x, centerLocation.y - range, centerLocation.x + range, centerLocation.y);
+                bounds.set(centerLocation.x, centerLocation.y - getRange(), centerLocation.x + getRange(), centerLocation.y);
                 break;
             case SOUTH:
-                bounds.set(centerLocation.x - getWidthRatio() / 2, centerLocation.y - range, centerLocation.x + getWidthRatio() / 2, centerLocation.y);
+                bounds.set(centerLocation.x - getWidthRatio() / 2, centerLocation.y - getRange(), centerLocation.x + getWidthRatio() / 2, centerLocation.y);
                 break;
             case SOUTHWEST:
-                bounds.set(centerLocation.x - range, centerLocation.y - range, centerLocation.x, centerLocation.y);
+                bounds.set(centerLocation.x - getRange(), centerLocation.y - getRange(), centerLocation.x, centerLocation.y);
                 break;
             case WEST:
-                bounds.set(centerLocation.x - range, centerLocation.y - getWidthRatio() / 2, centerLocation.x, centerLocation.y + getWidthRatio() / 2);
+                bounds.set(centerLocation.x - getRange(), centerLocation.y - getWidthRatio() / 2, centerLocation.x, centerLocation.y + getWidthRatio() / 2);
                 break;
             case NORTHWEST:
-                bounds.set(centerLocation.x - range, centerLocation.y, centerLocation.x, centerLocation.y + range);
+                bounds.set(centerLocation.x - getRange(), centerLocation.y, centerLocation.x, centerLocation.y + getRange());
                 break;
         }
 
@@ -139,15 +138,16 @@ public class AttackMelee extends Attack {
             }
         }
         else {
-            for (Entity entity : renderer.getEntityMobs()) {
-                if (entity instanceof MobAggressive && !entities.contains(entity) && RectF.intersects(entity.getBounds(),
+            for (Mob mob : renderer.getEntityMobs()) {
+                if (mob instanceof MobAggressive && !entities.contains(mob) && RectF.intersects(mob.getBounds(),
                         bounds)) {
-                    if (entity.applyAttack(this)) {
-                        List<Item> drops = entity.calculateDrops();
+                    if (mob.applyAttack(this)) {
+                        List<Item> drops = mob.calculateDrops();
                         renderer.getWorldMap()
-                                .dropItems(drops, entity);
+                                .dropItems(drops, mob.getLastDirection(), mob.getNewCenterLocation());
                     }
-                    entities.add(entity);
+                    renderer.addEntity(new Number(getTileSize(), mob.getLocation(), 500, -getDamage(), mob));
+                    entities.add(mob);
                     break;
                 }
             }

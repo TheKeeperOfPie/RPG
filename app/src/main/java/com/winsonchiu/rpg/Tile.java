@@ -19,8 +19,16 @@ public class Tile {
         return vertex;
     }
 
+    public void setVertex(PointF vertex) {
+        this.vertex = vertex;
+    }
+
     public int getTextureId() {
         return textureId;
+    }
+
+    public void setTextureId(int textureId) {
+        this.textureId = textureId;
     }
 
     @Override

@@ -3,9 +3,15 @@ package com.winsonchiu.rpg;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.ResourceBronzeBar;
+import com.winsonchiu.rpg.items.ResourceBronzeCoin;
+import com.winsonchiu.rpg.items.ResourceSilverCoin;
+import com.winsonchiu.rpg.mobs.Mob;
+import com.winsonchiu.rpg.mobs.MobAggressive;
 import com.winsonchiu.rpg.utils.Edge;
 import com.winsonchiu.rpg.utils.Graph;
 import com.winsonchiu.rpg.utils.MathUtils;
@@ -44,10 +50,10 @@ public class WorldMap {
     private static final String IS_DOORWAY = "Doorway";
     private static final String IS_COLLIDE = "Collide";
     private static final String IS_ABOVE = "Above";
-    private static final int MAX_ROOM_WIDTH = 15;
-    private static final int MIN_ROOM_WIDTH = 7;
-    private static final int MAX_ROOM_HEIGHT = 15;
-    private static final int MIN_ROOM_HEIGHT = 7;
+    private static final int MAX_ROOM_WIDTH = 11;
+    private static final int MIN_ROOM_WIDTH = 5;
+    private static final int MAX_ROOM_HEIGHT = 11;
+    private static final int MIN_ROOM_HEIGHT = 5;
     private static final int AREA_PER_ROOM = 50;
     private static final int ATTEMPT_RATIO = 5;
     private static final int CYCLE_RATIO = 10;
@@ -74,9 +80,15 @@ public class WorldMap {
     private static final int ROOM_T_LEFT = 921;
     private static final int ROOM_T_RIGHT = 919;
 
+    private static final int CHEST_LEFT_CLOSED = 609;
+    private static final int CHEST_RIGHT_CLOSED = 610;
+    private static final int CHEST_LEFT_OPEN = 666;
+    private static final int CHEST_RIGHT_OPEN = 667;
+
     private List<Tile> tilesBelow;
     private List<Tile> tilesAbove;
     private List<Rect> rooms;
+    private Graph graph;
     private byte[][] walls;
     private byte[][] playerTrail;
     private final List<Item> items;
@@ -86,6 +98,11 @@ public class WorldMap {
     private boolean[][] itemLocations;
     private Rect roomStart;
     private Set<Edge> roomConnections;
+    private RectF goalBounds;
+    private Rect goalRoom;
+    private Tile tileChestLeft;
+    private Tile tileChestRight;
+    private boolean hasFoundGoal;
 
     public WorldMap(int width, int height) {
 
@@ -107,6 +124,7 @@ public class WorldMap {
         playerTrail = new byte[width][height];
         tilesBelow = new ArrayList<>();
         tilesAbove = new ArrayList<>();
+        graph = new Graph();
     }
 
     public List<Item> getItems() {
@@ -200,6 +218,33 @@ public class WorldMap {
         spawnMobs(renderer);
         spawnItems();
 
+        int currentMaxCost = 0;
+        int furtherRoomIndex = 0;
+        List<Edge> edges = new ArrayList<>(graph.getEdgeSet());
+        for (Edge edge : edges) {
+            if (edge.getCost() > currentMaxCost) {
+                if (edge.getSource() == 0) {
+                    currentMaxCost = edge.getCost();
+                    furtherRoomIndex = edge.getDestination();
+                }
+                else if (edge.getDestination() == 0) {
+                    currentMaxCost = edge.getCost();
+                    furtherRoomIndex = edge.getSource();
+                }
+            }
+        }
+
+        goalRoom = rooms.get(furtherRoomIndex);
+        tileChestLeft = new Tile(new PointF(goalRoom.centerX(), goalRoom.centerY()),
+                CHEST_LEFT_CLOSED);
+        tileChestRight = new Tile(new PointF(goalRoom.centerX() + 1, goalRoom.centerY()),
+                CHEST_RIGHT_CLOSED);
+
+        tilesBelow.add(tileChestLeft);
+        tilesBelow.add(tileChestRight);
+
+        goalBounds = new RectF(goalRoom.centerX() - 1, goalRoom.centerY() - 1, goalRoom.centerX() + 2, goalRoom.centerY() + 1);
+
         Log.d(TAG, "Time to generate map: " + (System.currentTimeMillis() - startTime));
 
     }
@@ -217,19 +262,15 @@ public class WorldMap {
         playerTrail[(int) point.x][(int) point.y] = Byte.MAX_VALUE;
     }
 
-    public boolean dropItem(Item item, Entity entity) {
-
-        PointF centerLocation = entity.getNewCenterLocation();
-
-        Direction direction = entity.getLastDirection();
+    public boolean dropItem(Item item, Direction direction, PointF location) {
 
         List<PointF> validLocations = new ArrayList<>();
 
         for (int offsetDirection = -2; offsetDirection <= 2; offsetDirection++) {
 
             Direction directionDrop = Direction.offset(direction, offsetDirection);
-            validLocations.add(new PointF(centerLocation.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2,
-                    centerLocation.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
+            validLocations.add(new PointF(location.x + directionDrop.getOffsetX() - item.getWidthRatio() / 2,
+                    location.y + directionDrop.getOffsetY() - item.getHeightRatio() / 2));
 
         }
 
@@ -262,15 +303,15 @@ public class WorldMap {
         return true;
     }
 
-    public void dropItems(List<Item> items, Entity entity) {
+    public void dropItems(List<Item> items,  Direction direction, PointF location) {
         for (Item item : items) {
-            dropItem(item, entity);
+            dropItem(item, direction, location);
         }
     }
 
     private void spawnMobs(Renderer renderer) {
 
-        List<Entity> mobs = new ArrayList<>();
+        List<Mob> mobs = new ArrayList<>();
         Set<PointF> usedPoints = new HashSet<>(4);
         int attempts = 0;
 
@@ -298,13 +339,16 @@ public class WorldMap {
                     location = new PointF(roomX + room.left, roomY + room.top);
                 }
 
-                mobs.add(new MobAggressive(5, 0, 1, renderer.getTileSize(), MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f, room, 8));
+                Mob mob = new MobAggressive(3, 0, 1, renderer.getTileSize(), MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f, room, 8);
+                mob.setLastDirection(Direction.getRandomDirection());
+                mob.calculateAnimationFrame();
+                mobs.add(mob);
 
             }
 
         }
 
-        renderer.addEntities(mobs);
+        renderer.addMobs(mobs);
 
     }
 
@@ -362,8 +406,6 @@ public class WorldMap {
 
     private void generateConnections() {
 
-        Graph graph = new Graph();
-
         for (int row = 0; row < rooms.size(); row++) {
             for (int col = 0; col < row; col++) {
 
@@ -395,22 +437,24 @@ public class WorldMap {
             // Randomly carve vertically or horizontally first
             if (random.nextBoolean()) {
                 carveLine(new Point(roomFirst.centerX(), roomFirst.centerY()),
-                        new Point(roomSecond.centerX(), roomFirst.centerY()));
+                        new Point(roomSecond.centerX(), roomFirst.centerY()), CORRIDOR_CONNECTED);
+                carvePoint(new Point(roomSecond.centerX(), roomFirst.centerY()), CORRIDOR_CONNECTED);
                 carveLine(new Point(roomSecond.centerX(), roomFirst.centerY()),
-                        new Point(roomSecond.centerX(), roomSecond.centerY()));
+                        new Point(roomSecond.centerX(), roomSecond.centerY()), CORRIDOR_CONNECTED);
             }
             else {
                 carveLine(new Point(roomFirst.centerX(), roomFirst.centerY()),
-                        new Point(roomFirst.centerX(), roomSecond.centerY()));
+                        new Point(roomFirst.centerX(), roomSecond.centerY()), CORRIDOR_CONNECTED);
+                carvePoint(new Point(roomFirst.centerX(), roomSecond.centerY()), CORRIDOR_CONNECTED);
                 carveLine(new Point(roomFirst.centerX(), roomSecond.centerY()),
-                        new Point(roomSecond.centerX(), roomSecond.centerY()));
+                        new Point(roomSecond.centerX(), roomSecond.centerY()), CORRIDOR_CONNECTED);
             }
 
         }
 
     }
 
-    private void carveLine(Point source, Point target) {
+    private void carveLine(Point source, Point target, byte type) {
 
         int start;
         int end;
@@ -425,9 +469,9 @@ public class WorldMap {
             }
 
             for (int y = start; y <= end; y++) {
-                walls[source.x - 1][y] = CORRIDOR_CONNECTED;
-                walls[source.x][y] = CORRIDOR_CONNECTED;
-                walls[source.x + 1][y] = CORRIDOR_CONNECTED;
+                walls[source.x - 1][y] = type;
+                walls[source.x][y] = type;
+                walls[source.x + 1][y] = type;
             }
         }
         else if (source.y == target.y) {
@@ -440,9 +484,9 @@ public class WorldMap {
                 end = source.x;
             }
             for (int x = start; x <= end; x++) {
-                walls[x][source.y - 1] = CORRIDOR_CONNECTED;
-                walls[x][source.y] = CORRIDOR_CONNECTED;
-                walls[x][source.y + 1] = CORRIDOR_CONNECTED;
+                walls[x][source.y - 1] = type;
+                walls[x][source.y] = type;
+                walls[x][source.y + 1] = type;
             }
         }
         else {
@@ -980,4 +1024,39 @@ public class WorldMap {
 
     }
 
+    public RectF getGoalBounds() {
+        return goalBounds;
+    }
+
+    public void setGoalBounds(RectF goalBounds) {
+        this.goalBounds = goalBounds;
+    }
+
+    public void activateGoal(Renderer renderer) {
+        if (hasFoundGoal) {
+            return;
+        }
+        tileChestLeft.setTextureId(CHEST_LEFT_OPEN);
+        tileChestRight.setTextureId(CHEST_RIGHT_OPEN);
+        renderer.loadVbo();
+
+        List<Item> goalDrops = new ArrayList<>();
+        int numDrops = random.nextInt(4) + 1;
+        for (int num = 0; num < numDrops; num++) {
+
+            if (random.nextFloat() < 0.03f) {
+                goalDrops.add(new ResourceSilverCoin(renderer.getTileSize(), new PointF(goalRoom.centerX(), goalRoom.centerY())));
+            }
+            else if (random.nextFloat() < 0.2f) {
+                goalDrops.add(new ResourceBronzeBar(renderer.getTileSize(), new PointF(goalRoom.centerX(), goalRoom.centerY())));
+            }
+            else {
+                goalDrops.add(new ResourceBronzeCoin(renderer.getTileSize(), new PointF(goalRoom.centerX(), goalRoom.centerY())));
+            }
+
+        }
+
+        dropItems(goalDrops, renderer.getPlayer().getLastDirection(), new PointF(goalRoom.centerX(), goalRoom.centerY()));
+        hasFoundGoal = true;
+    }
 }

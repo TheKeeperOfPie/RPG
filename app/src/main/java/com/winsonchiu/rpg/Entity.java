@@ -3,6 +3,7 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.opengl.GLES20;
+import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.utils.RenderUtils;
@@ -17,7 +18,7 @@ import java.util.List;
 /**
  * Created by TheKeeperOfPie on 5/5/2015.
  */
-    public class Entity {
+public abstract class Entity {
 
     public static final String VERTEX_SHADER =
             "uniform mat4 matrix;" +
@@ -35,16 +36,16 @@ import java.util.List;
             "}";
 
     public static final String FRAGMENT_SHADER =
-            "precision mediump float;" +
             "varying vec2 textureCoordinateFragment;" +
             "uniform float opacity;" +
             "uniform sampler2D texture;" +
-            "uniform float damage;" +
+            "uniform int damage;" +
             "void main() {" +
             "    gl_FragColor = texture2D(texture, textureCoordinateFragment);" +
             "    gl_FragColor.a *= opacity;" +
-            "    if (damage > 0.5f) {" +
-            "        gl_FragColor.r = gl_FragColor.r * 0.5f + 0.5f;" +
+            "    if (damage > 0) {" +
+            "        gl_FragColor.r = gl_FragColor.r * 0.5 + 0.5;" +
+//            "        gl_FragColor.r *= 0.5;" +
             "    }" +
             "}";
     private static final String TAG = Entity.class.getCanonicalName();
@@ -84,30 +85,15 @@ import java.util.List;
     private float angle;
     private boolean toDestroy;
 
-    private int health;
-    private int maxHealth;
-    private int armor;
-    private int damage;
     private float movementSpeed;
-    private long stunEndTime;
-    private long damageEndTime;
-    protected Attack attack;
 
-    public Entity(
-            int health,
-            int armor,
-            int damage,
-            int tileSize,
+    public Entity(int tileSize,
             float widthRatio,
             float heightRatio,
             PointF location,
             float textureRowCount,
             float textureColCount,
             float movementSpeed) {
-        this.health = health;
-        this.maxHealth = health;
-        this.armor = armor;
-        this.damage = damage;
         this.tileSize = tileSize;
         this.widthRatio = widthRatio;
         this.heightRatio = heightRatio;
@@ -118,21 +104,6 @@ import java.util.List;
         this.lastDirection = Direction.SOUTH;
         setupBuffers();
 
-    }
-
-    public boolean applyAttack(Attack attack) {
-        health -= attack.calculateDamage();
-        stunEndTime = System.currentTimeMillis() + 250;
-        damageEndTime = System.currentTimeMillis() + 250;
-        if (health <= 0) {
-            setToDestroy(true);
-            return true;
-        }
-        return false;
-    }
-
-    public List<Item> calculateDrops() {
-        return new ArrayList<>();
     }
 
     //region Rendering
@@ -157,20 +128,21 @@ import java.util.List;
                 -(getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f) * getTileSize(),
                 0);
 
-        android.opengl.Matrix.translateM(getTransMatrix(), 0, getLocation().x * tileSize, getLocation().y * tileSize,
-                                         0f);
+        android.opengl.Matrix.translateM(getTransMatrix(), 0, getLocation().x * tileSize,
+                getLocation().y * tileSize,
+                0f);
 
         android.opengl.Matrix.multiplyMM(getMatrixProjectionAndView(),
-                                         0,
-                                         matrixProjection,
-                                         0,
-                                         getTransMatrix(),
-                                         0);
+                0,
+                matrixProjection,
+                0,
+                getTransMatrix(),
+                0);
 
         android.opengl.Matrix.multiplyMM(getMatrixProjectionAndView(),
-                                         0,
-                                         getMatrixProjectionAndView(),
-                                         0,
+                0,
+                getMatrixProjectionAndView(),
+                0,
                 matrixView,
                 0);
 
@@ -178,25 +150,18 @@ import java.util.List;
         GLES20.glUniform1f(colCountLocation, textureColCount);
         GLES20.glUniform1f(alphaLocation, 1.0f);
 
-        if (System.currentTimeMillis() < damageEndTime) {
-            GLES20.glUniform1f(damageLocation, 1.0f);
-        }
-        else {
-            GLES20.glUniform1f(damageLocation, 0.0f);
-        }
-
         GLES20.glVertexAttribPointer(positionLocation, 3,
-                                     GLES20.GL_FLOAT, false,
-                                     0, getVertexBuffer());
+                GLES20.GL_FLOAT, false,
+                0, getVertexBuffer());
         GLES20.glVertexAttribPointer(textureLocation, 2, GLES20.GL_FLOAT,
-                                     false,
-                                     0, getUvBuffer());
+                false,
+                0, getUvBuffer());
 
 
         GLES20.glUniform1i(animationFrameLocation, getLastAnimationFrame());
 
         GLES20.glUniformMatrix4fv(matrixLocation, 1, false, getMatrixProjectionAndView(),
-                                  0);
+                0);
 
         GLES20.glUniform1i(samplerLocation, 0);
 
@@ -205,6 +170,7 @@ import java.util.List;
 
         GLES20.glDisableVertexAttribArray(positionLocation);
         GLES20.glDisableVertexAttribArray(textureLocation);
+
 
     }
     //endregion
@@ -217,11 +183,6 @@ import java.util.List;
 
     public RectF getBounds() {
         return new RectF(getLocation().x, getLocation().y, getLocation().x + widthRatio, getLocation().y + heightRatio);
-    }
-
-
-    public static int getProgram() {
-        return programId;
     }
 
     public void setToDestroy(boolean toDestroy) {
@@ -396,38 +357,6 @@ import java.util.List;
         this.heightRatio = heightRatio;
     }
 
-    public int getHealth() {
-        return health;
-    }
-
-    public void setHealth(int health) {
-        this.health = health;
-    }
-
-    public int getMaxHealth() {
-        return maxHealth;
-    }
-
-    public void setMaxHealth(int maxHealth) {
-        this.maxHealth = maxHealth;
-    }
-
-    public int getArmor() {
-        return armor;
-    }
-
-    public void setArmor(int armor) {
-        this.armor = armor;
-    }
-
-    public int getDamage() {
-        return damage;
-    }
-
-    public void setDamage(int damage) {
-        this.damage = damage;
-    }
-
     public float getAngle() {
         return angle;
     }
@@ -531,15 +460,6 @@ import java.util.List;
     public void setTextureColCount(float textureColCount) {
         this.textureColCount = textureColCount;
     }
-
-    public long getDamageEndTime() {
-        return damageEndTime;
-    }
-
-    public void setDamageEndTime(long damageEndTime) {
-        this.damageEndTime = damageEndTime;
-    }
-
     //endregion
 
     //region Intializers
@@ -581,13 +501,21 @@ import java.util.List;
     }
 
     public static void initialize() {
+        Log.d(TAG, "Entity initialize");
         programId = GLES20.glCreateProgram();
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         int vertexShaderId = RenderUtils.loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         int fragmentShaderId = RenderUtils.loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         GLES20.glAttachShader(programId, vertexShaderId);
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         GLES20.glAttachShader(programId, fragmentShaderId);
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         GLES20.glLinkProgram(programId);
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         GLES20.glUseProgram(programId);
+        Log.d(TAG, "glError: " + GLES20.glGetError());
         Entity.positionLocation = GLES20.glGetAttribLocation(programId, "positionCoordinate");
         Entity.textureLocation = GLES20.glGetAttribLocation(programId, "textureCoordinateVertex");
         Entity.matrixLocation = GLES20.glGetUniformLocation(programId, "matrix");
@@ -597,22 +525,6 @@ import java.util.List;
         Entity.colCountLocation = GLES20.glGetUniformLocation(programId, "colCount");
         Entity.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
         Entity.damageLocation = GLES20.glGetUniformLocation(programId, "damage");
-    }
-
-    public long getStunEndTime() {
-        return stunEndTime;
-    }
-
-    public void setStunEndTime(long stunEndTime) {
-        this.stunEndTime = stunEndTime;
-    }
-
-    public Attack getAttack() {
-        return attack;
-    }
-
-    public void setAttack(Attack attack) {
-        this.attack = attack;
     }
     //endregion
 

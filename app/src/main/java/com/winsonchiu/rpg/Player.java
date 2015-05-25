@@ -2,7 +2,12 @@ package com.winsonchiu.rpg;
 
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.opengl.GLES20;
 import android.util.Log;
+
+import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.mobs.Mob;
+import com.winsonchiu.rpg.mobs.MobAggressive;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,32 +15,42 @@ import java.util.List;
 /**
  * Created by TheKeeperOfPie on 5/2/2015.
  */
-public class Player extends Entity {
+public class Player extends Mob {
 
     public static final float WIDTH_RATIO = 1f;
     public static final float HEIGHT_RATIO = 1f;
-    private static final float SPEED = 0.006f;
+    private static final float SPEED = 0.0045f;
     private static final int BASE_HEALTH = 20;
     private static final int BASE_ARMOR = 1;
     private static final int BASE_DAMAGE = 1;
+    private static final long HEALTH_TICK = 5000;
 
     private static final String TAG = Player.class.getCanonicalName();
     private final EventListener eventListener;
 
     private float outBoundX;
     private float outBoundY;
+    private long healthTick;
 
     public Player(int tileSize, PointF location, float outBoundX, float outBoundY, EventListener eventListener) {
-        super(BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 21f, 13f,
+        super(BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location,
+                21f, 13f,
                 SPEED);
         setLastAnimationFrame(130);
         this.outBoundX = outBoundX;
         this.outBoundY = outBoundY;
         this.eventListener = eventListener;
+        healthTick = System.currentTimeMillis() / HEALTH_TICK;
         eventListener.onHealthChanged(getHealth(), getMaxHealth());
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {
+
+        long currentTick = System.currentTimeMillis() / HEALTH_TICK;
+        if (currentTick > healthTick) {
+            addHealth((int) (currentTick - healthTick));
+            healthTick = currentTick;
+        }
 
         boolean moveY = true;
         boolean moveX = true;
@@ -71,21 +86,33 @@ public class Player extends Entity {
                     getLocation().x + getWidthRatio(),
                     getLocation().y - boundOffsetY + getHeightRatio());
 
+//            RectF collisionBounds = getBounds();
+//            collisionBounds.inset(-5, -5);
+//
 //            List<Entity> possibleCollisions = new ArrayList<>();
-//            renderer.getQuadTree().retrieve(possibleCollisions, new RectF(getLocation().x - 5f, getLocation().y - 5f, getLocation().x + getWidthRatio() + 5f, getLocation().y + getHeightRatio() + 5f));
+//            renderer.getQuadTree().retrieve(possibleCollisions, collisionBounds);
 
             // TODO: Fix QuadTree and use it to check for collisions
 
             for (Entity entity : renderer.getEntityMobs()) {
-                if (entity instanceof MobAggressive) {
-                    if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(), boundLeft)) || (getMovementX() > 0 && RectF.intersects(
-                            entity.getBounds(), boundRight))) {
-                        moveX = false;
-                    }
 
-                    if ((getMovementY() > 0 && RectF.intersects(entity.getBounds(), boundUp)) || (getMovementY() < 0 && RectF.intersects(
-                            entity.getBounds(), boundDown))) {
-                        moveY = false;
+                if (entity.getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
+                        entity.getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
+                        entity.getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
+                        entity.getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
+
+                    if (entity instanceof MobAggressive) {
+                        if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(),
+                                boundLeft)) || (getMovementX() > 0 && RectF.intersects(
+                                entity.getBounds(), boundRight))) {
+                            moveX = false;
+                        }
+
+                        if ((getMovementY() > 0 && RectF.intersects(entity.getBounds(),
+                                boundUp)) || (getMovementY() < 0 && RectF.intersects(
+                                entity.getBounds(), boundDown))) {
+                            moveY = false;
+                        }
                     }
                 }
             }
@@ -155,73 +182,105 @@ public class Player extends Entity {
         }
 
         if (Math.abs(getMovementX()) > 0 || Math.abs(getMovementY()) > 0) {
-            calculateAnimationFrame();
+            calculateDirection();
         }
 
         renderer.getWorldMap()
                 .refreshPlayerTrail(getLocation());
 
+        GLES20.glUniform1i(getDamageLocation(), 0);
         super.render(renderer, matrixProjection, matrixView);
 
     }
 
-    private void calculateAnimationFrame() {
+    private void calculateDirection() {
         double angle = Math.atan(getOffsetY() / getOffsetX());
 
         if (getMovementX() > 0) {
 
             if (angle > Math.PI / 3) {
                 setLastDirection(Direction.NORTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else if (angle > Math.PI / 6) {
                 setLastDirection(Direction.NORTHEAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else if (angle < -Math.PI / 3) {
                 setLastDirection(Direction.SOUTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else if (angle < -Math.PI / 6) {
                 setLastDirection(Direction.SOUTHEAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else {
                 setLastDirection(Direction.EAST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 143));
             }
 
         }
         else if (getMovementX() < 0){
             if (angle > Math.PI / 3) {
                 setLastDirection(Direction.SOUTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else if (angle > Math.PI / 6) {
                 setLastDirection(Direction.SOUTHWEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
             }
             else if (angle < -Math.PI / 3) {
                 setLastDirection(Direction.NORTH);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else if (angle < -Math.PI / 6) {
                 setLastDirection(Direction.NORTHWEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
             }
             else {
                 setLastDirection(Direction.WEST);
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 117));
             }
         }
         else if (getMovementY() > 0) {
             setLastDirection(Direction.NORTH);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 104));
         }
         else {
             setLastDirection(Direction.SOUTH);
-            setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 130));
         }
+
+        calculateAnimationFrame();
+    }
+
+    @Override
+    public void calculateAnimationFrame() {
+        switch (getLastDirection()) {
+
+            case NORTH:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 104));
+                break;
+            case NORTHEAST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 104));
+                break;
+            case EAST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 143));
+                break;
+            case SOUTHEAST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 130));
+                break;
+            case SOUTH:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 130));
+                break;
+            case SOUTHWEST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 130));
+                break;
+            case WEST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 117));
+                break;
+            case NORTHWEST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 104));
+                break;
+        }
+    }
+
+    @Override
+    public float getWidthRatio() {
+        return 0.8f;
+    }
+
+    @Override
+    public float getHeightRatio() {
+        return 0.8f;
     }
 
     @Override
@@ -232,8 +291,11 @@ public class Player extends Entity {
         return returnValue;
     }
 
-    public void startNewAttack(Renderer renderer) {
-
+    @Override
+    public void calculateAttack(Renderer renderer) {
+        if (System.currentTimeMillis() < getAttackEndTime()) {
+            return;
+        }
         PointF end = new PointF(getLocation().x, getLocation().y);
         PointF start = getNewCenterLocation();
         start.offset(-0.6f / 2, -0.9f / 2);
@@ -267,12 +329,31 @@ public class Player extends Entity {
         }
 
         renderer.addAttack(new AttackMelee(getTileSize(), getDamage(), 1, 1, getLocation(), 300, false, getLastDirection(), this));
-//        renderer.addAttack(new AttackRanged(getTileSize(), 1, 1, 1, start, end, 500, false));
+        setAttackEndTime(System.currentTimeMillis() + 500);
+    }
+
+    @Override
+    public int getDamage() {
+        return eventListener.calculateDamage();
+    }
+
+    @Override
+    public List<Item> calculateDrops() {
+        return new ArrayList<>();
+    }
+
+    public void addHealth(int level) {
+        setHealth(getHealth() + level);
+        if (getHealth() > getMaxHealth()) {
+            setHealth(getMaxHealth());
+        }
+        eventListener.onHealthChanged(getHealth(), getMaxHealth());
     }
 
     public interface EventListener {
 
         void onHealthChanged(int health, int maxHealth);
+        int calculateDamage();
     }
 
 }

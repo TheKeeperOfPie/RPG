@@ -58,27 +58,25 @@ public class QuadTree {
         double verticalMidpoint = bounds.left + (bounds.width() / 2);
         double horizontalMidpoint = bounds.top + (bounds.height() / 2);
 
-        // Object can completely fit within the top quadrants
-        boolean topQuadrant = (target.top < horizontalMidpoint && target.top + target.height() < horizontalMidpoint);
-        // Object can completely fit within the bottom quadrants
-        boolean bottomQuadrant = (target.top > horizontalMidpoint);
+        boolean topQuadrant = target.top > horizontalMidpoint && target.bottom < bounds.bottom;
+        boolean bottomQuadrant = target.top < horizontalMidpoint && target.bottom < horizontalMidpoint;
 
         // Object can completely fit within the left quadrants
         if (target.left < verticalMidpoint && target.left + target.width() < verticalMidpoint) {
             if (topQuadrant) {
-                index = 0;
+                index = 2;
             }
             else if (bottomQuadrant) {
-                index = 2;
+                index = 0;
             }
         }
         // Object can completely fit within the right quadrants
-        else if (target.left > verticalMidpoint) {
+        else if (target.left > verticalMidpoint && target.right < bounds.right) {
             if (topQuadrant) {
-                index = 1;
+                index = 3;
             }
             else if (bottomQuadrant) {
-                index = 3;
+                index = 1;
             }
         }
 
