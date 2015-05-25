@@ -10,8 +10,8 @@ import com.winsonchiu.rpg.R;
  */
 public class PotionHealth extends Consumable {
 
-    public PotionHealth(int tileSize, PointF location, int level) {
-        super(tileSize, location, level);
+    public PotionHealth(PointF location, int level) {
+        super(location, level);
         setName("Health Potion");
         setDescription("A drink that recovers " + level + " health");
         setResourceId(R.drawable.p_red03);
@@ -24,8 +24,12 @@ public class PotionHealth extends Consumable {
     }
 
     @Override
-    public void consume(Player player) {
-        player.addHealth(getLevel());
+    public boolean consume(Player player) {
+        if (player.getHealth() < player.getMaxHealth()) {
+            player.addHealth(getLevel());
+            return true;
+        }
+        return false;
     }
 
 }

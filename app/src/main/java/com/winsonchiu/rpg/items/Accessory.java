@@ -7,11 +7,10 @@ import android.graphics.PointF;
  */
 public class Accessory extends Equipment {
 
-    public Accessory(int tileSize,
-            PointF location,
+    public Accessory(PointF location,
             int level,
             Material material) {
-        super(tileSize, location, level, material);
+        super(location, level, material);
     }
 
     public Accessory(Item item) {

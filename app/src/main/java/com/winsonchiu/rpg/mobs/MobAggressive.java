@@ -49,7 +49,6 @@ public abstract class MobAggressive extends Mob {
     public MobAggressive(int health,
             int armor,
             int damage,
-            int tileSize,
             float widthRatio,
             float heightRatio,
             PointF location,
@@ -57,7 +56,7 @@ public abstract class MobAggressive extends Mob {
             float textureColCount,
             Rect room,
             int searchRadius) {
-        super(health, armor, damage, tileSize, widthRatio, heightRatio, location, textureRowCount,
+        super(health, armor, damage, widthRatio, heightRatio, location, textureRowCount,
                 textureColCount,
                 SPEED);
         this.homeLocation = new Point((int) location.x, (int) location.y);
@@ -75,10 +74,7 @@ public abstract class MobAggressive extends Mob {
             calculateNextPosition(renderer);
         }
 
-        if (getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
-                getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
-                getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
-                getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
+        if (renderer.isPointVisible(getLocation())) {
             super.render(renderer, matrixProjection, matrixView);
         }
 
@@ -91,18 +87,18 @@ public abstract class MobAggressive extends Mob {
 
         Random random = new Random();
 
-        drops.add(new ResourceGoldCoin(getTileSize(), getNewCenterLocation()));
+        drops.add(new ResourceGoldCoin(getNewCenterLocation()));
         if (random.nextFloat() < 0.3f) {
-            drops.add(new PotionHealth(getTileSize(), getNewCenterLocation(), random.nextInt(2) + 1));
+            drops.add(new PotionHealth(getNewCenterLocation(), random.nextInt(2) + 1));
         }
         if (random.nextFloat() < 0.05f) {
-            drops.add(new Sword(getTileSize(), getNewCenterLocation(), 1, Material.BRONZE));
+            drops.add(new Sword(getNewCenterLocation(), 1, Material.BRONZE));
         }
         else if (random.nextFloat() < 0.01f) {
-            drops.add(new ResourceBronzeCoin(getTileSize(), getNewCenterLocation()));
+            drops.add(new ResourceBronzeCoin(getNewCenterLocation()));
         }
         else if (random.nextFloat() < 0.005f) {
-            drops.add(new Staff(getTileSize(), getNewCenterLocation(), random.nextInt(1) + 1, Material.RUBY));
+            drops.add(new Staff(getNewCenterLocation(), random.nextInt(1) + 1, Material.RUBY));
         }
 
         return drops;
@@ -375,7 +371,7 @@ public abstract class MobAggressive extends Mob {
                 getLocation().x + getWidthRatio(),
                 getLocation().y - boundOffsetY + getHeightRatio());
 
-        for (Entity entity : renderer.getEntityMobs()) {
+        for (Entity entity : renderer.getWorldMap().getEntityMobs()) {
             if (entity != this) {
                 if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(), boundLeft)) || (getMovementX() > 0 && RectF.intersects(
                         entity.getBounds(), boundRight))) {
@@ -539,9 +535,9 @@ public abstract class MobAggressive extends Mob {
 
                     boolean intersect = false;
 
-                    // TODO: Trace through collision code
+                    // TODO: Trace through and improve collision code
 
-                    for (Entity entity : renderer.getEntityMobs()) {
+                    for (Entity entity : renderer.getWorldMap().getEntityMobs()) {
                         if (entity != this && RectF.intersects(entity.getBounds(),
                                 new RectF(node.getPoint().x + 0.05f, node.getPoint().y + 0.05f,
                                         node.getPoint().x + 0.95f, node.getPoint().y + 0.95f))) {

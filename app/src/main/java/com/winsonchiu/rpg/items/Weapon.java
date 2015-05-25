@@ -7,8 +7,8 @@ import android.graphics.PointF;
  */
 public class Weapon extends Equipment {
 
-    public Weapon(int tileSize, PointF location, int level, Material material) {
-        super(tileSize, location, level, material);
+    public Weapon(PointF location, int level, Material material) {
+        super(location, level, material);
     }
 
     public Weapon(Item item) {

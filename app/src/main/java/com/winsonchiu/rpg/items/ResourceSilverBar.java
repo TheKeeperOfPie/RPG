@@ -9,8 +9,8 @@ import com.winsonchiu.rpg.R;
  */
 public class ResourceSilverBar extends Resource {
 
-    public ResourceSilverBar(int tileSize, PointF location) {
-        super(tileSize, location, 0);
+    public ResourceSilverBar(PointF location) {
+        super(location, 0);
         setName("Silver Bar");
         setDescription("A bar of silver");
         setResourceId(R.drawable.i_silverbar);

@@ -32,15 +32,14 @@ public class Item extends Entity {
     private String description;
     private int quantity = 1;
 
-    // TODO: Move enum constants to some database implementation
-    public Item(int tileSize, PointF location, int level) {
-        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x - WIDTH_RATIO / 2, location.y - HEIGHT_RATIO / 2), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+    public Item(PointF location, int level) {
+        super(WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x - WIDTH_RATIO / 2, location.y - HEIGHT_RATIO / 2), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
         this.level = level;
     }
 
     public Item(Item item) {
-        super(item.getTileSize(), WIDTH_RATIO, HEIGHT_RATIO, new PointF(item.getLocation().x, item.getLocation().y), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+        super(WIDTH_RATIO, HEIGHT_RATIO, new PointF(item.getLocation().x, item.getLocation().y), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
         this.name = item.getName();
         this.description = item.getDescription();

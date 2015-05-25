@@ -9,8 +9,8 @@ import com.winsonchiu.rpg.R;
  */
 public class ResourceBronzeBar extends Resource {
 
-    public ResourceBronzeBar(int tileSize, PointF location) {
-        super(tileSize, location, 0);
+    public ResourceBronzeBar(PointF location) {
+        super(location, 0);
         setName("Bronze Bar");
         setDescription("A bar of bronze");
         setResourceId(R.drawable.i_bronzebar);

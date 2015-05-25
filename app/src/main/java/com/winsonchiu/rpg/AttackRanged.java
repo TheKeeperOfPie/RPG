@@ -22,8 +22,7 @@ public class AttackRanged extends Attack {
     private long startTime;
     private long endTime;
 
-    public AttackRanged(int tileSize,
-            int damage,
+    public AttackRanged(int damage,
             int range,
             int accuracy,
             PointF startLocation,
@@ -31,7 +30,7 @@ public class AttackRanged extends Attack {
             long time,
             boolean hostile,
             Direction direction) {
-        super(tileSize, damage, range, accuracy, 1f, 1f, new PointF(startLocation.x, startLocation.y), time, SPEED, hostile);
+        super(damage, range, accuracy, 1f, 1f, new PointF(startLocation.x, startLocation.y), time, SPEED, hostile);
         this.startLocation = startLocation;
         this.endLocation = endLocation;
         this.time = time;
@@ -107,7 +106,7 @@ public class AttackRanged extends Attack {
             }
         }
         else {
-            for (Mob mob : renderer.getEntityMobs()) {
+            for (Mob mob : renderer.getWorldMap().getEntityMobs()) {
                 if (mob instanceof MobAggressive && RectF.intersects(mob.getBounds(),
                         getBounds())) {
                     if (mob.applyAttack(this)) {

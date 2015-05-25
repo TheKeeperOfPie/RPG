@@ -11,8 +11,8 @@ import java.util.Random;
  */
 public class Sword extends Weapon {
 
-    public Sword(int tileSize, PointF location, int level, Material material) {
-        super(tileSize, location, level, material);
+    public Sword(PointF location, int level, Material material) {
+        super(location, level, material);
         setName(getMaterial().getName() + " Sword");
         setDescription(
                 "A sword made of " + material.getName() + " which deals " + getMaterial().getModifier() + " - " + ((getLevel() + 1) * getMaterial().getModifier()) + " damage");

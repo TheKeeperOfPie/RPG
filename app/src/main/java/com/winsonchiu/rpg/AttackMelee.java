@@ -26,7 +26,7 @@ public class AttackMelee extends Attack {
     private List<Entity> entities;
     private RectF bounds;
 
-    public AttackMelee(int tileSize,
+    public AttackMelee(
             int damage,
             int range,
             int accuracy,
@@ -35,7 +35,7 @@ public class AttackMelee extends Attack {
             boolean isHostile,
             Direction direction,
             Entity source) {
-        super(tileSize, damage, range, accuracy, 1f, range * 2, location, time, 0, isHostile);
+        super(damage, range, accuracy, 1f, range * 2, location, time, 0, isHostile);
         this.isHostile = isHostile;
         this.time = time;
         entities = new ArrayList<>();
@@ -138,7 +138,8 @@ public class AttackMelee extends Attack {
             }
         }
         else {
-            for (Mob mob : renderer.getEntityMobs()) {
+            for (Mob mob : renderer.getWorldMap()
+                    .getEntityMobs()) {
                 if (mob instanceof MobAggressive && !entities.contains(mob) && RectF.intersects(mob.getBounds(),
                         bounds)) {
                     if (mob.applyAttack(this)) {
@@ -146,7 +147,7 @@ public class AttackMelee extends Attack {
                         renderer.getWorldMap()
                                 .dropItems(drops, mob.getLastDirection(), mob.getNewCenterLocation());
                     }
-                    renderer.addEntity(new Number(getTileSize(), mob.getLocation(), 500, -getDamage(), mob));
+                    renderer.getWorldMap().addEntity(new Number(mob.getLocation(), 500, -getDamage(), mob));
                     entities.add(mob);
                     break;
                 }

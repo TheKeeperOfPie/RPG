@@ -9,14 +9,14 @@ import com.winsonchiu.rpg.Player;
  */
 public abstract class Consumable extends Item {
 
-    public Consumable(int tileSize, PointF location, int level) {
-        super(tileSize, location, level);
+    public Consumable(PointF location, int level) {
+        super(location, level);
     }
 
     public Consumable(Item item) {
         super(item);
     }
 
-    public abstract void consume(Player player);
+    public abstract boolean consume(Player player);
 
 }

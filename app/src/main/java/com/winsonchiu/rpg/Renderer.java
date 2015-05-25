@@ -14,8 +14,12 @@ import android.util.TypedValue;
 
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.mobs.Mob;
+import com.winsonchiu.rpg.tiles.Tile;
 import com.winsonchiu.rpg.utils.QuadTree;
 import com.winsonchiu.rpg.utils.RenderUtils;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -44,12 +47,12 @@ public class Renderer implements GLSurfaceView.Renderer {
     private static final String TAG = Renderer.class.getCanonicalName();
 
     private static final int NUM_TEXTURES = 6;
-    private static final int TEXTURE_MAP = 0;
-    private static final int TEXTURE_PLAYER = 1;
-    private static final int TEXTURE_ATTACKS = 2;
-    private static final int TEXTURE_MOBS = 3;
-    private static final int TEXTURE_ITEMS = 4;
-    private static final int TEXTURE_NUMBERS = 5;
+    public static final int TEXTURE_MAP = 0;
+    public static final int TEXTURE_PLAYER = 1;
+    public static final int TEXTURE_ATTACKS = 2;
+    public static final int TEXTURE_MOBS = 3;
+    public static final int TEXTURE_ITEMS = 4;
+    public static final int TEXTURE_NUMBERS = 5;
 
     private static final int TILES_IN_ROW = 57;
     private static final int TILES_IN_COL = 31;
@@ -100,32 +103,32 @@ public class Renderer implements GLSurfaceView.Renderer {
     private long frameTime;
     private long targetFrameTime;
     private Player player;
-    private int tileSize;
     private float offsetCameraX;
     private float offsetCameraY;
-    private WorldMap worldMap;
-    private final List<Mob> entityMobs;
-    private final List<Attack> entityAttacks;
-    private final List<Entity> entities;
-    private float tilesOnScreenX;
-    private float tilesOnScreenY;
+    private WorldMap worldMapDungeon;
     private QuadTree quadTree;
+    private float scaleFactor;
+    private float minScaleFactor;
+    private float maxScaleFactor;
+    private float tilesLeftOfOrigin;
+    private float tilesRightOfOrigin;
+    private float tilesBottomOfOrigin;
+    private float tilesTopOfOrigin;
+    private WorldMap worldMapTown;
+    private WorldMap currentWorldMap;
 
     public Renderer(Activity activity, EventListener eventListenerRenderer, Player.EventListener eventListenerPlayer) {
         super();
         this.activity = activity;
         this.eventListenerRenderer = eventListenerRenderer;
         this.eventListenerPlayer = eventListenerPlayer;
-        entities = Collections.synchronizedList(new ArrayList<Entity>());
-        entityMobs = Collections.synchronizedList(new ArrayList<Mob>());
-        entityAttacks = Collections.synchronizedList(new ArrayList<Attack>());
         startTime = System.currentTimeMillis();
         targetFrameTime = 1000 / 60;
         DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
-        tileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40, displayMetrics);
-//        tileSize = 16 * (int) Math.pow(2, tileSize / 16 / 2);
-        tilesOnScreenX = displayMetrics.widthPixels / tileSize;
-        tilesOnScreenY = displayMetrics.heightPixels / tileSize;
+        float targetTileSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40, displayMetrics);
+        scaleFactor = targetTileSize;
+        maxScaleFactor = targetTileSize;
+        minScaleFactor = targetTileSize / 20;
     }
 
     @Override
@@ -135,21 +138,19 @@ public class Renderer implements GLSurfaceView.Renderer {
         Entity.initialize();
         loadTextures();
 
-        worldMap = new WorldMap(150, 150);
-        worldMap.generateRectangular(this);
-
-        quadTree = new QuadTree(0, new RectF(0, 0, 150, 150));
-
-        PointF pointStart = worldMap.getStartPoint();
-
-        player = new Player(tileSize, pointStart, getTilesOnScreenX() / 7 * 3, getTilesOnScreenY() / 7 * 3, eventListenerPlayer);
-        offsetCameraX = pointStart.x - getTilesOnScreenX() / 2;
-        offsetCameraY = pointStart.y - getTilesOnScreenY() / 2;
-
         buffers = new int[4];
         GLES20.glGenBuffers(4, buffers, 0);
 
-        loadVbo();
+        player = new Player(new PointF(3, 3), eventListenerPlayer);
+
+        worldMapTown = getTown();
+
+        worldMapDungeon = new WorldMap(150, 150);
+        worldMapDungeon.generateRectangularDungeon(this);
+
+        quadTree = new QuadTree(0, new RectF(0, 0, 150, 150));
+
+        loadMap(worldMapDungeon, worldMapDungeon.getStartPoint());
 
         GLES20.glClearColor(0f, 0f, 0f, 1f);
     }
@@ -158,26 +159,15 @@ public class Renderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
 
         screenWidth = width;
-            screenHeight = height;
+        screenHeight = height;
 
         GLES20.glViewport(0, 0, screenWidth, screenHeight);
-
-        android.opengl.Matrix.orthoM(matrixProjection,
-                0,
-                0,
-                screenWidth,
-                0,
-                screenHeight,
-                0f,
-                500f * 2);
-
         setCamera();
 
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
-
 
         try {
             endTime = System.currentTimeMillis();
@@ -206,25 +196,95 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         refillQuadTree();
 
-        renderScene(textureNames[0], buffers[0], buffers[1], worldMap.getTilesBelow()
+        renderScene(textureNames[0], buffers[0], buffers[1], getWorldMap().getTilesBelow()
                 .size() * 18);
 
-        renderEntities();
+        currentWorldMap.renderEntities(this, matrixProjection, matrixView, textureNames);
 
-        renderScene(textureNames[0], buffers[2], buffers[3], worldMap.getTilesAbove()
+        renderScene(textureNames[0], buffers[2], buffers[3], getWorldMap().getTilesAbove()
                 .size() * 18);
+
+        if (getWorldMap() == worldMapDungeon && getWorldMap().getBoundsStart().contains(player.getLocation().x + Player.WIDTH_RATIO / 2, player.getLocation().y + Player.HEIGHT_RATIO / 2)) {
+            loadMap(worldMapTown, new PointF(55, 35));
+        }
+        else if (getWorldMap() == worldMapTown && getWorldMap().getBoundsStart().contains(player.getLocation().x + Player.WIDTH_RATIO / 2, player.getLocation().y + Player.HEIGHT_RATIO / 2)) {
+            loadMap(worldMapDungeon, worldMapDungeon.getStartPoint());
+        }
+
+        Log.d(TAG, "Bounds start: " + getWorldMap().getBoundsStart());
+        Log.d(TAG, "Player location: " + player.getLocation());
+
+        Log.d(TAG, "Frame time: " + (System.currentTimeMillis() - startTime));
 
     }
 
+    private void loadMap(WorldMap worldMap, PointF pointStart) {
+
+        currentWorldMap = worldMap;
+
+        offsetCameraX = pointStart.x;
+        offsetCameraY = pointStart.y;
+        player.setLocation(pointStart.x, pointStart.y);
+
+        loadVbo(worldMap);
+
+    }
+
+    public void loadVbo(WorldMap worldMap) {
+
+        bindBufferFromTiles(worldMap.getTilesBelow(), buffers[0], buffers[1]);
+        bindBufferFromTiles(worldMap.getTilesAbove(), buffers[2], buffers[3]);
+    }
+
+    private WorldMap getTown() {
+
+        InputStream is = activity.getResources().openRawResource(R.raw.level);
+        Writer writer = new StringWriter();
+        char[] writeBuffer = new char[1024];
+        try {
+            Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+            int n;
+            while ((n = reader.read(writeBuffer)) != -1) {
+                writer.write(writeBuffer, 0, n);
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                is.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        WorldMap worldMap;
+
+        try {
+            worldMap = WorldMap.fromJson(new JSONObject(writer.toString()));
+        }
+        catch (JSONException e) {
+            worldMap = new WorldMap(50, 50);
+        }
+
+        worldMap.setBoundsStart(new RectF(56, 35, 57, 36));
+
+        return worldMap;
+    }
+
     private void refillQuadTree() {
-        quadTree.clear();
-        for (Entity entity : entityMobs) {
-            quadTree.insert(entity);
-        }
-        for (Entity entity : entityAttacks) {
-            quadTree.insert(entity);
-        }
-        quadTree.insert(player);
+
+        // TODO: Fix and implement QuadTree
+//        quadTree.clear();
+//        for (Entity entity : entityMobs) {
+//            quadTree.insert(entity);
+//        }
+//        for (Entity entity : entityAttacks) {
+//            quadTree.insert(entity);
+//        }
+//        quadTree.insert(player);
     }
 
     private void renderScene(int textureId, int positionBufferId, int textureBufferId, int size) {
@@ -254,77 +314,6 @@ public class Renderer implements GLSurfaceView.Renderer {
         GLES20.glDisableVertexAttribArray(textureLocation);
     }
 
-    private void renderEntities() {
-
-        GLES20.glUseProgram(Entity.getProgramId());
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ITEMS]);
-
-        synchronized (worldMap.getItems()) {
-            Iterator<Item> iterator = worldMap.getItems().iterator();
-            while (iterator.hasNext()) {
-                Item item = iterator.next();
-                if (item.getLocation().x + 2.0f > getOffsetCameraX() &&
-                        item.getLocation().x - 2.0f < getOffsetCameraX() + getTilesOnScreenX() &&
-                        item.getLocation().y + 2.0f > getOffsetCameraY() &&
-                        item.getLocation().y - 2.0f < getOffsetCameraY() + getTilesOnScreenY()) {
-                    if (RectF.intersects(item.getBounds(), player.getBounds())) {
-                        iterator.remove();
-                        eventListenerRenderer.pickUpItem(item);
-                    }
-                    else {
-                        item.render(this, matrixProjection, matrixView);
-                    }
-                }
-            }
-        }
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_PLAYER]);
-
-        player.render(this, matrixProjection, matrixView);
-
-        if (RectF.intersects(player.getBounds(), worldMap.getGoalBounds())) {
-            worldMap.activateGoal(this);
-        }
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_MOBS]);
-
-        synchronized (entityMobs) {
-            Iterator<Mob> iterator = entityMobs.iterator();
-            while (iterator.hasNext()) {
-                Mob mob = iterator.next();
-                mob.render(this, matrixProjection, matrixView);
-                if (mob.getToDestroy()) {
-                    iterator.remove();
-                }
-            }
-        }
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_ATTACKS]);
-
-        synchronized (entityAttacks) {
-            Iterator<Attack> iterator = entityAttacks.iterator();
-            while (iterator.hasNext()) {
-                Attack attack = iterator.next();
-                attack.render(this, matrixProjection, matrixView);
-                if (attack.getToDestroy()) {
-                    iterator.remove();
-                }
-            }
-        }
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[TEXTURE_NUMBERS]);
-        synchronized (entities) {
-            Iterator<Entity> iterator = entities.iterator();
-            while (iterator.hasNext()) {
-                Entity entity = iterator.next();
-                entity.render(this, matrixProjection, matrixView);
-                if (entity.getToDestroy()) {
-                    iterator.remove();
-                }
-            }
-        }
-    }
-
     //region Setup and teardown
     private void initialize() {
         programId = GLES20.glCreateProgram();
@@ -341,12 +330,6 @@ public class Renderer implements GLSurfaceView.Renderer {
         Renderer.samplerLocation = GLES20.glGetUniformLocation(programId, "texture");
     }
 
-    public void loadVbo() {
-
-        bindBufferFromTiles(worldMap.getTilesBelow(), buffers[0], buffers[1]);
-        bindBufferFromTiles(worldMap.getTilesAbove(), buffers[2], buffers[3]);
-    }
-
     private void bindBufferFromTiles(List<Tile> tiles, int positionBufferId, int textureBufferId) {
 
         float[] dataPosition = new float[tiles.size() * 18];
@@ -359,31 +342,31 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         for (Tile tile : tiles) {
 
-            float xPosition = tile.getVertex().x * tileSize;
-            float yPosition = tile.getVertex().y * tileSize;
+            float xPosition = tile.getVertex().x;
+            float yPosition = tile.getVertex().y;
             float zPosition = 0f;
 
             dataPosition[offsetPosition] = xPosition;
-            dataPosition[offsetPosition + 1] = yPosition + tileSize;
+            dataPosition[offsetPosition + 1] = yPosition + 1f;
             dataPosition[offsetPosition + 2] = zPosition;
 
             dataPosition[offsetPosition + 3] = xPosition;
             dataPosition[offsetPosition + 4] = yPosition;
             dataPosition[offsetPosition + 5] = zPosition;
 
-            dataPosition[offsetPosition + 6] = xPosition + tileSize;
+            dataPosition[offsetPosition + 6] = xPosition + 1f;
             dataPosition[offsetPosition + 7] = yPosition;
             dataPosition[offsetPosition + 8] = zPosition;
 
             dataPosition[offsetPosition + 9] = xPosition;
-            dataPosition[offsetPosition + 10] = yPosition + tileSize;
+            dataPosition[offsetPosition + 10] = yPosition + 1f;
             dataPosition[offsetPosition + 11] = zPosition;
 
-            dataPosition[offsetPosition + 12] = xPosition + tileSize;
-            dataPosition[offsetPosition + 13] = yPosition + tileSize;
+            dataPosition[offsetPosition + 12] = xPosition + 1f;
+            dataPosition[offsetPosition + 13] = yPosition + 1f;
             dataPosition[offsetPosition + 14] = zPosition;
 
-            dataPosition[offsetPosition + 15] = xPosition + tileSize;
+            dataPosition[offsetPosition + 15] = xPosition + 1f;
             dataPosition[offsetPosition + 16] = yPosition;
             dataPosition[offsetPosition + 17] = zPosition;
 
@@ -513,9 +496,24 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     //region Getters, setters, changers
     private void setCamera() {
-        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX * tileSize,
-                offsetCameraY * tileSize, 2f,
-                offsetCameraX * tileSize, offsetCameraY * tileSize, 1f,
+        // Cache values to prevent recalculation on every Entity every frame
+        tilesLeftOfOrigin = -screenWidth / 2 / scaleFactor;
+        tilesRightOfOrigin = screenWidth / 2 / scaleFactor;
+        tilesBottomOfOrigin = -screenHeight / 2 / scaleFactor;
+        tilesTopOfOrigin = screenHeight / 2 / scaleFactor;
+
+        android.opengl.Matrix.orthoM(matrixProjection,
+                0,
+                tilesLeftOfOrigin,
+                tilesRightOfOrigin,
+                tilesBottomOfOrigin,
+                tilesTopOfOrigin,
+                0f,
+                500f * 2);
+
+        android.opengl.Matrix.setLookAtM(matrixView, 0, offsetCameraX,
+                offsetCameraY, 2f,
+                offsetCameraX, offsetCameraY, 1f,
                 0.0f, 1.0f, 0.0f);
     }
 
@@ -537,62 +535,36 @@ public class Renderer implements GLSurfaceView.Renderer {
         return player;
     }
 
-    public int getScreenWidth() {
-        return screenWidth;
-    }
-
-    public int getScreenHeight() {
-        return screenHeight;
-    }
-
-    public int[] getTextureNames() {
-        return textureNames;
-    }
-
     public WorldMap getWorldMap() {
-        return worldMap;
-    }
-
-    public List<Mob> getEntityMobs() {
-        return entityMobs;
-    }
-
-    public void addEntity(Entity entity) {
-        entities.add(entity);
-    }
-
-    public void addMob(Mob mob) {
-        entityMobs.add(mob);
-    }
-
-    public void addMobs(List<Mob> mobs) {
-        entityMobs.addAll(mobs);
-    }
-
-    public void addAttack(Attack attack) {
-        entityAttacks.add(attack);
-    }
-
-    public float getTilesOnScreenX() {
-        return tilesOnScreenX;
-    }
-
-    public float getTilesOnScreenY() {
-        return tilesOnScreenY;
-    }
-
-    public int getTileSize() {
-        return tileSize;
+        return currentWorldMap;
     }
 
     public QuadTree getQuadTree() {
         return quadTree;
     }
+
+    public void onScaleChange(float factor) {
+        scaleFactor *= factor;
+        scaleFactor = Math.max(minScaleFactor, Math.min(scaleFactor, maxScaleFactor));
+        setCamera();
+    }
+
+    public boolean isPointVisible(PointF location) {
+
+         return location.x > getOffsetCameraX() + tilesLeftOfOrigin &&
+                 location.x < getOffsetCameraX() + tilesRightOfOrigin &&
+                 location.y > getOffsetCameraY() + tilesBottomOfOrigin &&
+                 location.y < getOffsetCameraY() + tilesTopOfOrigin;
+    }
+
+    public void pickUpItem(Item item) {
+        eventListenerRenderer.pickUpItem(item);
+    }
+
     //endregion
 
     public interface EventListener {
         void pickUpItem(Item item);
-        ControllerInventory getControllerInventory();
     }
 
 }

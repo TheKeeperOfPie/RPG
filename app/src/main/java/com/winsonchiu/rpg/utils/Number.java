@@ -20,12 +20,11 @@ public class Number extends Entity {
     private long time;
     private boolean isNegative;
 
-    public Number(int tileSize,
-            PointF location,
+    public Number(PointF location,
             long time,
             int num,
             Entity source) {
-        super(tileSize, WIDTH_RATIO, HEIGHT_RATIO, location, 1f,
+        super(WIDTH_RATIO, HEIGHT_RATIO, location, 1f,
                 11f, 0);
         this.time = time;
         this.heightOffset = source.getHeightRatio() - HEIGHT_RATIO;

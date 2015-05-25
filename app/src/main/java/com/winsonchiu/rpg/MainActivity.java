@@ -17,6 +17,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -30,8 +31,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
-import com.winsonchiu.rpg.items.Accessory;
-import com.winsonchiu.rpg.items.Armor;
 import com.winsonchiu.rpg.items.Consumable;
 import com.winsonchiu.rpg.items.Equipment;
 import com.winsonchiu.rpg.items.Item;
@@ -51,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageInteractControl;
     private ImageView imageInventoryControl;
     private FastOutLinearInInterpolator interpolator;
+    private ScaleGestureDetector scaleGestureDetector;
 
     private ProgressBar progressBarHealth;
     private LinearLayout layoutHealth;
@@ -92,6 +92,13 @@ public class MainActivity extends AppCompatActivity {
         controllerInventory = new ControllerInventory();
 
         interpolator = new FastOutLinearInInterpolator();
+        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                renderer.onScaleChange(detector.getScaleFactor());
+                return true;
+            }
+        });
 
         imageDirectionControls = (ImageView) findViewById(R.id.image_direction_controls);
         imageDirectionControls.setOnTouchListener(new View.OnTouchListener() {
@@ -209,10 +216,6 @@ public class MainActivity extends AppCompatActivity {
                 controllerInventory.addItem(item);
             }
 
-            @Override
-            public ControllerInventory getControllerInventory() {
-                return controllerInventory;
-            }
         }, new Player.EventListener() {
             @Override
             public void onHealthChanged(final int health, final int maxHealth) {
@@ -256,6 +259,13 @@ public class MainActivity extends AppCompatActivity {
         glSurfaceView.setPreserveEGLContextOnPause(true);
         glSurfaceView.setRenderer(renderer);
         glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        glSurfaceView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                scaleGestureDetector.onTouchEvent(event);
+                return true;
+            }
+        });
 
     }
 
@@ -551,8 +561,9 @@ public class MainActivity extends AppCompatActivity {
         buttonUse.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ((Consumable) item).consume(renderer.getPlayer());
-                controllerInventory.removeItem(item);
+                if (((Consumable) item).consume(renderer.getPlayer())) {
+                    controllerInventory.removeItem(item);
+                }
                 popup.dismiss();
             }
         });
@@ -561,7 +572,7 @@ public class MainActivity extends AppCompatActivity {
         buttonEquip.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                controllerInventory.equip((Equipment) item);
+                controllerInventory.equip(item);
                 popup.dismiss();
             }
         });

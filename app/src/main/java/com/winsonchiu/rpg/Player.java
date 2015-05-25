@@ -35,13 +35,11 @@ public class Player extends Mob {
     private float outBoundY;
     private long healthTick;
 
-    public Player(int tileSize, PointF location, float outBoundX, float outBoundY, EventListener eventListener) {
-        super(BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, tileSize, WIDTH_RATIO, HEIGHT_RATIO, location,
+    public Player(PointF location, EventListener eventListener) {
+        super(BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, WIDTH_RATIO, HEIGHT_RATIO, location,
                 21f, 13f,
                 SPEED);
         setLastAnimationFrame(130);
-        this.outBoundX = outBoundX;
-        this.outBoundY = outBoundY;
         this.eventListener = eventListener;
         healthTick = System.currentTimeMillis() / HEALTH_TICK;
         eventListener.onHealthChanged(getHealth(), getMaxHealth());
@@ -89,20 +87,11 @@ public class Player extends Mob {
                     getLocation().x + getWidthRatio(),
                     getLocation().y - boundOffsetY + getHeightRatio());
 
-//            RectF collisionBounds = getBounds();
-//            collisionBounds.inset(-5, -5);
-//
-//            List<Entity> possibleCollisions = new ArrayList<>();
-//            renderer.getQuadTree().retrieve(possibleCollisions, collisionBounds);
-
             // TODO: Fix QuadTree and use it to check for collisions
 
-            for (Entity entity : renderer.getEntityMobs()) {
+            for (Entity entity : renderer.getWorldMap().getEntityMobs()) {
 
-                if (entity.getLocation().x + 2.0f > renderer.getOffsetCameraX() &&
-                        entity.getLocation().x - 2.0f < renderer.getOffsetCameraX() + renderer.getTilesOnScreenX() &&
-                        entity.getLocation().y + 2.0f > renderer.getOffsetCameraY() &&
-                        entity.getLocation().y - 2.0f < renderer.getOffsetCameraY() + renderer.getTilesOnScreenY()) {
+                if (renderer.isPointVisible(entity.getLocation())) {
 
                     if (entity instanceof MobAggressive) {
                         if ((getMovementX() < 0 && RectF.intersects(entity.getBounds(),
@@ -171,16 +160,16 @@ public class Player extends Mob {
             }
         }
 
-        if (getLocation().x > renderer.getOffsetCameraX() + renderer.getScreenWidth() / getTileSize() - outBoundX && getOffsetX() > 0) {
+        if (getLocation().x > renderer.getOffsetCameraX() && getOffsetX() > 0) {
             renderer.offsetCamera(getOffsetX(), 0);
         }
-        else if (getLocation().x < renderer.getOffsetCameraX() + (outBoundX - 1) && getOffsetX() < 0) {
+        else if (getLocation().x < renderer.getOffsetCameraX() && getOffsetX() < 0) {
             renderer.offsetCamera(getOffsetX(), 0);
         }
-        if (getLocation().y > renderer.getOffsetCameraY() + renderer.getScreenHeight() / getTileSize() - outBoundY && getOffsetY() > 0) {
+        if (getLocation().y > renderer.getOffsetCameraY() && getOffsetY() > 0) {
             renderer.offsetCamera(0, getOffsetY());
         }
-        else if (getLocation().y < renderer.getOffsetCameraY() + (outBoundY - 1) && getOffsetY() < 0) {
+        else if (getLocation().y < renderer.getOffsetCameraY() && getOffsetY() < 0) {
             renderer.offsetCamera(0, getOffsetY());
         }
 
@@ -301,8 +290,8 @@ public class Player extends Mob {
         }
         Weapon weapon = eventListener.getWeapon();
         if (weapon instanceof Sword) {
-            renderer.addAttack(
-                    new AttackMelee(getTileSize(), getDamage(), 1, 1, getLocation(), 300, false,
+            renderer.getWorldMap().addAttack(
+                    new AttackMelee(getDamage(), 1, 1, getLocation(), 300, false,
                             getLastDirection(), this));
         }
         else if (weapon instanceof Staff) {
@@ -340,12 +329,12 @@ public class Player extends Mob {
                     break;
             }
 
-            renderer.addAttack(new AttackRanged(getTileSize(), getDamage(), 1, 1, getLocation(), end,
+            renderer.getWorldMap().addAttack(new AttackRanged(getDamage(), 1, 1, getLocation(), end,
                     time, false, getLastDirection()));
         }
         else {
-            renderer.addAttack(
-                    new AttackMelee(getTileSize(), 1, 1, 1, getLocation(), 300, false,
+            renderer.getWorldMap().addAttack(
+                    new AttackMelee(1, 1, 1, getLocation(), 300, false,
                             getLastDirection(), this));
         }
         setAttackEndTime(System.currentTimeMillis() + 500);

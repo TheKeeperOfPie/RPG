@@ -45,7 +45,6 @@ public abstract class Entity {
             "    gl_FragColor.a *= opacity;" +
             "    if (damage > 0) {" +
             "        gl_FragColor.r = gl_FragColor.r * 0.5 + 0.5;" +
-//            "        gl_FragColor.r *= 0.5;" +
             "    }" +
             "}";
     private static final String TAG = Entity.class.getCanonicalName();
@@ -77,7 +76,6 @@ public abstract class Entity {
     private float velocityY;
     private int lastAnimationFrame;
     private Direction lastDirection;
-    private int tileSize;
     private float textureRowCount;
     private float textureColCount;
     private float widthRatio;
@@ -87,14 +85,12 @@ public abstract class Entity {
 
     private float movementSpeed;
 
-    public Entity(int tileSize,
-            float widthRatio,
+    public Entity(float widthRatio,
             float heightRatio,
             PointF location,
             float textureRowCount,
             float textureColCount,
             float movementSpeed) {
-        this.tileSize = tileSize;
         this.widthRatio = widthRatio;
         this.heightRatio = heightRatio;
         this.location = location;
@@ -118,18 +114,18 @@ public abstract class Entity {
 
         android.opengl.Matrix.translateM(transMatrix,
                 0,
-                (getLocation().x - renderer.getOffsetCameraX() + getWidthRatio() / 2f) * getTileSize(),
-                (getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f) * getTileSize(),
+                (getLocation().x - renderer.getOffsetCameraX() + getWidthRatio() / 2f),
+                (getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f),
                 0);
         android.opengl.Matrix.rotateM(transMatrix, 0, angle, 0.0f, 0.0f, 1.0f);
         android.opengl.Matrix.translateM(transMatrix,
                 0,
-                -(getLocation().x - renderer.getOffsetCameraX() + getWidthRatio() / 2f) * getTileSize(),
-                -(getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f) * getTileSize(),
+                -(getLocation().x - renderer.getOffsetCameraX() + getWidthRatio() / 2f),
+                -(getLocation().y - renderer.getOffsetCameraY() + getHeightRatio() / 2f),
                 0);
 
-        android.opengl.Matrix.translateM(getTransMatrix(), 0, getLocation().x * tileSize,
-                getLocation().y * tileSize,
+        android.opengl.Matrix.translateM(getTransMatrix(), 0, getLocation().x,
+                getLocation().y,
                 0f);
 
         android.opengl.Matrix.multiplyMM(getMatrixProjectionAndView(),
@@ -325,14 +321,6 @@ public abstract class Entity {
         this.lastDirection = lastDirection;
     }
 
-    public int getTileSize() {
-        return tileSize;
-    }
-
-    public void setTileSize(int tileSize) {
-        this.tileSize = tileSize;
-    }
-
     public float getMovementSpeed() {
         return movementSpeed;
     }
@@ -478,10 +466,10 @@ public abstract class Entity {
         uvBuffer.position(0);
 
         float[] vertices = new float[]{
-                0.0f, tileSize * heightRatio, -5f,
+                0.0f, heightRatio, -5f,
                 0.0f, 0.0f, -5f,
-                tileSize * widthRatio, 0.0f, -5f,
-                tileSize * widthRatio, tileSize * heightRatio, -5f
+                widthRatio, 0.0f, -5f,
+                widthRatio, heightRatio, -5f
         };
 
         ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);

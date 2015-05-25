@@ -9,8 +9,8 @@ import com.winsonchiu.rpg.R;
  */
 public class ResourceGoldBar extends Resource {
 
-    public ResourceGoldBar(int tileSize, PointF location) {
-        super(tileSize, location, 0);
+    public ResourceGoldBar(PointF location) {
+        super(location, 0);
         setName("Gold Bar");
         setDescription("A bar of gold");
         setResourceId(R.drawable.i_goldbar);

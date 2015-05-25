@@ -1,4 +1,4 @@
-package com.winsonchiu.rpg;
+package com.winsonchiu.rpg.tiles;
 
 import android.graphics.PointF;
 

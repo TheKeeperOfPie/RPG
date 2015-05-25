@@ -7,8 +7,8 @@ import android.graphics.PointF;
  */
 public class Resource extends Item {
 
-    public Resource(int tileSize, PointF location, int level) {
-        super(tileSize, location, level);
+    public Resource(PointF location, int level) {
+        super(location, level);
     }
 
     public Resource(Item item) {

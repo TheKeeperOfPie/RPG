@@ -9,8 +9,8 @@ public class Equipment extends Item {
 
     private Material material;
 
-    public Equipment(int tileSize, PointF location, int level, Material material) {
-        super(tileSize, location, level);
+    public Equipment(PointF location, int level, Material material) {
+        super(location, level);
         this.material = material;
     }
 

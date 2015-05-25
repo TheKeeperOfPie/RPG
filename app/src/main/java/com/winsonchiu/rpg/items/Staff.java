@@ -11,8 +11,8 @@ import java.util.Random;
  */
 public class Staff extends Weapon {
 
-    public Staff(int tileSize, PointF location, int level, Material material) {
-        super(tileSize, location, level, material);
+    public Staff(PointF location, int level, Material material) {
+        super(location, level, material);
         setName(getMaterial().getName() + " Staff");
         setDescription(
                 "A staff crafted with " + material.getName() + " which deals " + getMaterial().getModifier() + " - " + ((getLevel() + 1) * getMaterial().getModifier()) + " damage");

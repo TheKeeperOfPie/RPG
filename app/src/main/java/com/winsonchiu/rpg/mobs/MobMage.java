@@ -16,13 +16,12 @@ public class MobMage extends MobAggressive {
     public MobMage(int health,
             int armor,
             int damage,
-            int tileSize,
             float widthRatio,
             float heightRatio,
             PointF location,
             float textureRowCount,
             float textureColCount, Rect room, int searchRadius) {
-        super(health, armor, damage, tileSize, widthRatio, heightRatio, location, textureRowCount,
+        super(health, armor, damage, widthRatio, heightRatio, location, textureRowCount,
                 textureColCount, room, searchRadius);
     }
 
@@ -37,11 +36,11 @@ public class MobMage extends MobAggressive {
 
         double distance = MathUtils.distance(playerLocation, getLocation());
 
-        if (distance < 4 && System.currentTimeMillis() > getAttackEndTime() && System.currentTimeMillis() / 250 % 8 == 0) {
+        if (distance < 4 && System.currentTimeMillis() > getAttackEndTime()) {
             PointF endLocation = new PointF(playerLocation.x + differenceX, playerLocation.y + differenceY);
-            renderer.addAttack(new AttackRanged(getTileSize(), getDamage(), 1, 1, getLocation(), endLocation,
+            renderer.getWorldMap().addAttack(new AttackRanged(getDamage(), 1, 1, getLocation(), endLocation,
                     (long) (distance * 200), true, getLastDirection()));
-            setAttackEndTime(System.currentTimeMillis() + 1500);
+            setAttackEndTime(System.currentTimeMillis() + 2500);
         }
     }
 }

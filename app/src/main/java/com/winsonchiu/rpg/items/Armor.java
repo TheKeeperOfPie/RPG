@@ -11,11 +11,10 @@ public class Armor extends Equipment {
         super(item);
     }
 
-    public Armor(int tileSize,
-            PointF location,
+    public Armor(PointF location,
             int level,
             Material material) {
-        super(tileSize, location, level, material);
+        super(location, level, material);
     }
 
 }

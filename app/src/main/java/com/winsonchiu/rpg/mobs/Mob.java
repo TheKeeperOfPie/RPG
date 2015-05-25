@@ -29,14 +29,13 @@ public abstract class Mob extends Entity {
     public Mob(int health,
             int armor,
             int damage,
-            int tileSize,
             float widthRatio,
             float heightRatio,
             PointF location,
             float textureRowCount,
             float textureColCount,
             float movementSpeed) {
-        super(tileSize, widthRatio, heightRatio, location, textureRowCount,
+        super(widthRatio, heightRatio, location, textureRowCount,
                 textureColCount, movementSpeed);
         this.health = health;
         this.maxHealth = health;

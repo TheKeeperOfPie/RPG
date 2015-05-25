@@ -43,6 +43,7 @@
     </ScrollView>
 
     <LinearLayout
+        style="?android:attr/buttonBarStyle"
         android:id="@+id/layout_button_container"
         android:minWidth="250dp"
         android:layout_width="wrap_content"
@@ -52,40 +53,51 @@
         android:orientation="horizontal"
         >
 
-
         <Button
+            style="?android:attr/buttonBarButtonStyle"
             android:id="@+id/button_drop"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:text="@string/button_drop"
             android:textAllCaps="true"
+            android:background="?android:selectableItemBackground"
+            android:textColor="@android:color/white"
             />
 
         <Button
+            style="?android:attr/buttonBarButtonStyle"
             android:id="@+id/button_use"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:text="@string/button_use"
             android:textAllCaps="true"
             android:visibility="gone"
+            android:background="?android:selectableItemBackground"
+            android:textColor="@android:color/white"
             />
 
         <Button
+            style="?android:attr/buttonBarButtonStyle"
             android:id="@+id/button_equip"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:text="@string/button_equip"
             android:textAllCaps="true"
             android:visibility="gone"
+            android:background="?android:selectableItemBackground"
+            android:textColor="@android:color/white"
             />
 
         <Button
+            style="?android:attr/buttonBarButtonStyle"
             android:id="@+id/button_unequip"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:text="@string/button_unequip"
             android:textAllCaps="true"
             android:visibility="gone"
+            android:background="?android:selectableItemBackground"
+            android:textColor="@android:color/white"
             />
 
     </LinearLayout>

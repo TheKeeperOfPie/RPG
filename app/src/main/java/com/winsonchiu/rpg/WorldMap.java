@@ -4,6 +4,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.opengl.GLES20;
 import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
@@ -14,6 +15,10 @@ import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.mobs.MobAggressive;
 import com.winsonchiu.rpg.mobs.MobMage;
 import com.winsonchiu.rpg.mobs.MobSwordsman;
+import com.winsonchiu.rpg.tiles.Tile;
+import com.winsonchiu.rpg.tiles.TileSet;
+import com.winsonchiu.rpg.tiles.TileSetDungeon;
+import com.winsonchiu.rpg.tiles.TileType;
 import com.winsonchiu.rpg.utils.Edge;
 import com.winsonchiu.rpg.utils.Graph;
 import com.winsonchiu.rpg.utils.MathUtils;
@@ -36,18 +41,15 @@ import java.util.Stack;
  */
 public class WorldMap {
 
-    public static final byte COLLIDE = 0;
-    public static final byte FLOOR = 1;
-    public static final byte ROOM = 2;
-    public static final byte DOORWAY = 3;
-    public static final byte CORRIDOR_DISCONNECTED = 4;
-    public static final byte CORRIDOR_CONNECTED = 5;
+    public static final byte COLLIDE = 1;
+    public static final byte FLOOR = 2;
+    public static final byte ROOM = 3;
+    public static final byte DOORWAY = 4;
+    public static final byte CORRIDOR_DISCONNECTED = 5;
+    public static final byte CORRIDOR_CONNECTED = 6;
 
     private static final String TAG = WorldMap.class.getCanonicalName();
     private static final float CHANCE_TO_CURVE_MAZE = 0.6f;
-
-    private static final int WALL = 177;
-    private static final int CORRIDOR = 920;
 
     private static final String IS_DOORWAY = "Doorway";
     private static final String IS_COLLIDE = "Collide";
@@ -59,33 +61,6 @@ public class WorldMap {
     private static final int AREA_PER_ROOM = 50;
     private static final int ATTEMPT_RATIO = 5;
     private static final int CYCLE_RATIO = 10;
-
-    private static final int PATH_FLOOR = 920;
-    private static final int PATH_TOP_LEFT = 862;
-    private static final int PATH_TOP_RIGHT = 864;
-    private static final int PATH_BOTTOM_LEFT = 976;
-    private static final int PATH_BOTTOM_RIGHT = 978;
-    private static final int PATH_T_UP = 977;
-    private static final int PATH_T_DOWN = 863;
-    private static final int PATH_T_LEFT = 921;
-    private static final int PATH_T_RIGHT = 919;
-    private static final int PATH_HORIZONTAL = 807;
-    private static final int PATH_VERTICAL = 750;
-
-    private static final int ROOM_FLOOR = 920;
-    private static final int ROOM_TOP_LEFT = 862;
-    private static final int ROOM_TOP_RIGHT = 864;
-    private static final int ROOM_BOTTOM_LEFT = 976;
-    private static final int ROOM_BOTTOM_RIGHT = 978;
-    private static final int ROOM_T_UP = 977;
-    private static final int ROOM_T_DOWN = 863;
-    private static final int ROOM_T_LEFT = 921;
-    private static final int ROOM_T_RIGHT = 919;
-
-    private static final int CHEST_LEFT_CLOSED = 609;
-    private static final int CHEST_RIGHT_CLOSED = 610;
-    private static final int CHEST_LEFT_OPEN = 666;
-    private static final int CHEST_RIGHT_OPEN = 667;
 
     private List<Tile> tilesBelow;
     private List<Tile> tilesAbove;
@@ -100,21 +75,18 @@ public class WorldMap {
     private boolean[][] itemLocations;
     private Rect roomStart;
     private Set<Edge> roomConnections;
-    private RectF goalBounds;
+    private RectF boundsGoal;
     private Rect goalRoom;
     private Tile tileChestLeft;
     private Tile tileChestRight;
     private boolean hasFoundGoal;
+    private TileSet tileSet;
+    private final List<Mob> entityMobs;
+    private final List<Attack> entityAttacks;
+    private final List<Entity> entities;
+    private RectF boundsStart;
 
     public WorldMap(int width, int height) {
-
-        // Width and height must be odd to fit mazes/rooms correctly
-        if (width % 2 == 0) {
-            width++;
-        }
-        if (height % 2 == 0) {
-            height++;
-        }
 
         this.width = width;
         this.height = height;
@@ -127,6 +99,13 @@ public class WorldMap {
         tilesBelow = new ArrayList<>();
         tilesAbove = new ArrayList<>();
         graph = new Graph();
+        tileSet = new TileSetDungeon();
+        roomStart = new Rect();
+        boundsGoal = new RectF();
+        boundsStart = new RectF();
+        entities = Collections.synchronizedList(new ArrayList<Entity>());
+        entityMobs = Collections.synchronizedList(new ArrayList<Mob>());
+        entityAttacks = Collections.synchronizedList(new ArrayList<Attack>());
     }
 
     public List<Item> getItems() {
@@ -207,15 +186,16 @@ public class WorldMap {
         return isCollide;
     }
 
-    public void generateRectangular(Renderer renderer) {
+    public void generateRectangularDungeon(Renderer renderer) {
 
         long startTime = System.currentTimeMillis();
 
+        fillWalls();
         generateRooms();
         generateConnections();
-        setTiles();
 
         roomStart = rooms.get(0);
+        boundsStart = new RectF(roomStart.centerX(), roomStart.centerY(), roomStart.centerX() + 1, roomStart.centerY() + 1);
 
         spawnMobs(renderer);
         spawnItems();
@@ -237,18 +217,20 @@ public class WorldMap {
         }
 
         goalRoom = rooms.get(furtherRoomIndex);
-        tileChestLeft = new Tile(new PointF(goalRoom.centerX(), goalRoom.centerY()),
-                CHEST_LEFT_CLOSED);
-        tileChestRight = new Tile(new PointF(goalRoom.centerX() + 1, goalRoom.centerY()),
-                CHEST_RIGHT_CLOSED);
+        boundsGoal = new RectF(goalRoom.centerX() - 1, goalRoom.centerY() - 1, goalRoom.centerX() + 2, goalRoom.centerY() + 1);
 
-        tilesBelow.add(tileChestLeft);
-        tilesBelow.add(tileChestRight);
-
-        goalBounds = new RectF(goalRoom.centerX() - 1, goalRoom.centerY() - 1, goalRoom.centerX() + 2, goalRoom.centerY() + 1);
+        setTiles();
 
         Log.d(TAG, "Time to generate map: " + (System.currentTimeMillis() - startTime));
 
+    }
+
+    private void fillWalls() {
+        for (int x = 0; x < walls.length; x++) {
+            for (int y = 0; y < walls[0].length; y++) {
+                walls[x][y] = COLLIDE;
+            }
+        }
     }
 
     public void refreshPlayerTrail(PointF point) {
@@ -344,13 +326,11 @@ public class WorldMap {
                 Mob mob;
 
                 if (random.nextFloat() < 0.3f) {
-                    mob = new MobMage(2, 0, 1, renderer.getTileSize(),
-                            MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f,
+                    mob = new MobMage(2, 0, 2, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f,
                             room, 8);
                 }
                 else {
-                    mob = new MobSwordsman(4, 0, 1, renderer.getTileSize(),
-                            MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f,
+                    mob = new MobSwordsman(4, 0, 1, MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f,
                             room, 8);
                 }
                 mob.setLastDirection(Direction.getRandomDirection());
@@ -361,7 +341,7 @@ public class WorldMap {
 
         }
 
-        renderer.addMobs(mobs);
+        addMobs(mobs);
 
     }
 
@@ -376,7 +356,6 @@ public class WorldMap {
         int attempt = 0;
 
         while (rooms.size() < numRooms && attempt++ < maxAttempts) {
-
 
             int roomWidth = random.nextInt(MAX_ROOM_WIDTH - MIN_ROOM_WIDTH) + MIN_ROOM_WIDTH;
             int roomHeight = random.nextInt(MAX_ROOM_HEIGHT - MIN_ROOM_HEIGHT) + MIN_ROOM_HEIGHT;
@@ -729,124 +708,61 @@ public class WorldMap {
         }
 
     }
-
-    // TODO: Reimplement dead end checks
-    private void removeDeadEnds() {
-
-        Stack<Point> deadEnds = new Stack<>();
-
-        for (int x = 2; x < width - 2; x += 4) {
-            for (int y = 2; y < height - 2; y += 4) {
-
-                Point point = new Point(x, y);
-                int adjacentWalls = 0;
-
-                if (x - 2 > 0 && walls[x - 2][y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (x + 2 < width && walls[x + 2][y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (y - 2 > 0 && walls[x][y - 2] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (y + 2 < height && walls[x][y + 2] == COLLIDE) {
-                    adjacentWalls++;
-                }
-
-                if (adjacentWalls >= 3) {
-                    deadEnds.add(point);
-                }
-
-            }
-        }
-
-        while (!deadEnds.isEmpty()) {
-
-            Point deadEnd = deadEnds.pop();
-
-            if (walls[deadEnd.x][deadEnd.y] == COLLIDE) {
-                continue;
-            }
-            carvePoint(deadEnd, COLLIDE);
-
-            List<Point> adjacent = new ArrayList<>(4);
-
-            if (deadEnd.x - 2 > 0 && walls[deadEnd.x - 2][deadEnd.y] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x - 2, deadEnd.y));
-            }
-            else if (deadEnd.x + 2 < width && walls[deadEnd.x + 2][deadEnd.y] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x + 2, deadEnd.y));
-            }
-            else if (deadEnd.y - 2 > 0 && walls[deadEnd.x][deadEnd.y - 2] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x, deadEnd.y - 2));
-            }
-            else if (deadEnd.y + 2 < height && walls[deadEnd.x][deadEnd.y + 2] == CORRIDOR_CONNECTED) {
-                adjacent.add(new Point(deadEnd.x, deadEnd.y + 2));
-            }
-
-            for (Point point : adjacent) {
-
-                int adjacentWalls = 0;
-
-                if (point.x - 2 > 0 && walls[point.x - 2][point.y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (point.x + 2 < width && walls[point.x + 2][point.y] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (point.y - 2 > 0 && walls[point.x][point.y - 2] == COLLIDE) {
-                    adjacentWalls++;
-                }
-                if (point.y + 2 < height && walls[point.x][point.y + 2] == COLLIDE) {
-                    adjacentWalls++;
-                }
-
-                if (adjacentWalls >= 3) {
-                    deadEnds.push(point);
-                }
-
-            }
-
-        }
-    }
     //endregion
 
     //region Getters and setters
     public PointF getStartPoint() {
-        return new PointF(roomStart.centerX(), roomStart.centerY());
+        return new PointF(roomStart.centerX(), roomStart.centerY() - 1);
     }
 
     private void setTiles() {
         tilesBelow.clear();
         tilesAbove.clear();
 
+        TileType tileType;
+
+        tileChestLeft = new Tile(new PointF(goalRoom.centerX(), goalRoom.centerY()),
+                tileSet.getTextureForTileType(TileType.CHEST_LEFT_CLOSED));
+        tileChestRight = new Tile(new PointF(goalRoom.centerX() + 1, goalRoom.centerY()),
+                tileSet.getTextureForTileType(TileType.CHEST_RIGHT_CLOSED));
+
+        tilesBelow.add(tileChestLeft);
+        tilesBelow.add(tileChestRight);
+
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
 
                 PointF point = new PointF(x, y);
-                tilesBelow.add(new Tile(point, CORRIDOR));
                 switch (walls[x][y]) {
 
                     case COLLIDE:
-                        tilesBelow.add(new Tile(point, WALL));
+                        tilesBelow.add(new Tile(point, tileSet.getTextureForTileType(TileType.WALL)));
                         break;
                     case CORRIDOR_CONNECTED:
-                        tilesBelow.add(new Tile(point, getTextureForPath(x, y)));
+                        tilesBelow.add(new Tile(point, tileSet.getTextureForTileType(TileType.GROUND)));
+                        tilesBelow.add(new Tile(point, tileSet.getTextureForTileType(
+                                getTileTypeForPath(
+                                        x, y))));
                         break;
                     case ROOM:
-                        tilesBelow.add(new Tile(point, getTextureForRoom(x, y)));
+                        tileType = getTileTypeForRoom(x, y);
+                        if (tileType != TileType.ROOM_FLOOR) {
+                            tilesBelow.add(new Tile(point, tileSet.getTextureForTileType(TileType.ROOM_GROUND)));
+                        }
+                        tilesBelow.add(new Tile(point, tileSet.getTextureForTileType(tileType)));
                         break;
 
                 }
             }
         }
 
+        tilesBelow.add(new Tile(new PointF(roomStart.centerX(), roomStart.centerY() + 1), tileSet.getTextureForTileType(TileType.STAIRS_UP_LEFT)));
+
     }
 
-    // TODO: Analyze efficiency of rotation vs state calculation
+    // TODO: Analyze efficiency of rotation vs bitmask calculation
 
-    private int getTextureForPath(int x, int y) {
+    private TileType getTileTypeForPath(int x, int y) {
 
         byte bitMask = 0b0000;
 
@@ -866,36 +782,34 @@ public class WorldMap {
         switch (bitMask) {
 
             case 0b0101:
-                return PATH_VERTICAL;
+                return TileType.PATH_VERTICAL;
             case 0b1010:
-                return PATH_HORIZONTAL;
+                return TileType.PATH_HORIZONTAL;
             case 0b0011:
-                return PATH_TOP_LEFT;
+                return TileType.PATH_TOP_LEFT;
             case 0b0110:
-                return PATH_BOTTOM_LEFT;
+                return TileType.PATH_BOTTOM_LEFT;
             case 0b1100:
-                return PATH_BOTTOM_RIGHT;
+                return TileType.PATH_BOTTOM_RIGHT;
             case 0b1001:
-                return PATH_TOP_RIGHT;
+                return TileType.PATH_TOP_RIGHT;
             case 0b1011:
-                return PATH_T_DOWN;
+                return TileType.PATH_T_DOWN;
             case 0b0111:
-                return PATH_T_RIGHT;
+                return TileType.PATH_T_RIGHT;
             case 0b1110:
-                return PATH_T_UP;
+                return TileType.PATH_T_UP;
             case 0b1101:
-                return PATH_T_LEFT;
+                return TileType.PATH_T_LEFT;
             case 0b1111:
-                return PATH_FLOOR;
-
+                return TileType.PATH_FLOOR;
 
         }
 
-
-        return CORRIDOR;
+        return TileType.INVALID;
     }
 
-    private int getTextureForRoom(int x, int y) {
+    private TileType getTileTypeForRoom(int x, int y) {
 
         byte bitMask = 0b0000;
 
@@ -914,25 +828,27 @@ public class WorldMap {
 
         switch (bitMask) {
             case 0b1011:
-                return ROOM_T_DOWN;
+                return TileType.ROOM_T_DOWN;
             case 0b0111:
-                return ROOM_T_RIGHT;
+                return TileType.ROOM_T_RIGHT;
             case 0b1110:
-                return ROOM_T_UP;
+                return TileType.ROOM_T_UP;
             case 0b1101:
-                return ROOM_T_LEFT;
+                return TileType.ROOM_T_LEFT;
             case 0b0011:
-                return ROOM_TOP_LEFT;
+                return TileType.ROOM_TOP_LEFT;
             case 0b0110:
-                return ROOM_BOTTOM_LEFT;
+                return TileType.ROOM_BOTTOM_LEFT;
             case 0b1100:
-                return ROOM_BOTTOM_RIGHT;
+                return TileType.ROOM_BOTTOM_RIGHT;
             case 0b1001:
-                return ROOM_TOP_RIGHT;
-            default:
-                return ROOM_FLOOR;
+                return TileType.ROOM_TOP_RIGHT;
+            case 0b1111:
+                return TileType.ROOM_FLOOR;
 
         }
+
+        return TileType.INVALID;
     }
 
     public byte[][] getPlayerTrail() {
@@ -1001,7 +917,7 @@ public class WorldMap {
             JSONArray data = layer.getJSONArray("data");
             int position = 0;
 
-            byte type = 0;
+            byte type = -1;
 
             if (layer.getString("name").contains(IS_DOORWAY)) {
                 type = DOORWAY;
@@ -1021,8 +937,11 @@ public class WorldMap {
                         } else {
                             tilesBelow.add(new Tile(new PointF(x, height - 1 - y), value));
                         }
-                        if (type > 0) {
+                        if (type > -1) {
                             walls[x][height - 1 - y] = type;
+                        }
+                        else {
+                            walls[x][height - 1 - y] = ROOM;
                         }
                     }
                 }
@@ -1037,39 +956,141 @@ public class WorldMap {
 
     }
 
-    public RectF getGoalBounds() {
-        return goalBounds;
+    public RectF getBoundsGoal() {
+        return boundsGoal;
     }
 
-    public void setGoalBounds(RectF goalBounds) {
-        this.goalBounds = goalBounds;
+    public void setBoundsGoal(RectF boundsGoal) {
+        this.boundsGoal = boundsGoal;
     }
 
     public void activateGoal(Renderer renderer) {
         if (hasFoundGoal) {
             return;
         }
-        tileChestLeft.setTextureId(CHEST_LEFT_OPEN);
-        tileChestRight.setTextureId(CHEST_RIGHT_OPEN);
-        renderer.loadVbo();
+        tileChestLeft.setTextureId(tileSet.getTextureForTileType(TileType.CHEST_LEFT_OPEN));
+        tileChestRight.setTextureId(tileSet.getTextureForTileType(TileType.CHEST_RIGHT_OPEN));
+        tilesBelow.add(new Tile(new PointF(goalRoom.centerX(), goalRoom.centerY() + 1),
+                tileSet.getTextureForTileType(TileType.STAIRS_DOWN_RIGHT)));
+        renderer.loadVbo(this);
 
         List<Item> goalDrops = new ArrayList<>();
         int numDrops = random.nextInt(4) + 3;
         for (int num = 0; num < numDrops; num++) {
 
             if (random.nextFloat() < 0.03f) {
-                goalDrops.add(new ResourceSilverCoin(renderer.getTileSize(), new PointF(goalRoom.centerX(), goalRoom.centerY())));
+                goalDrops.add(new ResourceSilverCoin(new PointF(goalRoom.centerX(), goalRoom.centerY())));
             }
             else if (random.nextFloat() < 0.2f) {
-                goalDrops.add(new ResourceBronzeBar(renderer.getTileSize(), new PointF(goalRoom.centerX(), goalRoom.centerY())));
+                goalDrops.add(new ResourceBronzeBar(new PointF(goalRoom.centerX(), goalRoom.centerY())));
             }
             else {
-                goalDrops.add(new ResourceBronzeCoin(renderer.getTileSize(), new PointF(goalRoom.centerX(), goalRoom.centerY())));
+                goalDrops.add(new ResourceBronzeCoin(new PointF(goalRoom.centerX(), goalRoom.centerY())));
             }
 
         }
 
         dropItems(goalDrops, renderer.getPlayer().getLastDirection(), new PointF(goalRoom.centerX(), goalRoom.centerY()));
         hasFoundGoal = true;
+    }
+
+    public void renderEntities(Renderer renderer, float[] matrixProjection, float[] matrixView, int[] textureNames) {
+
+        Player player = renderer.getPlayer();
+
+        GLES20.glUseProgram(Entity.getProgramId());
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[Renderer.TEXTURE_ITEMS]);
+
+
+        // TODO: Move to proper QuadTree implementation
+        synchronized (getItems()) {
+            Iterator<Item> iterator = getItems().iterator();
+            while (iterator.hasNext()) {
+                Item item = iterator.next();
+                if (renderer.isPointVisible(item.getLocation())) {
+                    if (RectF.intersects(item.getBounds(), player.getBounds())) {
+                        iterator.remove();
+                        renderer.pickUpItem(item);
+                    }
+                    else {
+                        item.render(renderer, matrixProjection, matrixView);
+                    }
+                }
+            }
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[Renderer.TEXTURE_PLAYER]);
+
+        player.render(renderer, matrixProjection, matrixView);
+
+        if (RectF.intersects(player.getBounds(), getBoundsGoal())) {
+            activateGoal(renderer);
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[Renderer.TEXTURE_MOBS]);
+
+        synchronized (entityMobs) {
+            Iterator<Mob> iterator = entityMobs.iterator();
+            while (iterator.hasNext()) {
+                Mob mob = iterator.next();
+                mob.render(renderer, matrixProjection, matrixView);
+                if (mob.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[Renderer.TEXTURE_ATTACKS]);
+
+        synchronized (entityAttacks) {
+            Iterator<Attack> iterator = entityAttacks.iterator();
+            while (iterator.hasNext()) {
+                Attack attack = iterator.next();
+                attack.render(renderer, matrixProjection, matrixView);
+                if (attack.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureNames[Renderer.TEXTURE_NUMBERS]);
+        synchronized (entities) {
+            Iterator<Entity> iterator = entities.iterator();
+            while (iterator.hasNext()) {
+                Entity entity = iterator.next();
+                entity.render(renderer, matrixProjection, matrixView);
+                if (entity.getToDestroy()) {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    public List<Mob> getEntityMobs() {
+        return entityMobs;
+    }
+
+    public void addEntity(Entity entity) {
+        entities.add(entity);
+    }
+
+    public void addMob(Mob mob) {
+        entityMobs.add(mob);
+    }
+
+    public void addMobs(List<Mob> mobs) {
+        entityMobs.addAll(mobs);
+    }
+
+    public void addAttack(Attack attack) {
+        entityAttacks.add(attack);
+    }
+
+    public void setBoundsStart(RectF bounds) {
+        boundsStart = bounds;
+    }
+
+    public RectF getBoundsStart() {
+        return boundsStart;
     }
 }

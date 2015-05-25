@@ -9,8 +9,8 @@ import com.winsonchiu.rpg.R;
  */
 public class ResourceSilverCoin extends Resource {
 
-    public ResourceSilverCoin(int tileSize, PointF location) {
-        super(tileSize, location, 0);
+    public ResourceSilverCoin(PointF location) {
+        super(location, 0);
         setName("Silver Coin");
         setDescription("A coin made of silver");
         setResourceId(R.drawable.i_silvercoin);
