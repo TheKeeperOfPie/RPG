@@ -16,26 +16,26 @@
 
     <ImageView
         android:id="@+id/image_direction_controls"
-        android:layout_width="128dp"
-        android:layout_height="128dp"
+        android:layout_width="208dp"
+        android:layout_height="208dp"
         android:src="@drawable/direction_controls"
         android:scaleType="fitCenter"
         android:contentDescription="@string/direction_controls"
         android:layout_alignParentStart="true"
         android:layout_alignParentBottom="true"
-        android:layout_margin="40dp"
+        android:padding="40dp"
         />
 
     <ImageView
         android:id="@+id/image_interact_control"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="144dp"
+        android:layout_height="144dp"
         android:src="@drawable/interact_control"
         android:scaleType="fitCenter"
         android:contentDescription="@string/image_interact_control"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_margin="40dp"
+        android:padding="40dp"
         />
 
     <LinearLayout

@@ -20,9 +20,9 @@ public class ControllerInventory {
 
     private Set<InventoryListener> listeners;
     private List<Item> itemList;
-    private Weapon weapon;
-    private Armor armor;
-    private Accessory accessory;
+    private volatile Weapon weapon;
+    private volatile Armor armor;
+    private volatile Accessory accessory;
 
     public ControllerInventory() {
         listeners = new HashSet<>();
@@ -195,6 +195,9 @@ public class ControllerInventory {
             accessory = null;
         }
         addItem(equipment);
+        for (InventoryListener inventoryListener : listeners) {
+            inventoryListener.onEquipmentChanged();
+        }
     }
 
     public interface InventoryListener {

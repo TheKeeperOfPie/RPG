@@ -6,6 +6,9 @@ import android.opengl.GLES20;
 import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.Staff;
+import com.winsonchiu.rpg.items.Sword;
+import com.winsonchiu.rpg.items.Weapon;
 import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.mobs.MobAggressive;
 
@@ -23,7 +26,7 @@ public class Player extends Mob {
     private static final int BASE_HEALTH = 20;
     private static final int BASE_ARMOR = 1;
     private static final int BASE_DAMAGE = 1;
-    private static final long HEALTH_TICK = 5000;
+    private static final long HEALTH_TICK = 15000;
 
     private static final String TAG = Player.class.getCanonicalName();
     private final EventListener eventListener;
@@ -296,39 +299,55 @@ public class Player extends Mob {
         if (System.currentTimeMillis() < getAttackEndTime()) {
             return;
         }
-        PointF end = new PointF(getLocation().x, getLocation().y);
-        PointF start = getNewCenterLocation();
-        start.offset(-0.6f / 2, -0.9f / 2);
-
-        switch (getLastDirection()) {
-
-            case NORTH:
-                end.offset(0, getVelocityY() * 500 + 3);
-                break;
-            case NORTHEAST:
-                end.offset(getVelocityX() * 500 + 3, getVelocityY() * 500 + 3);
-                break;
-            case EAST:
-                end.offset(getVelocityX() * 500 + 3, 0);
-                break;
-            case SOUTHEAST:
-                end.offset(getVelocityX() * 500 + 3, getVelocityY() * 500 - 3);
-                break;
-            case SOUTH:
-                end.offset(0, getVelocityY() * 500 - 3);
-                break;
-            case SOUTHWEST:
-                end.offset(getVelocityX() * 500 - 3, getVelocityY() * 500 - 3);
-                break;
-            case WEST:
-                end.offset(getVelocityX() * 500 - 3, 0);
-                break;
-            case NORTHWEST:
-                end.offset(getVelocityX() * 500 - 3, getVelocityY() * 500 + 3);
-                break;
+        Weapon weapon = eventListener.getWeapon();
+        if (weapon instanceof Sword) {
+            renderer.addAttack(
+                    new AttackMelee(getTileSize(), getDamage(), 1, 1, getLocation(), 300, false,
+                            getLastDirection(), this));
         }
+        else if (weapon instanceof Staff) {
 
-        renderer.addAttack(new AttackMelee(getTileSize(), getDamage(), 1, 1, getLocation(), 300, false, getLastDirection(), this));
+            PointF end = new PointF(getLocation().x, getLocation().y);
+            PointF start = getNewCenterLocation();
+            start.offset(-0.6f / 2, -0.9f / 2);
+            long time = 350;
+
+            switch (getLastDirection()) {
+
+                case NORTH:
+                    end.offset(0, getVelocityY() * time + 3);
+                    break;
+                case NORTHEAST:
+                    end.offset(getVelocityX() * time + 3, getVelocityY() * time + 3);
+                    break;
+                case EAST:
+                    end.offset(getVelocityX() * time + 3, 0);
+                    break;
+                case SOUTHEAST:
+                    end.offset(getVelocityX() * time + 3, getVelocityY() * time - 3);
+                    break;
+                case SOUTH:
+                    end.offset(0, getVelocityY() * time - 3);
+                    break;
+                case SOUTHWEST:
+                    end.offset(getVelocityX() * time - 3, getVelocityY() * time - 3);
+                    break;
+                case WEST:
+                    end.offset(getVelocityX() * time - 3, 0);
+                    break;
+                case NORTHWEST:
+                    end.offset(getVelocityX() * time - 3, getVelocityY() * time + 3);
+                    break;
+            }
+
+            renderer.addAttack(new AttackRanged(getTileSize(), getDamage(), 1, 1, getLocation(), end,
+                    time, false, getLastDirection()));
+        }
+        else {
+            renderer.addAttack(
+                    new AttackMelee(getTileSize(), 1, 1, 1, getLocation(), 300, false,
+                            getLastDirection(), this));
+        }
         setAttackEndTime(System.currentTimeMillis() + 500);
     }
 
@@ -354,6 +373,7 @@ public class Player extends Mob {
 
         void onHealthChanged(int health, int maxHealth);
         int calculateDamage();
+        Weapon getWeapon();
     }
 
 }

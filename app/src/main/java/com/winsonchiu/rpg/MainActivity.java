@@ -98,8 +98,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
 
-                // TODO: Adjust speed based on how far stick is shifted
-
                 int width = imageDirectionControls.getWidth();
                 int height = imageDirectionControls.getHeight();
 
@@ -245,6 +243,11 @@ public class MainActivity extends AppCompatActivity {
 
                 return damage > 0 ? damage : 1;
             }
+
+            @Override
+            public Weapon getWeapon() {
+                return controllerInventory.getWeapon();
+            }
         });
 
         glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
@@ -346,17 +349,26 @@ public class MainActivity extends AppCompatActivity {
                                     controllerInventory.getWeapon()
                                             .getResourceId()));
                 }
+                else {
+                    imageEquipSlotWeapon.setImageDrawable(drawableWeapon);
+                }
                 if (controllerInventory.hasArmor()) {
                     imageEquipSlotArmor.setImageDrawable(
                             RenderUtils.getPixelatedDrawable(getResources(),
                                     controllerInventory.getArmor()
                                             .getResourceId()));
                 }
+                else {
+                    imageEquipSlotArmor.setImageDrawable(drawableArmor);
+                }
                 if (controllerInventory.hasAccessory()) {
                     imageEquipSlotAccessory.setImageDrawable(
                             RenderUtils.getPixelatedDrawable(getResources(),
                                     controllerInventory.getAccessory()
                                             .getResourceId()));
+                }
+                else {
+                    imageEquipSlotAccessory.setImageDrawable(drawableAccessory);
                 }
             }
         };

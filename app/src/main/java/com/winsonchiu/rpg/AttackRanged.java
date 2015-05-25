@@ -29,12 +29,41 @@ public class AttackRanged extends Attack {
             PointF startLocation,
             PointF endLocation,
             long time,
-            boolean hostile) {
+            boolean hostile,
+            Direction direction) {
         super(tileSize, damage, range, accuracy, 1f, 1f, new PointF(startLocation.x, startLocation.y), time, SPEED, hostile);
         this.startLocation = startLocation;
         this.endLocation = endLocation;
         this.time = time;
         setLastAnimationFrame(0);
+        setLastDirection(direction);
+        switch(getLastDirection()) {
+
+            case NORTH:
+                setAngle(180);
+                break;
+            case NORTHEAST:
+                setAngle(135);
+                break;
+            case EAST:
+                setAngle(90);
+                break;
+            case SOUTHEAST:
+                setAngle(45);
+                break;
+            case SOUTH:
+                setAngle(0);
+                break;
+            case SOUTHWEST:
+                setAngle(315);
+                break;
+            case WEST:
+                setAngle(270);
+                break;
+            case NORTHWEST:
+                setAngle(225);
+                break;
+        }
     }
 
     public void render(Renderer renderer, float[] matrixProjection, float[] matrixView) {

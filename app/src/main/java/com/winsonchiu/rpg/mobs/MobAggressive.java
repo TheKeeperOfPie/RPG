@@ -18,6 +18,7 @@ import com.winsonchiu.rpg.items.PotionHealth;
 import com.winsonchiu.rpg.items.ResourceBronzeBar;
 import com.winsonchiu.rpg.items.ResourceBronzeCoin;
 import com.winsonchiu.rpg.items.ResourceGoldCoin;
+import com.winsonchiu.rpg.items.Staff;
 import com.winsonchiu.rpg.items.Sword;
 import com.winsonchiu.rpg.utils.MathUtils;
 import com.winsonchiu.rpg.utils.Node;
@@ -32,7 +33,7 @@ import java.util.Random;
 /**
  * Created by TheKeeperOfPie on 5/5/2015.
  */
-public class MobAggressive extends Mob {
+public abstract class MobAggressive extends Mob {
 
     private static final String TAG = MobAggressive.class.getCanonicalName();
     private static final float SPEED = 0.003f;
@@ -83,25 +84,6 @@ public class MobAggressive extends Mob {
 
     }
 
-    public void calculateAttack(Renderer renderer) {
-        PointF playerLocation = renderer.getPlayer().getLocation();
-
-        float differenceX = playerLocation.x - getLocation().x;
-        float differenceY = playerLocation.y - getLocation().y;
-
-        double distance = MathUtils.distance(playerLocation, getLocation());
-
-        if (distance < 2 && System.currentTimeMillis() > getAttackEndTime() && System.currentTimeMillis() / 250 % 8 == 0) {
-            renderer.addAttack(new AttackMelee(getTileSize(), getDamage(), 1, 1, getLocation(), 250, true, getLastDirection(), this));
-
-//            PointF endLocation = new PointF(playerLocation.x + differenceX, playerLocation.y + differenceY);
-//            renderer.addAttack(new AttackRanged(getTileSize(), getDamage(), 1, 1, getLocation(), endLocation,
-//                    (long) (distance * 200), true));
-            setAttackEndTime(System.currentTimeMillis() + 2000);
-        }
-
-    }
-
     @Override
     public List<Item> calculateDrops() {
 
@@ -110,7 +92,7 @@ public class MobAggressive extends Mob {
         Random random = new Random();
 
         drops.add(new ResourceGoldCoin(getTileSize(), getNewCenterLocation()));
-        if (random.nextFloat() < 0.2f) {
+        if (random.nextFloat() < 0.3f) {
             drops.add(new PotionHealth(getTileSize(), getNewCenterLocation(), random.nextInt(2) + 1));
         }
         if (random.nextFloat() < 0.05f) {
@@ -119,8 +101,8 @@ public class MobAggressive extends Mob {
         else if (random.nextFloat() < 0.01f) {
             drops.add(new ResourceBronzeCoin(getTileSize(), getNewCenterLocation()));
         }
-        else if (random.nextFloat() < 0.0005f) {
-            drops.add(new ResourceBronzeBar(getTileSize(), getNewCenterLocation()));
+        else if (random.nextFloat() < 0.005f) {
+            drops.add(new Staff(getTileSize(), getNewCenterLocation(), random.nextInt(1) + 1, Material.RUBY));
         }
 
         return drops;
@@ -307,7 +289,7 @@ public class MobAggressive extends Mob {
 
         if (offset > distance) {
             targetLocation.set(getLocation().x, getLocation().y);
-            if (random.nextFloat() < (homeRoom.contains(playerLocation.x, playerLocation.y) ? 0.1f : 0.025f)) {
+            if (random.nextFloat() < (homeRoom.contains(playerLocation.x, playerLocation.y) ? 0.15f : 0.05f)) {
                 setLastDirection(Direction.getRandomDirectionFourWay());
                 calculateAnimationFrame();
             }

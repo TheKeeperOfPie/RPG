@@ -12,6 +12,8 @@ import com.winsonchiu.rpg.items.ResourceBronzeCoin;
 import com.winsonchiu.rpg.items.ResourceSilverCoin;
 import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.mobs.MobAggressive;
+import com.winsonchiu.rpg.mobs.MobMage;
+import com.winsonchiu.rpg.mobs.MobSwordsman;
 import com.winsonchiu.rpg.utils.Edge;
 import com.winsonchiu.rpg.utils.Graph;
 import com.winsonchiu.rpg.utils.MathUtils;
@@ -339,7 +341,18 @@ public class WorldMap {
                     location = new PointF(roomX + room.left, roomY + room.top);
                 }
 
-                Mob mob = new MobAggressive(3, 0, 1, renderer.getTileSize(), MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f, room, 8);
+                Mob mob;
+
+                if (random.nextFloat() < 0.3f) {
+                    mob = new MobMage(2, 0, 1, renderer.getTileSize(),
+                            MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f,
+                            room, 8);
+                }
+                else {
+                    mob = new MobSwordsman(4, 0, 1, renderer.getTileSize(),
+                            MobAggressive.WIDTH_RATIO, MobAggressive.HEIGHT_RATIO, location, 4f, 4f,
+                            room, 8);
+                }
                 mob.setLastDirection(Direction.getRandomDirection());
                 mob.calculateAnimationFrame();
                 mobs.add(mob);
@@ -1041,7 +1054,7 @@ public class WorldMap {
         renderer.loadVbo();
 
         List<Item> goalDrops = new ArrayList<>();
-        int numDrops = random.nextInt(4) + 1;
+        int numDrops = random.nextInt(4) + 3;
         for (int num = 0; num < numDrops; num++) {
 
             if (random.nextFloat() < 0.03f) {
