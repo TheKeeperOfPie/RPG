@@ -4,6 +4,8 @@ import android.graphics.PointF;
 
 import com.winsonchiu.rpg.R;
 
+import org.json.JSONObject;
+
 /**
  * Created by TheKeeperOfPie on 5/22/2015.
  */
@@ -22,7 +24,7 @@ public class ResourceBronzeCoin extends Resource {
         super(item);
     }
 
-    public ResourceBronzeCoin(PointF location, int level) {
-        super(location, level);
+    public ResourceBronzeCoin(JSONObject jsonObject) {
+        super(jsonObject);
     }
 }

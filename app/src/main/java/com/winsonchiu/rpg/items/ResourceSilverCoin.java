@@ -4,6 +4,8 @@ import android.graphics.PointF;
 
 import com.winsonchiu.rpg.R;
 
+import org.json.JSONObject;
+
 /**
  * Created by TheKeeperOfPie on 5/22/2015.
  */
@@ -22,7 +24,7 @@ public class ResourceSilverCoin extends Resource {
         super(item);
     }
 
-    public ResourceSilverCoin(PointF location, int level) {
-        super(location, level);
+    public ResourceSilverCoin(JSONObject jsonObject) {
+        super(jsonObject);
     }
 }

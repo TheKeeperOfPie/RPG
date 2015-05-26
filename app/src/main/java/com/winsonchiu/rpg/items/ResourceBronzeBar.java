@@ -4,6 +4,8 @@ import android.graphics.PointF;
 
 import com.winsonchiu.rpg.R;
 
+import org.json.JSONObject;
+
 /**
  * Created by TheKeeperOfPie on 5/22/2015.
  */
@@ -22,7 +24,7 @@ public class ResourceBronzeBar extends Resource {
         super(item);
     }
 
-    public ResourceBronzeBar(PointF location, int level) {
-        super(location, level);
+    public ResourceBronzeBar(JSONObject jsonObject) {
+        super(jsonObject);
     }
 }
