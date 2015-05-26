@@ -21,4 +21,8 @@ public class ResourceSilverBar extends Resource {
     public ResourceSilverBar(Item item) {
         super(item);
     }
+
+    public ResourceSilverBar(PointF location, int level) {
+        super(location, level);
+    }
 }

@@ -676,12 +676,38 @@ public class MainActivity extends AppCompatActivity {
         applyFullscreen();
         controllerInventory.addListener(inventoryListener);
         glSurfaceView.onResume();
+        restoreInventory();
+    }
+
+    @Override
+    protected void onPause() {
+        saveInventory();
+        glSurfaceView.onPause();
+        controllerInventory.removeListener(inventoryListener);
+        super.onPause();
+    }
+
+    // TODO: Use a better inventory saving system that doesn't rely on reflection
+    private void saveInventory() {
+        JSONArray jsonArray = new JSONArray();
+        for (Item item : controllerInventory.getItemList()) {
+            try {
+                jsonArray.put(item.toJsonObject());
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        preferences.edit().putString(KEY_INVENTORY, jsonArray.toString()).commit();
+    }
+
+    private void restoreInventory() {
         try {
             JSONArray jsonArray = new JSONArray(preferences.getString(KEY_INVENTORY, "{}"));
             List<Item> items = new ArrayList<>(jsonArray.length());
             for (int index = 0; index < jsonArray.length(); index++) {
                 try {
-                    items.add(new Item(jsonArray.getJSONObject(index)));
+                    items.add(Item.fromJsonObject(jsonArray.getJSONObject(index)));
                 }
                 catch (JSONException e) {
                     e.printStackTrace();
@@ -693,23 +719,6 @@ public class MainActivity extends AppCompatActivity {
         catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    protected void onPause() {
-        JSONArray jsonArray = new JSONArray();
-        for (Item item : controllerInventory.getItemList()) {
-            try {
-                jsonArray.put(item.toJsonObject());
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        preferences.edit().putString(KEY_INVENTORY, jsonArray.toString()).commit();
-        glSurfaceView.onPause();
-        controllerInventory.removeListener(inventoryListener);
-        super.onPause();
     }
 
     @Override

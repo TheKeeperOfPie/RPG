@@ -2,6 +2,8 @@ package com.winsonchiu.rpg.items;
 
 import android.graphics.PointF;
 
+import org.json.JSONObject;
+
 /**
  * Created by TheKeeperOfPie on 5/24/2015.
  */
@@ -17,6 +19,11 @@ public class Equipment extends Item {
     public Equipment(Item item) {
         super(item);
         this.material = ((Equipment) item).getMaterial();
+    }
+
+    public Equipment(JSONObject jsonObject) {
+        super(jsonObject);
+        this.material = Material.valueOf(jsonObject.optString(Item.MATERIAL));
     }
 
     public Material getMaterial() {

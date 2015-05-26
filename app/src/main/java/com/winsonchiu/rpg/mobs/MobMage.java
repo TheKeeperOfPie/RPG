@@ -6,7 +6,13 @@ import android.graphics.Rect;
 import com.winsonchiu.rpg.AttackMelee;
 import com.winsonchiu.rpg.AttackRanged;
 import com.winsonchiu.rpg.Renderer;
+import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.Material;
+import com.winsonchiu.rpg.items.Staff;
 import com.winsonchiu.rpg.utils.MathUtils;
+
+import java.util.List;
+import java.util.Random;
 
 /**
  * Created by TheKeeperOfPie on 5/24/2015.
@@ -21,6 +27,18 @@ public class MobMage extends MobAggressive {
         super(MobType.MAGE, health, armor, damage, location, room, searchRadius);
     }
 
+    @Override
+    public List<Item> calculateDrops() {
+        List<Item> drops = super.calculateDrops();
+
+        Random random = new Random();
+
+        if (random.nextFloat() < 0.005f) {
+            drops.add(new Staff(getNewCenterLocation(), random.nextInt(1) + 1, Material.RUBY));
+        }
+
+        return drops;
+    }
 
     @Override
     public void calculateAttack(Renderer renderer) {

@@ -21,4 +21,8 @@ public class ResourceSilverCoin extends Resource {
     public ResourceSilverCoin(Item item) {
         super(item);
     }
+
+    public ResourceSilverCoin(PointF location, int level) {
+        super(location, level);
+    }
 }

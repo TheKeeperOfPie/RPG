@@ -5,7 +5,13 @@ import android.graphics.Rect;
 
 import com.winsonchiu.rpg.AttackMelee;
 import com.winsonchiu.rpg.Renderer;
+import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.items.Material;
+import com.winsonchiu.rpg.items.Sword;
 import com.winsonchiu.rpg.utils.MathUtils;
+
+import java.util.List;
+import java.util.Random;
 
 /**
  * Created by TheKeeperOfPie on 5/24/2015.
@@ -18,6 +24,19 @@ public class MobSwordsman extends MobAggressive {
             PointF location,
             Rect room, int searchRadius) {
         super(MobType.SWORDSMAN, health, armor, damage, location, room, searchRadius);
+    }
+
+    @Override
+    public List<Item> calculateDrops() {
+        List<Item> drops =  super.calculateDrops();
+
+        Random random = new Random();
+
+        if (random.nextFloat() < 0.05f) {
+            drops.add(new Sword(getNewCenterLocation(), 1, Material.BRONZE));
+        }
+
+        return drops;
     }
 
     @Override

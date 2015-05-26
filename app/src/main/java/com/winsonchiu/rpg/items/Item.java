@@ -2,6 +2,7 @@ package com.winsonchiu.rpg.items;
 
 import android.graphics.PointF;
 import android.util.JsonWriter;
+import android.util.Log;
 
 import com.winsonchiu.rpg.Entity;
 import com.winsonchiu.rpg.Renderer;
@@ -9,6 +10,8 @@ import com.winsonchiu.rpg.Renderer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,20 +27,21 @@ public class Item extends Entity {
     private static final float TEXTURE_ROW_COUNT = 14f;
     private static final float TEXTURE_COL_COUNT = 29f;
 
-    private static final String LOCATION_X = "locationX";
-    private static final String LOCATION_Y = "locationY";
-    private static final String HEALTH_BOOST = "healthBoost";
-    private static final String ARMOR_BOOST = "armorBoost";
-    private static final String DAMAGE_BOOST = "damageBoost";
-    private static final String SPEED_BOOST = "speedBoost";
-    private static final String LEVEL = "level";
-    private static final String DURATION = "duration";
-    private static final String RESOURCE_ID = "resourceId";
-    private static final String TEXTURE_ID = "textureId";
-    private static final String NAME = "name";
-    private static final String DESCRIPTION = "description";
-    private static final String QUANTITY = "quantity";
-
+    public static final String CLASS = "class";
+    public static final String LOCATION_X = "locationX";
+    public static final String LOCATION_Y = "locationY";
+    public static final String HEALTH_BOOST = "healthBoost";
+    public static final String ARMOR_BOOST = "armorBoost";
+    public static final String DAMAGE_BOOST = "damageBoost";
+    public static final String SPEED_BOOST = "speedBoost";
+    public static final String LEVEL = "level";
+    public static final String DURATION = "duration";
+    public static final String RESOURCE_ID = "resourceId";
+    public static final String TEXTURE_ID = "textureId";
+    public static final String NAME = "name";
+    public static final String DESCRIPTION = "description";
+    public static final String QUANTITY = "quantity";
+    public static final String MATERIAL = "material";
 
     private int healthBoost;
     private int armorBoost;
@@ -280,6 +284,7 @@ public class Item extends Entity {
 
         JSONObject jsonObject = new JSONObject();
 
+        jsonObject.put(CLASS, this.getClass().getCanonicalName());
         jsonObject.put(LOCATION_X, getLocation().x);
         jsonObject.put(LOCATION_Y, getLocation().y);
         jsonObject.put(HEALTH_BOOST, healthBoost);
@@ -294,7 +299,35 @@ public class Item extends Entity {
         jsonObject.put(DESCRIPTION, description);
         jsonObject.put(QUANTITY, quantity);
 
+        if (this instanceof Equipment) {
+            jsonObject.put(MATERIAL, ((Equipment) this).getMaterial().toString());
+        }
+
         return jsonObject;
     }
 
+    public static Item fromJsonObject(JSONObject jsonObject) {
+        try {
+            Class itemClass = Item.class.getClassLoader().loadClass(jsonObject.optString(CLASS));
+            Constructor constructor = itemClass.getConstructor(JSONObject.class);
+            return (Item) constructor.newInstance(jsonObject);
+        }
+        catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        catch (InstantiationException e) {
+            e.printStackTrace();
+        }
+        catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return new Item(jsonObject);
+    }
 }

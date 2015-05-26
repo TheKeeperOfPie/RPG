@@ -4,6 +4,8 @@ import android.graphics.PointF;
 
 import com.winsonchiu.rpg.R;
 
+import org.json.JSONObject;
+
 import java.util.Random;
 
 /**
@@ -37,6 +39,15 @@ public class Sword extends Weapon {
 
     public Sword(Item item) {
         super(item);
+    }
+
+    public Sword(JSONObject jsonObject) {
+        super(jsonObject);
+    }
+
+    @Override
+    public Material getMaterial() {
+        return super.getMaterial();
     }
 
     @Override

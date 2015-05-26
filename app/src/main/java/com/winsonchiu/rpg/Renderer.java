@@ -134,8 +134,6 @@ public class Renderer implements GLSurfaceView.Renderer {
         worldMapDungeon.generateRectangularDungeon();
 
         loadMap(worldMapTown, worldMapTown.getSpawnPoint());
-
-        GLES20.glClearColor(0f, 0f, 0f, 1f);
     }
 
     @Override
@@ -214,6 +212,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         if (screenWidth > 0 && screenHeight > 0) {
             setCamera();
         }
+        worldMap.setClearColor();
 
     }
 
@@ -256,6 +255,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         player.setHealth(player.getMaxHealth());
         player.setLastDirection(Direction.SOUTH);
         player.calculateAnimationFrame();
+        eventListenerPlayer.onHealthChanged(player.getHealth(), player.getMaxHealth());
     }
 
     //region Setup and teardown

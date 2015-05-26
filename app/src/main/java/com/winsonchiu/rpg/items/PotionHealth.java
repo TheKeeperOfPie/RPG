@@ -5,6 +5,8 @@ import android.graphics.PointF;
 import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.R;
 
+import org.json.JSONObject;
+
 /**
  * Created by TheKeeperOfPie on 5/24/2015.
  */
@@ -21,6 +23,10 @@ public class PotionHealth extends Consumable {
 
     public PotionHealth(Item item) {
         super(item);
+    }
+
+    public PotionHealth(JSONObject jsonObject) {
+        super(jsonObject);
     }
 
     @Override

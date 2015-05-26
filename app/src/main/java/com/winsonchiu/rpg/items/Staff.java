@@ -4,6 +4,8 @@ import android.graphics.PointF;
 
 import com.winsonchiu.rpg.R;
 
+import org.json.JSONObject;
+
 import java.util.Random;
 
 /**
@@ -33,6 +35,10 @@ public class Staff extends Weapon {
 
     public Staff(Item item) {
         super(item);
+    }
+
+    public Staff(JSONObject jsonObject) {
+        super(jsonObject);
     }
 
     @Override

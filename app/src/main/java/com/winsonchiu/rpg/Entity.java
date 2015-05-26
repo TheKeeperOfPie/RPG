@@ -178,7 +178,7 @@ public abstract class Entity {
     }
 
     public RectF getBounds() {
-        return new RectF(getLocation().x, getLocation().y, getLocation().x + widthRatio, getLocation().y + heightRatio);
+        return new RectF(getLocation().x + 0.05f, getLocation().y + 0.05f, getLocation().x + widthRatio - 0.1f, getLocation().y + heightRatio - 0.1f);
     }
 
     public void setToDestroy(boolean toDestroy) {

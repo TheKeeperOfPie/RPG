@@ -21,4 +21,8 @@ public class ResourceGoldBar extends Resource {
     public ResourceGoldBar(Item item) {
         super(item);
     }
+
+    public ResourceGoldBar(PointF location, int level) {
+        super(location, level);
+    }
 }

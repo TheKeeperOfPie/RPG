@@ -317,6 +317,7 @@ public class WorldMap {
     public void addItem(Item item) {
         items.add(item);
     }
+
     public PointF getStartPoint() {
         return new PointF(0, 0);
     }
@@ -478,6 +479,10 @@ public class WorldMap {
 
     public List<Tile> getTilesRoof() {
         return tilesRoof;
+    }
+
+    public void setClearColor() {
+        GLES20.glClearColor(0f, 0f, 0f, 1f);
     }
     //endregion
 }

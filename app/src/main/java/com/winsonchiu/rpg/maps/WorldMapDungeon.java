@@ -4,6 +4,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.opengl.GLES20;
 import android.util.Log;
 
 import com.winsonchiu.rpg.Direction;
@@ -92,6 +93,11 @@ public class WorldMapDungeon extends WorldMap {
         dropItems(goalDrops, renderer.getPlayer()
                 .getLastDirection(), new PointF(goalRoom.centerX(), goalRoom.centerY()));
         hasFoundGoal = true;
+    }
+
+    @Override
+    public void setClearColor() {
+        GLES20.glClearColor(0.65882352941f, 0.49411764705f, 0.3294117647f, 1f);
     }
 
     @Override
@@ -236,7 +242,7 @@ public class WorldMapDungeon extends WorldMap {
                     mob = new MobMage(2, 0, 2, location, room, 8);
                 }
                 else {
-                    mob = new MobSwordsman(4, 0, 1, location, room, 8);
+                    mob = new MobSwordsman(3, 0, 1, location, room, 8);
                 }
                 mob.setLastDirection(Direction.getRandomDirection());
                 mob.calculateAnimationFrame();
@@ -249,6 +255,7 @@ public class WorldMapDungeon extends WorldMap {
         addMobs(mobs);
 
     }
+
 
     //region Generation
 

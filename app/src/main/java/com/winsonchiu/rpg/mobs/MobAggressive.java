@@ -10,6 +10,7 @@ import com.winsonchiu.rpg.Direction;
 import com.winsonchiu.rpg.Entity;
 import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.Renderer;
+import com.winsonchiu.rpg.items.ResourceSilverCoin;
 import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.Material;
@@ -77,20 +78,13 @@ public abstract class MobAggressive extends Mob {
 
         Random random = new Random();
 
-        drops.add(new ResourceGoldCoin(getNewCenterLocation()));
-        if (random.nextFloat() < 0.3f) {
-            drops.add(new PotionHealth(getNewCenterLocation(), random.nextInt(2) + 1));
+        drops.add(new ResourceBronzeCoin(getNewCenterLocation()));
+        if (random.nextFloat() < 0.25f) {
+            drops.add(new PotionHealth(getNewCenterLocation(), random.nextInt(2) + 2));
         }
-        if (random.nextFloat() < 0.05f) {
-            drops.add(new Sword(getNewCenterLocation(), 1, Material.BRONZE));
+        if (random.nextFloat() < 0.01f) {
+            drops.add(new ResourceSilverCoin(getNewCenterLocation()));
         }
-        else if (random.nextFloat() < 0.01f) {
-            drops.add(new ResourceBronzeCoin(getNewCenterLocation()));
-        }
-        else if (random.nextFloat() < 0.005f) {
-            drops.add(new Staff(getNewCenterLocation(), random.nextInt(1) + 1, Material.RUBY));
-        }
-
         return drops;
     }
 

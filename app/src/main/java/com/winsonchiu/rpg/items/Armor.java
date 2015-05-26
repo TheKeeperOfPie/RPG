@@ -2,6 +2,8 @@ package com.winsonchiu.rpg.items;
 
 import android.graphics.PointF;
 
+import org.json.JSONObject;
+
 /**
  * Created by TheKeeperOfPie on 5/24/2015.
  */
@@ -17,4 +19,7 @@ public class Armor extends Equipment {
         super(location, level, material);
     }
 
+    public Armor(JSONObject jsonObject) {
+        super(jsonObject);
+    }
 }

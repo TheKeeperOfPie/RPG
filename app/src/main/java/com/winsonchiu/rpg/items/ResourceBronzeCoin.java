@@ -21,4 +21,8 @@ public class ResourceBronzeCoin extends Resource {
     public ResourceBronzeCoin(Item item) {
         super(item);
     }
+
+    public ResourceBronzeCoin(PointF location, int level) {
+        super(location, level);
+    }
 }

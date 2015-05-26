@@ -3,6 +3,7 @@ package com.winsonchiu.rpg.maps;
 import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.opengl.GLES20;
 import android.util.Log;
 
 import com.winsonchiu.rpg.Player;
@@ -54,7 +55,7 @@ public class WorldMapTown extends WorldMap {
             }
         }
         boundsDungeonEntrance = new RectF(56, 34, 57, 35);
-        boundsChurch = new RectF(6, 42, 47, 62);
+        boundsChurch = new RectF(6, 42, 47, 60);
 
         try {
             fromJson(new JSONObject(writer.toString()));
@@ -65,6 +66,11 @@ public class WorldMapTown extends WorldMap {
 
         playerTrail = new byte[width][height];
 
+    }
+
+    @Override
+    public void setClearColor() {
+        GLES20.glClearColor(0.55294117647f, 0.76862745098f, 0.20784313725f, 1f);
     }
 
     public PointF getDungeonExitPoint() {
