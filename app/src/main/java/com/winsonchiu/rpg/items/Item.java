@@ -1,11 +1,8 @@
 package com.winsonchiu.rpg.items;
 
 import android.graphics.PointF;
-import android.util.JsonWriter;
-import android.util.Log;
 
 import com.winsonchiu.rpg.Entity;
-import com.winsonchiu.rpg.Renderer;
 
 import org.json.JSONException;
 import org.json.JSONObject;

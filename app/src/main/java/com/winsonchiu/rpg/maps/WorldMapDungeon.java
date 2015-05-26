@@ -12,10 +12,9 @@ import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.Renderer;
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.ResourceBronzeBar;
-import com.winsonchiu.rpg.items.ResourceBronzeCoin;
+import com.winsonchiu.rpg.items.ResourceSilverBar;
 import com.winsonchiu.rpg.items.ResourceSilverCoin;
 import com.winsonchiu.rpg.mobs.Mob;
-import com.winsonchiu.rpg.mobs.MobAggressive;
 import com.winsonchiu.rpg.mobs.MobMage;
 import com.winsonchiu.rpg.mobs.MobSwordsman;
 import com.winsonchiu.rpg.tiles.Tile;
@@ -27,7 +26,6 @@ import com.winsonchiu.rpg.utils.MathUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 
@@ -77,15 +75,15 @@ public class WorldMapDungeon extends WorldMap {
 
             if (random.nextFloat() < 0.03f) {
                 goalDrops.add(
-                        new ResourceSilverCoin(new PointF(goalRoom.centerX(), goalRoom.centerY())));
+                        new ResourceSilverBar(new PointF(goalRoom.centerX(), goalRoom.centerY())));
             }
             else if (random.nextFloat() < 0.2f) {
                 goalDrops.add(
-                        new ResourceBronzeBar(new PointF(goalRoom.centerX(), goalRoom.centerY())));
+                        new ResourceSilverCoin(new PointF(goalRoom.centerX(), goalRoom.centerY())));
             }
             else {
                 goalDrops.add(
-                        new ResourceBronzeCoin(new PointF(goalRoom.centerX(), goalRoom.centerY())));
+                        new ResourceBronzeBar(new PointF(goalRoom.centerX(), goalRoom.centerY())));
             }
 
         }

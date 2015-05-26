@@ -1,7 +1,6 @@
 package com.winsonchiu.rpg;
 
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 
 import com.winsonchiu.rpg.items.Accessory;
 import com.winsonchiu.rpg.items.Armor;

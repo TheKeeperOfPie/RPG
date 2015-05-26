@@ -4,7 +4,6 @@ import android.content.res.Resources;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.R;

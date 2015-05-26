@@ -2,10 +2,8 @@ package com.winsonchiu.rpg.maps;
 
 import android.graphics.Point;
 import android.graphics.PointF;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import com.winsonchiu.rpg.Attack;
 import com.winsonchiu.rpg.Direction;
@@ -13,34 +11,21 @@ import com.winsonchiu.rpg.Entity;
 import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.Renderer;
 import com.winsonchiu.rpg.items.Item;
-import com.winsonchiu.rpg.items.ResourceBronzeBar;
-import com.winsonchiu.rpg.items.ResourceBronzeCoin;
-import com.winsonchiu.rpg.items.ResourceSilverCoin;
 import com.winsonchiu.rpg.mobs.Mob;
-import com.winsonchiu.rpg.mobs.MobAggressive;
-import com.winsonchiu.rpg.mobs.MobMage;
-import com.winsonchiu.rpg.mobs.MobSwordsman;
 import com.winsonchiu.rpg.tiles.Tile;
 import com.winsonchiu.rpg.tiles.TileSet;
 import com.winsonchiu.rpg.tiles.TileSetDungeon;
 import com.winsonchiu.rpg.tiles.TileType;
-import com.winsonchiu.rpg.utils.Edge;
-import com.winsonchiu.rpg.utils.Graph;
-import com.winsonchiu.rpg.utils.MathUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
-import java.util.Stack;
 
 /**
  * Created by TheKeeperOfPie on 5/2/2015.
@@ -53,7 +38,6 @@ public class WorldMap {
     public static final byte CORRIDOR_CONNECTED = 4;
 
     protected static final String IS_ROOF = "Roof";
-    protected static final String IS_DOORWAY = "Doorway";
     protected static final String IS_COLLIDE = "Collide";
     protected static final String IS_ABOVE = "Above";
     protected static final int MAX_ROOM_WIDTH = 11;

@@ -10,15 +10,11 @@ import com.winsonchiu.rpg.Direction;
 import com.winsonchiu.rpg.Entity;
 import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.Renderer;
-import com.winsonchiu.rpg.items.ResourceSilverCoin;
-import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.items.Item;
-import com.winsonchiu.rpg.items.Material;
 import com.winsonchiu.rpg.items.PotionHealth;
 import com.winsonchiu.rpg.items.ResourceBronzeCoin;
-import com.winsonchiu.rpg.items.ResourceGoldCoin;
-import com.winsonchiu.rpg.items.Staff;
-import com.winsonchiu.rpg.items.Sword;
+import com.winsonchiu.rpg.items.ResourceSilverCoin;
+import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.utils.Node;
 
 import java.util.ArrayList;

@@ -3,12 +3,6 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.opengl.GLES20;
 
-import com.winsonchiu.rpg.items.Item;
-
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
-import java.util.List;
-
 /**
  * Created by TheKeeperOfPie on 5/3/2015.
  */

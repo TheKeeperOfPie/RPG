@@ -3,7 +3,6 @@ package com.winsonchiu.rpg.mobs;
 import android.graphics.PointF;
 import android.graphics.Rect;
 
-import com.winsonchiu.rpg.AttackMelee;
 import com.winsonchiu.rpg.AttackRanged;
 import com.winsonchiu.rpg.Renderer;
 import com.winsonchiu.rpg.items.Item;

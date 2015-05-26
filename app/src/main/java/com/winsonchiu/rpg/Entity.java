@@ -5,15 +5,12 @@ import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.util.Log;
 
-import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.utils.RenderUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by TheKeeperOfPie on 5/5/2015.

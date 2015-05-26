@@ -2,10 +2,8 @@ package com.winsonchiu.rpg.utils;
 
 import android.graphics.Point;
 import android.graphics.PointF;
-import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
