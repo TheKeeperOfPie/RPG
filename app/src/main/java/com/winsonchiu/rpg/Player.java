@@ -3,14 +3,15 @@ package com.winsonchiu.rpg;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.Staff;
 import com.winsonchiu.rpg.items.Sword;
 import com.winsonchiu.rpg.items.Weapon;
+import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.mobs.MobAggressive;
+import com.winsonchiu.rpg.mobs.MobType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,9 +21,7 @@ import java.util.List;
  */
 public class Player extends Mob {
 
-    public static final float WIDTH_RATIO = 1f;
-    public static final float HEIGHT_RATIO = 1f;
-    private static final float SPEED = 0.0045f;
+    private static final float SPEED = 0.005f;
     private static final int BASE_HEALTH = 20;
     private static final int BASE_ARMOR = 1;
     private static final int BASE_DAMAGE = 1;
@@ -31,15 +30,10 @@ public class Player extends Mob {
     private static final String TAG = Player.class.getCanonicalName();
     private final EventListener eventListener;
 
-    private float outBoundX;
-    private float outBoundY;
     private long healthTick;
 
-    public Player(PointF location, EventListener eventListener) {
-        super(BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, WIDTH_RATIO, HEIGHT_RATIO, location,
-                21f, 13f,
-                SPEED);
-        setLastAnimationFrame(130);
+    public Player(EventListener eventListener) {
+        super(MobType.PLAYER, BASE_HEALTH, BASE_ARMOR, BASE_DAMAGE, new PointF(0, 0), SPEED);
         this.eventListener = eventListener;
         healthTick = System.currentTimeMillis() / HEALTH_TICK;
         eventListener.onHealthChanged(getHealth(), getMaxHealth());
@@ -53,6 +47,7 @@ public class Player extends Mob {
             healthTick = currentTick;
         }
 
+        WorldMap worldMap = renderer.getWorldMap();
         boolean moveY = true;
         boolean moveX = true;
 
@@ -65,8 +60,6 @@ public class Player extends Mob {
             setVelocityY(getOffsetY() / timeDifference);
             float yCalculated;
             float xCalculated;
-            byte[][] walls = renderer.getWorldMap()
-                    .getWalls();
 
             float boundOffsetX = getWidthRatio() / 12;
             float boundOffsetY = getHeightRatio() / 8;
@@ -89,7 +82,7 @@ public class Player extends Mob {
 
             // TODO: Fix QuadTree and use it to check for collisions
 
-            for (Entity entity : renderer.getWorldMap().getEntityMobs()) {
+            for (Entity entity : worldMap.getEntityMobs()) {
 
                 if (renderer.isPointVisible(entity.getLocation())) {
 
@@ -114,17 +107,17 @@ public class Player extends Mob {
                 if (getMovementY() < 0) {
                     yCalculated = getLocation().y + getOffsetY();
                     moveY = yCalculated > 1 &&
-                            yCalculated < walls[0].length - 1 &&
-                            walls[((int) getLocation().x)][((int) yCalculated)] != WorldMap.COLLIDE &&
-                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) yCalculated)] != WorldMap.COLLIDE;
+                            yCalculated < worldMap.getHeight() - 1 &&
+                            !worldMap.isCollide((int) (getLocation().x + 0.05f), ((int) yCalculated)) &&
+                            !worldMap.isCollide((int) (getLocation().x + getWidthRatio() - 0.1f), ((int) yCalculated));
 
                 }
                 else {
                     yCalculated = getLocation().y + getOffsetY();
                     moveY = yCalculated > 1 &&
-                            yCalculated < walls[0].length - 1 &&
-                            walls[((int) getLocation().x)][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE &&
-                            walls[((int) (getLocation().x + getWidthRatio() - 0.05f))][((int) (yCalculated + getHeightRatio()))] != WorldMap.COLLIDE;
+                            yCalculated < worldMap.getHeight() - 1 &&
+                            !worldMap.isCollide((int) (getLocation().x + 0.05f), (int) (yCalculated + getHeightRatio())) &&
+                            !worldMap.isCollide((int) (getLocation().x + getWidthRatio() - 0.1f), (int) (yCalculated + getHeightRatio()));
 
                 }
 
@@ -139,17 +132,17 @@ public class Player extends Mob {
                 if (getMovementX() < 0) {
                     xCalculated = getLocation().x + getOffsetX();
                     moveX = xCalculated > 1 &&
-                            xCalculated < walls.length - 1 &&
-                            walls[((int) xCalculated)][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            walls[((int) xCalculated)][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE;
+                            xCalculated < worldMap.getWidth() - 1 &&
+                            !worldMap.isCollide((int) xCalculated, (int) (getLocation().y + 0.05f)) &&
+                            !worldMap.isCollide((int) xCalculated, (int) (getLocation().y + getHeightRatio() - 0.1f));
 
                 }
                 else {
                     xCalculated = getLocation().x + getOffsetX();
                     moveX = xCalculated > 1 &&
-                            xCalculated < walls.length - 1 &&
-                            walls[((int) (xCalculated + getWidthRatio()))][((int) getLocation().y)] != WorldMap.COLLIDE &&
-                            walls[((int) (xCalculated + getWidthRatio()))][((int) (getLocation().y + getHeightRatio() - 0.05f))] != WorldMap.COLLIDE;
+                            xCalculated < worldMap.getWidth() - 1 &&
+                            !worldMap.isCollide((int) (xCalculated + getWidthRatio()), (int) (getLocation().y + 0.05f)) &&
+                            !worldMap.isCollide((int) (xCalculated + getWidthRatio()), (int) (getLocation().y + getHeightRatio() - 0.1f));
 
                 }
 
@@ -177,8 +170,7 @@ public class Player extends Mob {
             calculateDirection();
         }
 
-        renderer.getWorldMap()
-                .refreshPlayerTrail(getLocation());
+        worldMap.refreshPlayerTrail(getLocation());
 
         GLES20.glUniform1i(getDamageLocation(), 0);
         super.render(renderer, matrixProjection, matrixView);
@@ -232,47 +224,6 @@ public class Player extends Mob {
         }
 
         calculateAnimationFrame();
-    }
-
-    @Override
-    public void calculateAnimationFrame() {
-        switch (getLastDirection()) {
-
-            case NORTH:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 104));
-                break;
-            case NORTHEAST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 104));
-                break;
-            case EAST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 143));
-                break;
-            case SOUTHEAST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 130));
-                break;
-            case SOUTH:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 130));
-                break;
-            case SOUTHWEST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 130));
-                break;
-            case WEST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 117));
-                break;
-            case NORTHWEST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 8 + 104));
-                break;
-        }
-    }
-
-    @Override
-    public float getWidthRatio() {
-        return 0.8f;
-    }
-
-    @Override
-    public float getHeightRatio() {
-        return 0.8f;
     }
 
     @Override

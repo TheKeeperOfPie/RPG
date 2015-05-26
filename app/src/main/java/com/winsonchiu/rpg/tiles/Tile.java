@@ -15,6 +15,15 @@ public class Tile {
         this.textureId = textureId;
     }
 
+    @Override
+    public String toString() {
+        return "Tile{" +
+                "vertex=" + vertex +
+                ", textureId=" + textureId +
+                '}';
+    }
+
+    //region Getters and setters
     public PointF getVertex() {
         return vertex;
     }
@@ -30,12 +39,5 @@ public class Tile {
     public void setTextureId(int textureId) {
         this.textureId = textureId;
     }
-
-    @Override
-    public String toString() {
-        return "Tile{" +
-                "vertex=" + vertex +
-                ", textureId=" + textureId +
-                '}';
-    }
+    //endregion
 }

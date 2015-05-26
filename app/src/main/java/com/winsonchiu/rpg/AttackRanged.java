@@ -4,6 +4,7 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 
 import com.winsonchiu.rpg.items.Item;
+import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.mobs.MobAggressive;
 
@@ -82,15 +83,14 @@ public class AttackRanged extends Attack {
         float offsetX = (endLocation.x - startLocation.x) * ratio;
         float offsetY = (endLocation.y - startLocation.y) * ratio;
 
-        byte[][] walls = renderer.getWorldMap()
-                .getWalls();
+        WorldMap worldMap = renderer.getWorldMap();
 
         int checkFirstX = (int) (startLocation.x + offsetX);
         int checkFirstY = (int) (startLocation.y + offsetY);
         int checkSecondX = (int) (startLocation.x + offsetX + 0.5f);
         int checkSecondY = (int) (startLocation.y + offsetY + 0.5f);
 
-        if (checkFirstX < 0 || checkFirstY < 0 || checkSecondX >= walls.length || checkSecondY >= walls[0].length || walls[checkFirstX][checkFirstY] == WorldMap.COLLIDE || walls[checkSecondX][checkSecondY] == WorldMap.COLLIDE) {
+        if (checkFirstX < 0 || checkFirstY < 0 || checkSecondX >= worldMap.getWidth() || checkSecondY >= worldMap.getHeight() || worldMap.isCollide(checkFirstX, checkFirstY) || worldMap.isCollide(checkSecondX, checkSecondY)) {
             setToDestroy(true);
             return;
         }
@@ -106,12 +106,12 @@ public class AttackRanged extends Attack {
             }
         }
         else {
-            for (Mob mob : renderer.getWorldMap().getEntityMobs()) {
+            for (Mob mob : worldMap.getEntityMobs()) {
                 if (mob instanceof MobAggressive && RectF.intersects(mob.getBounds(),
                         getBounds())) {
                     if (mob.applyAttack(this)) {
                         List<Item> drops = mob.calculateDrops();
-                        renderer.getWorldMap()
+                        worldMap
                                 .dropItems(drops, mob.getLastDirection(), mob.getNewCenterLocation());
                     }
                     setToDestroy(true);

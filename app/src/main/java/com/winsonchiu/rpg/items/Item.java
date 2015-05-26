@@ -1,9 +1,13 @@
 package com.winsonchiu.rpg.items;
 
 import android.graphics.PointF;
+import android.util.JsonWriter;
 
 import com.winsonchiu.rpg.Entity;
 import com.winsonchiu.rpg.Renderer;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +24,21 @@ public class Item extends Entity {
     private static final float TEXTURE_ROW_COUNT = 14f;
     private static final float TEXTURE_COL_COUNT = 29f;
 
+    private static final String LOCATION_X = "locationX";
+    private static final String LOCATION_Y = "locationY";
+    private static final String HEALTH_BOOST = "healthBoost";
+    private static final String ARMOR_BOOST = "armorBoost";
+    private static final String DAMAGE_BOOST = "damageBoost";
+    private static final String SPEED_BOOST = "speedBoost";
+    private static final String LEVEL = "level";
+    private static final String DURATION = "duration";
+    private static final String RESOURCE_ID = "resourceId";
+    private static final String TEXTURE_ID = "textureId";
+    private static final String NAME = "name";
+    private static final String DESCRIPTION = "description";
+    private static final String QUANTITY = "quantity";
+
+
     private int healthBoost;
     private int armorBoost;
     private int damageBoost;
@@ -30,28 +49,50 @@ public class Item extends Entity {
     private int textureId;
     private String name;
     private String description;
-    private int quantity = 1;
+    private int quantity;
 
     public Item(PointF location, int level) {
         super(WIDTH_RATIO, HEIGHT_RATIO, new PointF(location.x - WIDTH_RATIO / 2, location.y - HEIGHT_RATIO / 2), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
         this.level = level;
+        this.quantity = 1;
     }
 
     public Item(Item item) {
         super(WIDTH_RATIO, HEIGHT_RATIO, new PointF(item.getLocation().x, item.getLocation().y), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
                 0);
-        this.name = item.getName();
-        this.description = item.getDescription();
         this.healthBoost = item.getHealthBoost();
         this.armorBoost = item.getArmorBoost();
         this.damageBoost = item.getDamageBoost();
         this.speedBoost = item.getSpeedBoost();
         this.level = item.getLevel();
+        this.duration = item.getDuration();
+        this.resourceId = item.getResourceId();
+        this.textureId = item.getTextureId();
+        this.name = item.getName();
+        this.description = item.getDescription();
+        this.quantity = 1;
+        setLastAnimationFrame(textureId);
+    }
+
+    public Item(JSONObject jsonObject) {
+        super(WIDTH_RATIO, HEIGHT_RATIO, new PointF(0, 0), TEXTURE_ROW_COUNT, TEXTURE_COL_COUNT,
+                0);
+        this.healthBoost = jsonObject.optInt(HEALTH_BOOST);
+        this.armorBoost = jsonObject.optInt(ARMOR_BOOST);
+        this.damageBoost = jsonObject.optInt(DAMAGE_BOOST);
+        this.speedBoost = jsonObject.optInt(SPEED_BOOST);
+        this.level = jsonObject.optInt(LEVEL);
+        this.duration = jsonObject.optInt(DURATION);
+        this.resourceId = jsonObject.optInt(RESOURCE_ID);
+        this.textureId = jsonObject.optInt(TEXTURE_ID);
+        this.name = jsonObject.optString(NAME, "");
+        this.description = jsonObject.optString(DESCRIPTION, "");
+        this.quantity = jsonObject.optInt(QUANTITY, 1);
+        setLastAnimationFrame(textureId);
     }
 
     //region Getters, setters, changers
-
 
     public void incrementQuantity(int amount) {
         quantity += amount;
@@ -217,4 +258,43 @@ public class Item extends Entity {
         result = 31 * result + getQuantity();
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "Item{" +
+                "healthBoost=" + healthBoost +
+                ", armorBoost=" + armorBoost +
+                ", damageBoost=" + damageBoost +
+                ", speedBoost=" + speedBoost +
+                ", level=" + level +
+                ", duration=" + duration +
+                ", resourceId=" + resourceId +
+                ", textureId=" + textureId +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", quantity=" + quantity +
+                '}';
+    }
+
+    public JSONObject toJsonObject() throws JSONException {
+
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put(LOCATION_X, getLocation().x);
+        jsonObject.put(LOCATION_Y, getLocation().y);
+        jsonObject.put(HEALTH_BOOST, healthBoost);
+        jsonObject.put(ARMOR_BOOST, armorBoost);
+        jsonObject.put(DAMAGE_BOOST, damageBoost);
+        jsonObject.put(SPEED_BOOST, speedBoost);
+        jsonObject.put(LEVEL, level);
+        jsonObject.put(DURATION, duration);
+        jsonObject.put(RESOURCE_ID, resourceId);
+        jsonObject.put(TEXTURE_ID, textureId);
+        jsonObject.put(NAME, name);
+        jsonObject.put(DESCRIPTION, description);
+        jsonObject.put(QUANTITY, quantity);
+
+        return jsonObject;
+    }
+
 }

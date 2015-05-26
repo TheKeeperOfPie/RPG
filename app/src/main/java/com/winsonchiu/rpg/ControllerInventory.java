@@ -1,6 +1,7 @@
 package com.winsonchiu.rpg;
 
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 
 import com.winsonchiu.rpg.items.Accessory;
 import com.winsonchiu.rpg.items.Armor;
@@ -18,6 +19,7 @@ import java.util.Set;
  */
 public class ControllerInventory {
 
+    private static final String TAG = ControllerInventory.class.getCanonicalName();
     private Set<InventoryListener> listeners;
     private List<Item> itemList;
     private volatile Weapon weapon;
@@ -38,12 +40,85 @@ public class ControllerInventory {
         listeners.remove(listener);
     }
 
-    public List<Item> getItemList() {
-        return itemList;
+    public void dropItem(int position) {
+        for (InventoryListener listener : listeners) {
+            listener.dropItem(removeItem(position));
+        }
     }
 
-    public void setItemList(List<Item> itemList) {
-        this.itemList = itemList;
+    public void dropItem(Item item) {
+        for (InventoryListener listener : listeners) {
+            listener.dropItem(removeItem(item));
+        }
+    }
+
+    public void equip(Item item) {
+        if (itemList.contains(item)) {
+            item = removeItem(item);
+        }
+
+        if (item instanceof Weapon) {
+            if (weapon != null) {
+                itemList.add(weapon);
+            }
+            weapon = (Weapon) item;
+        }
+        else if (item instanceof Armor) {
+            if (armor != null) {
+                itemList.add(armor);
+            }
+            armor = (Armor) item;
+        }
+        else if (item instanceof Accessory) {
+            if (accessory != null) {
+                itemList.add(accessory);
+            }
+            accessory = (Accessory) item;
+        }
+
+        for (InventoryListener listener : listeners) {
+            listener.notifyDataSetChanged();
+            listener.onEquipmentChanged();
+        }
+
+    }
+
+    public void dropEquipment(Equipment equipment) {
+        if (equipment instanceof Weapon && hasWeapon()) {
+            weapon = null;
+        }
+        else if (equipment instanceof Armor && hasArmor()) {
+            armor = null;
+        }
+        else if (equipment instanceof Accessory && hasAccessory()) {
+            accessory = null;
+        }
+        dropItem(equipment);
+    }
+
+    public void unequip(Equipment equipment) {
+        if (equipment instanceof Weapon && hasWeapon()) {
+            weapon = null;
+        }
+        else if (equipment instanceof Armor && hasArmor()) {
+            armor = null;
+        }
+        else if (equipment instanceof Accessory && hasAccessory()) {
+            accessory = null;
+        }
+        addItem(equipment);
+        for (InventoryListener inventoryListener : listeners) {
+            inventoryListener.onEquipmentChanged();
+        }
+    }
+
+    //region Getters, setters, and changers
+    public void setItemList(List<Item> items) {
+        itemList = items;
+    }
+
+    public List<Item> getItemList() {
+        return itemList;
     }
 
     public void addItem(Item item) {
@@ -104,49 +179,6 @@ public class ControllerInventory {
         return item;
     }
 
-    public void dropItem(int position) {
-        for (InventoryListener listener : listeners) {
-            listener.dropItem(removeItem(position));
-        }
-    }
-
-    public void dropItem(Item item) {
-        for (InventoryListener listener : listeners) {
-            listener.dropItem(removeItem(item));
-        }
-    }
-
-    public void equip(Item item) {
-        if (itemList.contains(item)) {
-            item = removeItem(item);
-        }
-
-        if (item instanceof Weapon) {
-            if (weapon != null) {
-                itemList.add(weapon);
-            }
-            weapon = (Weapon) item;
-        }
-        else if (item instanceof Armor) {
-            if (armor != null) {
-                itemList.add(armor);
-            }
-            armor = (Armor) item;
-        }
-        else if (item instanceof Accessory) {
-            if (accessory != null) {
-                itemList.add(accessory);
-            }
-            accessory = (Accessory) item;
-        }
-
-        for (InventoryListener listener : listeners) {
-            listener.notifyDataSetChanged();
-            listener.onEquipmentChanged();
-        }
-
-    }
-
     public boolean hasWeapon() {
         return weapon != null;
     }
@@ -170,35 +202,7 @@ public class ControllerInventory {
     public Accessory getAccessory() {
         return accessory;
     }
-
-    public void dropEquipment(Equipment equipment) {
-        if (equipment instanceof Weapon && hasWeapon()) {
-            weapon = null;
-        }
-        else if (equipment instanceof Armor && hasArmor()) {
-            armor = null;
-        }
-        else if (equipment instanceof Accessory && hasAccessory()) {
-            accessory = null;
-        }
-        dropItem(equipment);
-    }
-
-    public void unequip(Equipment equipment) {
-        if (equipment instanceof Weapon && hasWeapon()) {
-            weapon = null;
-        }
-        else if (equipment instanceof Armor && hasArmor()) {
-            armor = null;
-        }
-        else if (equipment instanceof Accessory && hasAccessory()) {
-            accessory = null;
-        }
-        addItem(equipment);
-        for (InventoryListener inventoryListener : listeners) {
-            inventoryListener.onEquipmentChanged();
-        }
-    }
+    //endregion
 
     public interface InventoryListener {
 

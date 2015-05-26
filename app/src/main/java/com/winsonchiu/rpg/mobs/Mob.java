@@ -15,36 +15,38 @@ import java.util.List;
  */
 public abstract class Mob extends Entity {
 
+    public static final float WIDTH_RATIO = 1f;
+    public static final float HEIGHT_RATIO = 1f;
+
+    private final MobType mobType;
     private int health;
     private int maxHealth;
     private int armor;
     private int damage;
-    private float movementSpeed;
     private long attackEndTime;
     private long stunEndTime;
     private long damageEndTime;
     protected Attack attack;
     private boolean isAlerted;
 
-    public Mob(int health,
+    public Mob(MobType mobType,
+            int health,
             int armor,
             int damage,
-            float widthRatio,
-            float heightRatio,
             PointF location,
-            float textureRowCount,
-            float textureColCount,
             float movementSpeed) {
-        super(widthRatio, heightRatio, location, textureRowCount,
-                textureColCount, movementSpeed);
+        super(WIDTH_RATIO, HEIGHT_RATIO, location, 12f,
+                9f, movementSpeed);
+        this.mobType = mobType;
         this.health = health;
         this.maxHealth = health;
         this.armor = armor;
         this.damage = damage;
+        setLastAnimationFrame(18 + mobType.getTextureOffset());
     }
 
     public boolean applyAttack(Attack attack) {
-        health -= attack.calculateDamage();
+        health -= attack.getDamage();
         stunEndTime = System.currentTimeMillis() + 250;
         damageEndTime = System.currentTimeMillis() + 250;
         isAlerted = true;
@@ -70,8 +72,37 @@ public abstract class Mob extends Entity {
 
     public abstract List<Item> calculateDrops();
 
-    public abstract void calculateAnimationFrame();
+    public void calculateAnimationFrame() {
+        switch (getLastDirection()) {
 
+            case NORTH:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9) + mobType.getTextureOffset());
+                break;
+            case NORTHEAST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9) + mobType.getTextureOffset());
+                break;
+            case EAST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 27) + mobType.getTextureOffset());
+                break;
+            case SOUTHEAST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 18) + mobType.getTextureOffset());
+                break;
+            case SOUTH:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 18) + mobType.getTextureOffset());
+                break;
+            case SOUTHWEST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 18) + mobType.getTextureOffset());
+                break;
+            case WEST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9 + 9) + mobType.getTextureOffset());
+                break;
+            case NORTHWEST:
+                setLastAnimationFrame((int) ((System.currentTimeMillis() / 100) % 9) + mobType.getTextureOffset());
+                break;
+        }
+    }
+
+    //region Getters and setters
     public int getHealth() {
         return health;
     }
@@ -143,4 +174,5 @@ public abstract class Mob extends Entity {
     public void setIsAlerted(boolean isAlerted) {
         this.isAlerted = isAlerted;
     }
+    //endregion
 }

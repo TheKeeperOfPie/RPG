@@ -1,10 +1,12 @@
 package com.winsonchiu.rpg;
 
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.drawable.Drawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.view.animation.FastOutLinearInInterpolator;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
@@ -37,12 +39,20 @@ import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.Weapon;
 import com.winsonchiu.rpg.utils.RenderUtils;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import io.fabric.sdk.android.Fabric;
 
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
+    private static final String KEY_INVENTORY = "inventory";
     private ControllerInventory controllerInventory;
     private Renderer renderer;
     private GLSurfaceView glSurfaceView;
@@ -51,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageInventoryControl;
     private FastOutLinearInInterpolator interpolator;
     private ScaleGestureDetector scaleGestureDetector;
+    private SharedPreferences preferences;
 
     private ProgressBar progressBarHealth;
     private LinearLayout layoutHealth;
@@ -91,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
 
         controllerInventory = new ControllerInventory();
 
+        preferences = PreferenceManager.getDefaultSharedPreferences(this);
         interpolator = new FastOutLinearInInterpolator();
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override
@@ -227,6 +239,10 @@ public class MainActivity extends AppCompatActivity {
                         textHealth.setText(getString(R.string.health) + " " + health + " / " + maxHealth);
                     }
                 });
+
+                if (health <= 0) {
+                    renderer.respawnPlayer();
+                }
             }
 
             @Override
@@ -660,10 +676,37 @@ public class MainActivity extends AppCompatActivity {
         applyFullscreen();
         controllerInventory.addListener(inventoryListener);
         glSurfaceView.onResume();
+        try {
+            JSONArray jsonArray = new JSONArray(preferences.getString(KEY_INVENTORY, "{}"));
+            List<Item> items = new ArrayList<>(jsonArray.length());
+            for (int index = 0; index < jsonArray.length(); index++) {
+                try {
+                    items.add(new Item(jsonArray.getJSONObject(index)));
+                }
+                catch (JSONException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "Error creating item from \n" + jsonArray.getJSONObject(index).toString());
+                }
+            }
+            controllerInventory.setItemList(items);
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     protected void onPause() {
+        JSONArray jsonArray = new JSONArray();
+        for (Item item : controllerInventory.getItemList()) {
+            try {
+                jsonArray.put(item.toJsonObject());
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        preferences.edit().putString(KEY_INVENTORY, jsonArray.toString()).commit();
         glSurfaceView.onPause();
         controllerInventory.removeListener(inventoryListener);
         super.onPause();

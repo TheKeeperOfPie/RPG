@@ -15,13 +15,9 @@ public class MobSwordsman extends MobAggressive {
     public MobSwordsman(int health,
             int armor,
             int damage,
-            float widthRatio,
-            float heightRatio,
             PointF location,
-            float textureRowCount,
-            float textureColCount, Rect room, int searchRadius) {
-        super(health, armor, damage, widthRatio, heightRatio, location, textureRowCount,
-                textureColCount, room, searchRadius);
+            Rect room, int searchRadius) {
+        super(MobType.SWORDSMAN, health, armor, damage, location, room, searchRadius);
     }
 
     @Override
@@ -31,7 +27,7 @@ public class MobSwordsman extends MobAggressive {
 
         double distance = MathUtils.distance(playerLocation, getLocation());
 
-        if (distance < 2 && System.currentTimeMillis() > getAttackEndTime() && System.currentTimeMillis() / 250 % 8 == 0) {
+        if (distance < 2 && System.currentTimeMillis() > getAttackEndTime() && System.currentTimeMillis() / 200 % 5 == 0) {
             renderer.getWorldMap().addAttack(new AttackMelee(getDamage(), 1, 1, getLocation(), 250, true, getLastDirection(), this));
             setAttackEndTime(System.currentTimeMillis() + 1000);
         }

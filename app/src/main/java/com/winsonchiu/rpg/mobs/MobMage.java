@@ -16,13 +16,9 @@ public class MobMage extends MobAggressive {
     public MobMage(int health,
             int armor,
             int damage,
-            float widthRatio,
-            float heightRatio,
             PointF location,
-            float textureRowCount,
-            float textureColCount, Rect room, int searchRadius) {
-        super(health, armor, damage, widthRatio, heightRatio, location, textureRowCount,
-                textureColCount, room, searchRadius);
+            Rect room, int searchRadius) {
+        super(MobType.MAGE, health, armor, damage, location, room, searchRadius);
     }
 
 

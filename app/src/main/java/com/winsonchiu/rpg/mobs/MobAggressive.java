@@ -6,21 +6,18 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.Log;
 
-import com.winsonchiu.rpg.AttackMelee;
 import com.winsonchiu.rpg.Direction;
 import com.winsonchiu.rpg.Entity;
 import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.Renderer;
-import com.winsonchiu.rpg.WorldMap;
+import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.Material;
 import com.winsonchiu.rpg.items.PotionHealth;
-import com.winsonchiu.rpg.items.ResourceBronzeBar;
 import com.winsonchiu.rpg.items.ResourceBronzeCoin;
 import com.winsonchiu.rpg.items.ResourceGoldCoin;
 import com.winsonchiu.rpg.items.Staff;
 import com.winsonchiu.rpg.items.Sword;
-import com.winsonchiu.rpg.utils.MathUtils;
 import com.winsonchiu.rpg.utils.Node;
 
 import java.util.ArrayList;
@@ -36,9 +33,7 @@ import java.util.Random;
 public abstract class MobAggressive extends Mob {
 
     private static final String TAG = MobAggressive.class.getCanonicalName();
-    private static final float SPEED = 0.003f;
-    public static final float WIDTH_RATIO = 0.6f;
-    public static final float HEIGHT_RATIO = 0.9f;
+    private static final float SPEED = 0.0035f;
     private RectF homeRoom;
     private int searchRadius;
     private PointF targetLocation;
@@ -46,19 +41,14 @@ public abstract class MobAggressive extends Mob {
     private List<PointF> path;
     private Random random;
 
-    public MobAggressive(int health,
+    public MobAggressive(MobType mobType,
+            int health,
             int armor,
             int damage,
-            float widthRatio,
-            float heightRatio,
             PointF location,
-            float textureRowCount,
-            float textureColCount,
             Rect room,
             int searchRadius) {
-        super(health, armor, damage, widthRatio, heightRatio, location, textureRowCount,
-                textureColCount,
-                SPEED);
+        super(mobType, health, armor, damage, location, SPEED);
         this.homeLocation = new Point((int) location.x, (int) location.y);
         this.targetLocation = new PointF(location.x, location.y);
         this.homeRoom = new RectF(room.left, room.top, room.right, room.bottom);
@@ -454,42 +444,7 @@ public abstract class MobAggressive extends Mob {
         calculateAnimationFrame();
     }
 
-    @Override
-    public void calculateAnimationFrame() {
-
-        switch (getLastDirection()) {
-
-            case NORTH:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
-                break;
-            case NORTHEAST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
-                break;
-            case EAST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 8));
-                break;
-            case SOUTHEAST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
-                break;
-            case SOUTH:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
-                break;
-            case SOUTHWEST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4));
-                break;
-            case WEST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 4));
-                break;
-            case NORTHWEST:
-                setLastAnimationFrame((int) ((System.currentTimeMillis() / 200) % 4 + 12));
-                break;
-        }
-
-    }
-
     private List<PointF> searchForHome(Point startPoint, WorldMap worldMap, Renderer renderer) {
-
-        Log.d(TAG, "searchForHome");
 
         PriorityQueue<Node> openList = new PriorityQueue<>();
         HashSet<Node> closedSet = new HashSet<>();

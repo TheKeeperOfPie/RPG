@@ -24,22 +24,6 @@ public class Node implements Comparable<Node> {
         this.point = point;
     }
 
-    public Point getPoint() {
-        return point;
-    }
-
-    public void setPoint(Point point) {
-        this.point = point;
-    }
-
-    public double getCost() {
-        return cost;
-    }
-
-    public void setCost(double cost) {
-        this.cost = cost;
-    }
-
     public List<Node> getAdjacentNodes() {
 
         List<Node> nodes = new ArrayList<>();
@@ -99,6 +83,23 @@ public class Node implements Comparable<Node> {
         return Double.compare(getCost(), another.getCost());
     }
 
+    //region Getters and setters
+    public Point getPoint() {
+        return point;
+    }
+
+    public void setPoint(Point point) {
+        this.point = point;
+    }
+
+    public double getCost() {
+        return cost;
+    }
+
+    public void setCost(double cost) {
+        this.cost = cost;
+    }
+
     public void setParent(Node parent) {
         this.parent = parent;
     }
@@ -106,4 +107,5 @@ public class Node implements Comparable<Node> {
     public Node getParent() {
         return parent;
     }
+    //endregion
 }

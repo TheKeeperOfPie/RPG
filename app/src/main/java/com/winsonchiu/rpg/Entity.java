@@ -20,7 +20,7 @@ import java.util.List;
  */
 public abstract class Entity {
 
-    public static final String VERTEX_SHADER =
+    private static final String VERTEX_SHADER =
             "uniform mat4 matrix;" +
             "attribute vec4 positionCoordinate;" +
             "attribute vec2 textureCoordinateVertex;" +
@@ -35,7 +35,7 @@ public abstract class Entity {
             "    textureCoordinateFragment.y = (textureCoordinateVertex.y + float(animationFrame / int(colCount))) / rowCount;" +
             "}";
 
-    public static final String FRAGMENT_SHADER =
+    private static final String FRAGMENT_SHADER =
             "varying vec2 textureCoordinateFragment;" +
             "uniform float opacity;" +
             "uniform sampler2D texture;" +

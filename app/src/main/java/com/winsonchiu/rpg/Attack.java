@@ -35,10 +35,7 @@ public abstract class Attack extends Entity {
         super.render(renderer, matrixProjection, matrixView);
     }
 
-    public int calculateDamage() {
-        return damage;
-    }
-
+    //region Getters and setters
     public int getDamage() {
         return damage;
     }
@@ -78,4 +75,5 @@ public abstract class Attack extends Entity {
     public void setIsHostile(boolean isHostile) {
         this.isHostile = isHostile;
     }
+    //endregion
 }

@@ -59,13 +59,6 @@ public class MathUtils {
 
         }
 
-        List<Integer> visitedList = new ArrayList<>(visitedVertices);
-        Collections.sort(visitedList);
-        Log.d(TAG, "visitedVertices: " + visitedList);
-        Log.d(TAG, "maxVertices: " + maxVertices);
-        Log.d(TAG, "resultTree size: " + resultTree.size());
-        Log.d(TAG, "resultTree: " + resultTree);
-
         return resultTree;
 
     }
