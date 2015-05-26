@@ -4,9 +4,27 @@ This is a basic RPG created for the Android platform as a school project. It is 
 basic mechanics of a role-playing game implemented. Several game engine features are still not perfect, and the backstory is
 non-existent, but it will iterated and improved eventually. 
 
+## Download
+
+Here: http://winsonchiu.com/assets/RPG.apk
+
 ## Screenshots
 
+<b>Spawn</b>
 
+<img src="/Assets/Screenshots/spawn.png" width="800px"/>
+
+<b>Home</b>
+
+<img src="/Assets/Screenshots/home.png" width="800px"/>
+
+<b>Dungeon</b>
+
+<img src="/Assets/Screenshots/dungeon001.png" width="800px"/>
+
+<b>Inventory</b>
+
+<img src="/Assets/Screenshots/inventory.png" width="800px"/>
 
 
 ## Copyright / Licensing
