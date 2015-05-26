@@ -38,6 +38,14 @@ assuming you follow them as well.
 The tileset used to render the maps were created by Kenney. They are licensed CC0, which means you are free to use them as well.
 His website is located here: http://kenney.nl/
 
+### Item Sprites
+
+The icons used for items were created by 7Soul1 on DeviantArt.
+
+The sprites are located here: http://7soul1.deviantart.com/art/420-Pixel-Art-Icons-for-RPG-129892453
+
+And here's his user page: http://7soul1.deviantart.com/
+
 ### LPC Sprites
 
 This game uses art assets generated using [Universal Sprite Sheet](https://github.com/jrconway3/Universal-LPC-spritesheet), 
