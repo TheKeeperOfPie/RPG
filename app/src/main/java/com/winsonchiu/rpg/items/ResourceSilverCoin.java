@@ -26,5 +26,8 @@ public class ResourceSilverCoin extends Resource {
 
     public ResourceSilverCoin(JSONObject jsonObject) {
         super(jsonObject);
+        setResourceId(R.drawable.i_silvercoin);
+        setTextureId(265);
+        setLastAnimationFrame(getTextureId());
     }
 }

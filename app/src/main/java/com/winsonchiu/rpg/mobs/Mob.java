@@ -15,8 +15,8 @@ import java.util.List;
  */
 public abstract class Mob extends Entity {
 
-    public static final float WIDTH_RATIO = 1f;
-    public static final float HEIGHT_RATIO = 1f;
+    public static final float WIDTH_RATIO = 0.95f;
+    public static final float HEIGHT_RATIO = 0.95f;
 
     private final MobType mobType;
     private int health;

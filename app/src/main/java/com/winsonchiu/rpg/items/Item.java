@@ -85,8 +85,6 @@ public class Item extends Entity {
         this.speedBoost = jsonObject.optInt(SPEED_BOOST);
         this.level = jsonObject.optInt(LEVEL);
         this.duration = jsonObject.optInt(DURATION);
-        this.resourceId = jsonObject.optInt(RESOURCE_ID);
-        this.textureId = jsonObject.optInt(TEXTURE_ID);
         this.name = jsonObject.optString(NAME, "");
         this.description = jsonObject.optString(DESCRIPTION, "");
         this.quantity = jsonObject.optInt(QUANTITY, 1);
@@ -106,6 +104,26 @@ public class Item extends Entity {
         }
 
         quantity--;
+        try {
+            Class itemClass = Item.class.getClassLoader().loadClass(this.getClass().getCanonicalName());
+            Constructor constructor = itemClass.getConstructor(Item.class);
+            return (Item) constructor.newInstance(this);
+        }
+        catch (InstantiationException e) {
+            e.printStackTrace();
+        }
+        catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
 
         return new Item(this);
 
@@ -290,8 +308,6 @@ public class Item extends Entity {
         jsonObject.put(SPEED_BOOST, speedBoost);
         jsonObject.put(LEVEL, level);
         jsonObject.put(DURATION, duration);
-        jsonObject.put(RESOURCE_ID, resourceId);
-        jsonObject.put(TEXTURE_ID, textureId);
         jsonObject.put(NAME, name);
         jsonObject.put(DESCRIPTION, description);
         jsonObject.put(QUANTITY, quantity);

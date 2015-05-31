@@ -250,33 +250,33 @@ public class Player extends Mob {
             PointF end = new PointF(getLocation().x, getLocation().y);
             PointF start = getNewCenterLocation();
             start.offset(-0.6f / 2, -0.9f / 2);
-            long time = 350;
+            long time = 1250;
 
             switch (getLastDirection()) {
 
                 case NORTH:
-                    end.offset(0, getVelocityY() * time + 3);
+                    end.offset(0, getVelocityY() * time + 5);
                     break;
                 case NORTHEAST:
-                    end.offset(getVelocityX() * time + 3, getVelocityY() * time + 3);
+                    end.offset(getVelocityX() * time + 5, getVelocityY() * time + 5);
                     break;
                 case EAST:
-                    end.offset(getVelocityX() * time + 3, 0);
+                    end.offset(getVelocityX() * time + 5, 0);
                     break;
                 case SOUTHEAST:
-                    end.offset(getVelocityX() * time + 3, getVelocityY() * time - 3);
+                    end.offset(getVelocityX() * time + 5, getVelocityY() * time - 5);
                     break;
                 case SOUTH:
-                    end.offset(0, getVelocityY() * time - 3);
+                    end.offset(0, getVelocityY() * time - 5);
                     break;
                 case SOUTHWEST:
-                    end.offset(getVelocityX() * time - 3, getVelocityY() * time - 3);
+                    end.offset(getVelocityX() * time - 5, getVelocityY() * time - 5);
                     break;
                 case WEST:
-                    end.offset(getVelocityX() * time - 3, 0);
+                    end.offset(getVelocityX() * time - 5, 0);
                     break;
                 case NORTHWEST:
-                    end.offset(getVelocityX() * time - 3, getVelocityY() * time + 3);
+                    end.offset(getVelocityX() * time - 5, getVelocityY() * time + 5);
                     break;
             }
 

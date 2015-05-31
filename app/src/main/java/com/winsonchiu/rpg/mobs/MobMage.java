@@ -32,8 +32,11 @@ public class MobMage extends MobAggressive {
 
         Random random = new Random();
 
-        if (random.nextFloat() < 0.005f) {
-            drops.add(new Staff(getNewCenterLocation(), random.nextInt(1) + 1, Material.RUBY));
+        if (random.nextFloat() < 0.01f) {
+            drops.add(new Staff(getNewCenterLocation(), random.nextInt(2) + 1, Material.RUBY));
+        }
+        else if (random.nextFloat() < 0.0005f) {
+            drops.add(new Staff(getNewCenterLocation(), random.nextInt(2) + 1, Material.SAPPHIRE));
         }
 
         return drops;
@@ -52,7 +55,7 @@ public class MobMage extends MobAggressive {
         if (distance < 4 && System.currentTimeMillis() > getAttackEndTime()) {
             PointF endLocation = new PointF(playerLocation.x + differenceX, playerLocation.y + differenceY);
             renderer.getWorldMap().addAttack(new AttackRanged(getDamage(), 1, 1, getLocation(), endLocation,
-                    (long) (distance * 200), true, getLastDirection()));
+                    (long) (distance * 250), true, getLastDirection()));
             setAttackEndTime(System.currentTimeMillis() + 2500);
         }
     }

@@ -26,5 +26,8 @@ public class ResourceGoldCoin extends Resource {
 
     public ResourceGoldCoin(JSONObject jsonObject) {
         super(jsonObject);
+        setResourceId(R.drawable.i_goldcoin);
+        setTextureId(186);
+        setLastAnimationFrame(getTextureId());
     }
 }

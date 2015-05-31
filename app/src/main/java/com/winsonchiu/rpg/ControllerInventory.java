@@ -52,25 +52,30 @@ public class ControllerInventory {
     }
 
     public void equip(Item item) {
+
+        boolean isWeapon = item instanceof Weapon;
+        boolean isArmor = item instanceof Armor;
+        boolean isAccessory = item instanceof Accessory;
+
         if (itemList.contains(item)) {
             item = removeItem(item);
         }
 
-        if (item instanceof Weapon) {
+        if (isWeapon) {
             if (weapon != null) {
-                itemList.add(weapon);
+                addItem(weapon);
             }
             weapon = (Weapon) item;
         }
-        else if (item instanceof Armor) {
+        else if (isArmor) {
             if (armor != null) {
-                itemList.add(armor);
+                addItem(armor);
             }
             armor = (Armor) item;
         }
-        else if (item instanceof Accessory) {
+        else if (isAccessory) {
             if (accessory != null) {
-                itemList.add(accessory);
+                addItem(accessory);
             }
             accessory = (Accessory) item;
         }
@@ -200,6 +205,18 @@ public class ControllerInventory {
 
     public Accessory getAccessory() {
         return accessory;
+    }
+
+    public void setWeapon(Item item) {
+        weapon = (Weapon) item;
+    }
+
+    public void setArmor(Item item) {
+        armor = (Armor) item;
+    }
+
+    public void setAccessory(Item item) {
+        accessory = (Accessory) item;
     }
     //endregion
 

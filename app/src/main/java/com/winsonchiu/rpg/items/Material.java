@@ -6,7 +6,7 @@ package com.winsonchiu.rpg.items;
 public enum Material {
 
     BRONZE(1), SILVER(2), GOLD(4),
-    AGATE(1), AMETHYST(2), RUBY(3), SAPPHIRE(4), DIAMOND(6);
+    AGATE(1), AMETHYST(2), RUBY(4), SAPPHIRE(6), DIAMOND(8);
 
     private final int modifier;
 

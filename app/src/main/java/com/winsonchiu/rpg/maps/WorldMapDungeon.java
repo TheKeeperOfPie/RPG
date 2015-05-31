@@ -44,6 +44,7 @@ public class WorldMapDungeon extends WorldMap {
     private Rect goalRoom;
     private Rect roomStart;
     private boolean hasFoundGoal;
+    private RectF boundsExit;
 
     public WorldMapDungeon(int width, int height) {
         super(width, height);
@@ -52,6 +53,7 @@ public class WorldMapDungeon extends WorldMap {
         roomStart = new Rect();
         boundsGoal = new RectF();
         boundsStart = new RectF();
+        boundsExit = new RectF();
     }
 
     @Override
@@ -59,8 +61,18 @@ public class WorldMapDungeon extends WorldMap {
         return new PointF(roomStart.centerX(), roomStart.centerY() - 1);
     }
 
-    public void activateGoal(Renderer renderer) {
+    public void checkGoal(Renderer renderer) {
         if (hasFoundGoal) {
+            if (RectF.intersects(renderer.getPlayer()
+                    .getBounds(), boundsExit)) {
+                generateRectangularDungeon();
+                renderer.loadMap(this, getStartPoint());
+            }
+
+            return;
+        }
+        if (!RectF.intersects(renderer.getPlayer()
+                .getBounds(), boundsGoal)) {
             return;
         }
         tileChestLeft.setTextureId(tileSet.getTextureForTileType(TileType.CHEST_LEFT_OPEN));
@@ -105,18 +117,11 @@ public class WorldMapDungeon extends WorldMap {
             int[] textureNames) {
         super.renderEntities(renderer, matrixProjection, matrixView, textureNames);
 
-        if (RectF.intersects(renderer.getPlayer()
-                .getBounds(), boundsGoal)) {
-            activateGoal(renderer);
-        }
+        checkGoal(renderer);
     }
 
 
     private void setTiles() {
-        tilesBelow.clear();
-        tilesAbove.clear();
-        tilesRoof.clear();
-
         TileType tileType;
 
         for (int x = 0; x < width; x++) {
@@ -162,9 +167,18 @@ public class WorldMapDungeon extends WorldMap {
 
     }
 
+    @Override
+    public void clear() {
+        super.clear();
+        rooms.clear();
+        graph = new Graph();
+        hasFoundGoal = false;
+    }
+
     public void generateRectangularDungeon() {
 
         long startTime = System.currentTimeMillis();
+        clear();
 
         fillWalls();
         generateRooms();
@@ -195,6 +209,7 @@ public class WorldMapDungeon extends WorldMap {
         goalRoom = rooms.get(furtherRoomIndex);
         boundsGoal = new RectF(goalRoom.centerX() - 1, goalRoom.centerY() - 1,
                 goalRoom.centerX() + 2, goalRoom.centerY() + 1);
+        boundsExit = new RectF(goalRoom.centerX(), goalRoom.centerY() + 1, goalRoom.centerX() + 1, goalRoom.centerY() + 2);
 
         setTiles();
 
@@ -207,6 +222,7 @@ public class WorldMapDungeon extends WorldMap {
         List<Mob> mobs = new ArrayList<>();
         Set<Point> usedPoints = new HashSet<>(4);
         PointF location;
+        Point point;
         int attempts = 0;
 
         for (Rect room : rooms) {
@@ -219,30 +235,31 @@ public class WorldMapDungeon extends WorldMap {
 
             for (int iteration = 0; iteration < iterations; iteration++) {
 
-                int roomX = random.nextInt(room.width() - 2) + 1;
-                int roomY = random.nextInt(room.height() - 2) + 1;
+                int roomX = random.nextInt(room.width() - 3) + 1;
+                int roomY = random.nextInt(room.height() - 3) + 1;
 
-                Point point = new Point(roomX + room.left, roomY + room.top);
+                point = new Point(roomX + room.left, roomY + room.top);
                 location = new PointF(roomX + room.left, roomY + room.top);
 
                 // TODO: This is not a good programming practice. Use a better system.
                 attempts = 0;
                 while (!usedPoints.add(point) && attempts++ < 5) {
-                    roomX = random.nextInt(room.width() - 2) + 1;
-                    roomY = random.nextInt(room.height() - 2) + 1;
+                    roomX = random.nextInt(room.width() - 3) + 1;
+                    roomY = random.nextInt(room.height() - 3) + 1;
 
+                    point = new Point(roomX + room.left, roomY + room.top);
                     location = new PointF(roomX + room.left, roomY + room.top);
                 }
 
                 Mob mob;
 
                 if (random.nextFloat() < 0.3f) {
-                    mob = new MobMage(2, 0, 2, location, room, 8);
+                    mob = new MobMage(3, 0, 2, location, room, 8);
                 }
                 else {
-                    mob = new MobSwordsman(3, 0, 1, location, room, 8);
+                    mob = new MobSwordsman(4, 0, 1, location, room, 8);
                 }
-                mob.setLastDirection(Direction.getRandomDirection());
+                mob.setLastDirection(Direction.getRandomDirectionFourWay());
                 mob.calculateAnimationFrame();
                 mobs.add(mob);
 
@@ -498,6 +515,10 @@ public class WorldMapDungeon extends WorldMap {
         return boundsStart.contains(renderer.getPlayer()
                 .getLocation().x + Player.WIDTH_RATIO / 2, renderer.getPlayer()
                 .getLocation().y + Player.HEIGHT_RATIO / 2);
+    }
+
+    public boolean isCleared() {
+        return hasFoundGoal;
     }
     //endregion
 

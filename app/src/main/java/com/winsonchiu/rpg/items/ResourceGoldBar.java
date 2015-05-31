@@ -26,5 +26,8 @@ public class ResourceGoldBar extends Resource {
 
     public ResourceGoldBar(JSONObject jsonObject) {
         super(jsonObject);
+        setResourceId(R.drawable.i_goldbar);
+        setTextureId(130);
+        setLastAnimationFrame(getTextureId());
     }
 }

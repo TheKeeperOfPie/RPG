@@ -130,7 +130,7 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         worldMapTown = new WorldMapTown(activity.getResources());
 
-        worldMapDungeon = new WorldMapDungeon(100, 100);
+        worldMapDungeon = new WorldMapDungeon(150, 150);
         worldMapDungeon.generateRectangularDungeon();
 
         loadMap(worldMapTown, worldMapTown.getSpawnPoint());
@@ -190,6 +190,9 @@ public class Renderer implements GLSurfaceView.Renderer {
 
         if (getWorldMap() instanceof WorldMapDungeon && ((WorldMapDungeon) getWorldMap()).returnToTown(this)) {
             loadMap(worldMapTown, worldMapTown.getDungeonExitPoint());
+            if (worldMapDungeon.isCleared()) {
+                worldMapDungeon.generateRectangularDungeon();
+            }
         }
         else if (getWorldMap() instanceof WorldMapTown && ((WorldMapTown) getWorldMap()).enterDungeon(this)) {
             loadMap(worldMapDungeon, worldMapDungeon.getStartPoint());
@@ -199,7 +202,7 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     }
 
-    private void loadMap(WorldMap worldMap, PointF pointStart) {
+    public void loadMap(WorldMap worldMap, PointF pointStart) {
 
         currentWorldMap = worldMap;
 
@@ -256,6 +259,7 @@ public class Renderer implements GLSurfaceView.Renderer {
         player.setLastDirection(Direction.SOUTH);
         player.calculateAnimationFrame();
         eventListenerPlayer.onHealthChanged(player.getHealth(), player.getMaxHealth());
+        worldMapDungeon.generateRectangularDungeon();
     }
 
     //region Setup and teardown
@@ -495,6 +499,12 @@ public class Renderer implements GLSurfaceView.Renderer {
 
     public void pickUpItem(Item item) {
         eventListenerRenderer.pickUpItem(item);
+    }
+
+    public void setOffsetCamera(PointF location) {
+        offsetCameraX = location.x;
+        offsetCameraY = location.y;
+        setCamera();
     }
     //endregion
 

@@ -27,6 +27,9 @@ public class PotionHealth extends Consumable {
 
     public PotionHealth(JSONObject jsonObject) {
         super(jsonObject);
+        setResourceId(R.drawable.p_red03);
+        setTextureId(270);
+        setLastAnimationFrame(getTextureId());
     }
 
     @Override

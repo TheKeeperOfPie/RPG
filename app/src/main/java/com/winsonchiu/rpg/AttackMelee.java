@@ -135,6 +135,7 @@ public class AttackMelee extends Attack {
                 renderer.getPlayer()
                         .applyAttack(this);
                 entities.add(renderer.getPlayer());
+                renderer.getWorldMap().addEntity(new Number(renderer.getPlayer().getLocation(), 500, -getDamage(), renderer.getPlayer()));
             }
         }
         else {

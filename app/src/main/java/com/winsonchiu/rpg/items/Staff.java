@@ -18,7 +18,26 @@ public class Staff extends Weapon {
         setName(getMaterial().getName() + " Staff");
         setDescription(
                 "A staff crafted with " + material.getName() + " which deals " + getMaterial().getModifier() + " - " + ((getLevel() + 1) * getMaterial().getModifier()) + " damage");
-        switch (material) {
+        setTextureAndResourceIds();
+    }
+
+    public Staff(Item item) {
+        super(item);
+    }
+
+    public Staff(JSONObject jsonObject) {
+        super(jsonObject);
+        setTextureAndResourceIds();
+    }
+
+    @Override
+    public int getDamageBoost() {
+        return (new Random().nextInt(getLevel() + 1) + 1) * getMaterial().getModifier();
+    }
+
+    @Override
+    public void setTextureAndResourceIds() {
+        switch (getMaterial()) {
             case RUBY:
                 setResourceId(R.drawable.w_mace007);
                 setTextureId(284);
@@ -28,21 +47,18 @@ public class Staff extends Weapon {
                 setTextureId(312);
                 break;
             default:
-                throw new IllegalArgumentException("Staff cannot be made of " + material.getName());
+                throw new IllegalArgumentException("Staff cannot be made of " + getMaterial().getName());
         }
         setLastAnimationFrame(getTextureId());
     }
 
-    public Staff(Item item) {
-        super(item);
-    }
-
-    public Staff(JSONObject jsonObject) {
-        super(jsonObject);
+    @Override
+    public int getMinDamage() {
+        return 0;
     }
 
     @Override
-    public int getDamageBoost() {
-        return (new Random().nextInt(getLevel() + 1) + 1) * getMaterial().getModifier();
+    public int getMaxDamage() {
+        return 0;
     }
 }

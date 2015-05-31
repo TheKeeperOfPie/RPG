@@ -7,6 +7,8 @@ import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.maps.WorldMap;
 import com.winsonchiu.rpg.mobs.Mob;
 import com.winsonchiu.rpg.mobs.MobAggressive;
+import com.winsonchiu.rpg.utils.*;
+import com.winsonchiu.rpg.utils.Number;
 
 import java.util.List;
 
@@ -103,6 +105,7 @@ public class AttackRanged extends Attack {
                 renderer.getPlayer()
                         .applyAttack(this);
                 setToDestroy(true);
+                renderer.getWorldMap().addEntity(new Number(renderer.getPlayer().getLocation(), 500, -getDamage(), renderer.getPlayer()));
             }
         }
         else {
@@ -115,6 +118,7 @@ public class AttackRanged extends Attack {
                                 .dropItems(drops, mob.getLastDirection(), mob.getNewCenterLocation());
                     }
                     setToDestroy(true);
+                    renderer.getWorldMap().addEntity(new Number(mob.getLocation(), 500, -getDamage(), mob));
                     break;
                 }
             }

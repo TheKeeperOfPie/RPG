@@ -26,5 +26,8 @@ public class ResourceSilverBar extends Resource {
 
     public ResourceSilverBar(JSONObject jsonObject) {
         super(jsonObject);
+        setResourceId(R.drawable.i_silverbar);
+        setTextureId(208);
+        setLastAnimationFrame(getTextureId());
     }
 }

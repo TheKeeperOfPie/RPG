@@ -2,6 +2,7 @@ package com.winsonchiu.rpg.maps;
 
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.opengl.GLES20;
 
@@ -23,6 +24,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -149,8 +151,8 @@ public class WorldMap {
 
 
         // TODO: Move to proper QuadTree implementation
-        synchronized (getItems()) {
-            Iterator<Item> iterator = getItems().iterator();
+        synchronized (items) {
+            Iterator<Item> iterator = items.iterator();
             while (iterator.hasNext()) {
                 Item item = iterator.next();
                 if (renderer.isPointVisible(item.getLocation())) {
@@ -188,7 +190,11 @@ public class WorldMap {
                 Attack attack = iterator.next();
                 attack.render(renderer, matrixProjection, matrixView);
                 if (attack.getToDestroy()) {
-                    iterator.remove();
+                    try {
+                        iterator.remove();
+                    }
+                    catch (ConcurrentModificationException e) {
+                    }
                 }
             }
         }
@@ -204,6 +210,24 @@ public class WorldMap {
                 }
             }
         }
+    }
+
+    public boolean isCollide(Rect bounds) {
+
+        int left = bounds.left > 0 ? bounds.left : 0;
+        int right = bounds.right < width ? bounds.right : width - 1;
+        int top = bounds.top > 0 ? bounds.top : 0;
+        int bottom = bounds.bottom < height ? bounds.bottom : height - 1;
+
+        for (int x = left; x <= right; x++) {
+            for (int y = top; y <= bottom; y++) {
+                if (x > 0 && x < width && walls[x][y] == COLLIDE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+
     }
 
     public boolean isCollide(int x, int y) {
@@ -299,7 +323,9 @@ public class WorldMap {
     }
 
     public void addItem(Item item) {
-        items.add(item);
+        synchronized (items) {
+            items.add(item);
+        }
     }
 
     public PointF getStartPoint() {
@@ -446,7 +472,9 @@ public class WorldMap {
     }
 
     public void addEntity(Entity entity) {
-        entities.add(entity);
+        synchronized (entities) {
+            entities.add(entity);
+        }
     }
 
     public void addMob(Mob mob) {
@@ -454,11 +482,15 @@ public class WorldMap {
     }
 
     public void addMobs(List<Mob> mobs) {
-        entityMobs.addAll(mobs);
+        synchronized (entityMobs) {
+            entityMobs.addAll(mobs);
+        }
     }
 
     public void addAttack(Attack attack) {
-        entityAttacks.add(attack);
+        synchronized (entityAttacks) {
+            entityAttacks.add(attack);
+        }
     }
 
     public List<Tile> getTilesRoof() {
@@ -467,6 +499,40 @@ public class WorldMap {
 
     public void setClearColor() {
         GLES20.glClearColor(0f, 0f, 0f, 1f);
+    }
+
+    public void clear() {
+        synchronized (items) {
+            Iterator iterator = items.iterator();
+            while (iterator.hasNext()) {
+                iterator.next();
+                iterator.remove();
+            }
+        }
+        synchronized (entities) {
+            Iterator iterator = entities.iterator();
+            while (iterator.hasNext()) {
+                iterator.next();
+                iterator.remove();
+            }
+        }
+        synchronized (entityMobs) {
+            Iterator iterator = entityMobs.iterator();
+            while (iterator.hasNext()) {
+                iterator.next();
+                iterator.remove();
+            }
+        }
+        synchronized (entityAttacks) {
+            Iterator iterator = entityAttacks.iterator();
+            while (iterator.hasNext()) {
+                iterator.next();
+                iterator.remove();
+            }
+        }
+        tilesAbove.clear();
+        tilesBelow.clear();
+        tilesRoof.clear();
     }
     //endregion
 }

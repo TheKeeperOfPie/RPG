@@ -12,6 +12,7 @@ import com.winsonchiu.rpg.Player;
 import com.winsonchiu.rpg.Renderer;
 import com.winsonchiu.rpg.items.Item;
 import com.winsonchiu.rpg.items.PotionHealth;
+import com.winsonchiu.rpg.items.ResourceBronzeBar;
 import com.winsonchiu.rpg.items.ResourceBronzeCoin;
 import com.winsonchiu.rpg.items.ResourceSilverCoin;
 import com.winsonchiu.rpg.maps.WorldMap;
@@ -79,7 +80,7 @@ public abstract class MobAggressive extends Mob {
             drops.add(new PotionHealth(getNewCenterLocation(), random.nextInt(2) + 2));
         }
         if (random.nextFloat() < 0.01f) {
-            drops.add(new ResourceSilverCoin(getNewCenterLocation()));
+            drops.add(new ResourceBronzeBar(getNewCenterLocation()));
         }
         return drops;
     }
@@ -96,66 +97,66 @@ public abstract class MobAggressive extends Mob {
         if (playerLocation.x < getLocation().x + searchRadius &&
                 playerLocation.x > getLocation().x - searchRadius &&
                 playerLocation.y < getLocation().y + searchRadius &&
-                playerLocation.y > getLocation().y - searchRadius &&
-                !doesLineIntersectWalls(getNewCenterLocation(), player.getNewCenterLocation(), worldMap.getWalls())) {
+                playerLocation.y > getLocation().y - searchRadius) {
 
-            if (!isAlerted()) {
+            switch (getLastDirection()) {
 
-                switch (getLastDirection()) {
+                case NORTH:
+                    if (playerLocation.y < getLocation().y) {
+                        return;
+                    }
+                    break;
+                case NORTHEAST:
+                    if (playerLocation.y < getLocation().y) {
+                        return;
+                    }
+                    if (playerLocation.x < getLocation().x) {
+                        return;
+                    }
+                    break;
+                case EAST:
+                    if (playerLocation.x < getLocation().x) {
+                        return;
+                    }
+                    break;
+                case SOUTHEAST:
+                    if (playerLocation.y > getLocation().y) {
+                        return;
+                    }
+                    if (playerLocation.x < getLocation().x) {
+                        return;
+                    }
+                    break;
+                case SOUTH:
+                    if (playerLocation.y > getLocation().y) {
+                        return;
+                    }
+                    break;
+                case SOUTHWEST:
+                    if (playerLocation.y > getLocation().y) {
+                        return;
+                    }
+                    if (playerLocation.x > getLocation().x) {
+                        return;
+                    }
+                    break;
+                case WEST:
+                    if (playerLocation.x > getLocation().x) {
+                        return;
+                    }
+                    break;
+                case NORTHWEST:
+                    if (playerLocation.y < getLocation().y) {
+                        return;
+                    }
+                    if (playerLocation.x > getLocation().x) {
+                        return;
+                    }
+                    break;
+            }
 
-                    case NORTH:
-                        if (playerLocation.y < getLocation().y) {
-                            return;
-                        }
-                        break;
-                    case NORTHEAST:
-                        if (playerLocation.y < getLocation().y) {
-                            return;
-                        }
-                        if (playerLocation.x < getLocation().x) {
-                            return;
-                        }
-                        break;
-                    case EAST:
-                        if (playerLocation.x < getLocation().x) {
-                            return;
-                        }
-                        break;
-                    case SOUTHEAST:
-                        if (playerLocation.y > getLocation().y) {
-                            return;
-                        }
-                        if (playerLocation.x < getLocation().x) {
-                            return;
-                        }
-                        break;
-                    case SOUTH:
-                        if (playerLocation.y > getLocation().y) {
-                            return;
-                        }
-                        break;
-                    case SOUTHWEST:
-                        if (playerLocation.y > getLocation().y) {
-                            return;
-                        }
-                        if (playerLocation.x > getLocation().x) {
-                            return;
-                        }
-                        break;
-                    case WEST:
-                        if (playerLocation.x > getLocation().x) {
-                            return;
-                        }
-                        break;
-                    case NORTHWEST:
-                        if (playerLocation.y < getLocation().y) {
-                            return;
-                        }
-                        if (playerLocation.x > getLocation().x) {
-                            return;
-                        }
-                        break;
-                }
+            if (doesLineIntersectWalls(getNewCenterLocation(), player.getNewCenterLocation(), worldMap.getWalls())) {
+                return;
             }
 
             PointF newTargetLocation = new PointF(playerLocation.x, playerLocation.y);//new PointF(((int) playerLocation.x) + 0.2f, ((int) playerLocation.y) + 0.2f);
@@ -210,6 +211,7 @@ public abstract class MobAggressive extends Mob {
         else if (isAlerted()) {
             Point location = searchForTrail(new Point((int) getLocation().x, (int) getLocation().y),
                     renderer.getWorldMap(), renderer);
+
             if (location != null) {
                 targetLocation.set(location.x, location.y);
             }
@@ -233,8 +235,8 @@ public abstract class MobAggressive extends Mob {
                 targetLocation = path.remove(0);
             }
 
-            Log.d(TAG, "Location: " + getLocation());
-            Log.d(TAG, "Target: " + targetLocation);
+//            Log.d(TAG, "Location: " + getLocation());
+//            Log.d(TAG, "Target: " + targetLocation);
         }
 
         if (path.isEmpty() && (doesLineIntersectWalls(getLocation(), targetLocation, walls) ||
@@ -277,8 +279,8 @@ public abstract class MobAggressive extends Mob {
         setVelocityX(getOffsetX() / timeDifference);
         setVelocityY(getOffsetY() / timeDifference);
 
-        setMovementX(targetLocation.x < getLocation().x ? -1 : 1);
-        setMovementY(targetLocation.y < getLocation().y ? -1 : 1);
+        setMovementX(targetLocation.x + 0.5f < getLocation().x + getWidthRatio() / 2 ? -1 : 1);
+        setMovementY(targetLocation.y + 0.5f < getLocation().y + getHeightRatio() / 2 ? -1 : 1);
 
         float calculatedY = getLocation().y + getOffsetY();
         float calculatedX = getLocation().x + getOffsetX();
@@ -310,17 +312,17 @@ public abstract class MobAggressive extends Mob {
         Point bottomLeftMost = new Point((int) (centerX - getWidthRatio() / 2), (int) (centerY - radiusY));
         Point bottomRightMost = new Point((int) (centerX + getWidthRatio() / 2), (int) (centerY - radiusY));
 
-        if (worldMap.isCollide(leftUpper, leftLower) && getMovementX() < 0) {
+        if (getMovementX() < 0 && worldMap.isCollide(leftUpper, leftLower)) {
             moveX = false;
         }
-        else if (worldMap.isCollide(rightUpper, rightLower) && getMovementX() > 0) {
+        else if (getMovementX() > 0 && worldMap.isCollide(rightUpper, rightLower)) {
             moveX = false;
         }
 
-        if (worldMap.isCollide(topLeftMost, topRightMost) && getMovementY() > 0) {
+        if (getMovementY() > 0 && worldMap.isCollide(topLeftMost, topRightMost)) {
             moveY = false;
         }
-        else if (worldMap.isCollide(bottomLeftMost, bottomRightMost) && getMovementY() < 0) {
+        else if (getMovementY() < 0 && worldMap.isCollide(bottomLeftMost, bottomRightMost)) {
             moveY = false;
         }
 
@@ -447,23 +449,57 @@ public abstract class MobAggressive extends Mob {
             Point point = currentNode.getPoint();
 
             List<Node> adjacentNodes = new ArrayList<>();
+            int x = point.x;
+            int y = point.y;
 
-            if (!worldMap.isCollide(point.x - 1, point.y) &&
-                    !worldMap.isCollide(point.x - 2, point.y)) {
-                adjacentNodes.add(new Node(new Point(point.x - 1, point.y)));
+            if (!worldMap.isCollide(new Rect(x - 2, y - 1, x - 1, y + 1))) {
+                adjacentNodes.add(new Node(new Point(x - 1, y)));
             }
-            if (!worldMap.isCollide(point.x + 1, point.y) &&
-                    !worldMap.isCollide(point.x + 2, point.y)) {
-                adjacentNodes.add(new Node(new Point(point.x + 1, point.y)));
+
+            if (!worldMap.isCollide(new Rect(x + 1, y - 1, x + 2, y + 1))) {
+                adjacentNodes.add(new Node(new Point(x + 1, y)));
             }
-            if (!worldMap.isCollide(point.x, point.y - 1) &&
-                    !worldMap.isCollide(point.x, point.y - 2)) {
-                adjacentNodes.add(new Node(new Point(point.x, point.y - 1)));
+
+            if (!worldMap.isCollide(new Rect(x - 1, y - 2, x + 1, y - 1))) {
+                adjacentNodes.add(new Node(new Point(x, y - 1)));
             }
-            if (!worldMap.isCollide(point.x, point.y + 1) &&
-                    !worldMap.isCollide(point.x, point.y + 2)) {
-                adjacentNodes.add(new Node(new Point(point.x, point.y + 1)));
+
+            if (!worldMap.isCollide(new Rect(x - 1, y + 1, x + 1, y + 2))) {
+                adjacentNodes.add(new Node(new Point(x, y + 1)));
             }
+
+//            if (!worldMap.isCollide(x - 1, y) &&
+//                    !worldMap.isCollide(x - 2, y) &&
+//                    !worldMap.isCollide(x - 1, y - 1) &&
+//                    !worldMap.isCollide(x - 2, y - 1) &&
+//                    !worldMap.isCollide(x - 1, y + 1) &&
+//                    !worldMap.isCollide(x - 2, y + 1)) {
+//                adjacentNodes.add(new Node(new Point(x - 1, y)));
+//            }
+//            if (!worldMap.isCollide(x + 1, y) &&
+//                    !worldMap.isCollide(x + 2, y) &&
+//                    !worldMap.isCollide(x + 1, y - 1) &&
+//                    !worldMap.isCollide(x + 2, y - 1) &&
+//                    !worldMap.isCollide(x + 1, y + 1) &&
+//                    !worldMap.isCollide(x + 2, y + 1)) {
+//                adjacentNodes.add(new Node(new Point(x + 1, y)));
+//            }
+//            if (!worldMap.isCollide(x, y - 1) &&
+//                    !worldMap.isCollide(x, y - 2) &&
+//                    !worldMap.isCollide(x - 1, y - 1) &&
+//                    !worldMap.isCollide(x - 1, y - 2) &&
+//                    !worldMap.isCollide(x + 1, y - 1) &&
+//                    !worldMap.isCollide(x + 1, y - 2)) {
+//                adjacentNodes.add(new Node(new Point(x, y - 1)));
+//            }
+//            if (!worldMap.isCollide(x, y + 1) &&
+//                    !worldMap.isCollide(x, y + 2) &&
+//                    !worldMap.isCollide(x - 1, y + 1) &&
+//                    !worldMap.isCollide(x - 1, y + 2) &&
+//                    !worldMap.isCollide(x + 1, y + 1) &&
+//                    !worldMap.isCollide(x + 1, y + 2)) {
+//                adjacentNodes.add(new Node(new Point(x, y + 1)));
+//            }
 
             for (Node node : adjacentNodes) {
 
@@ -518,6 +554,23 @@ public abstract class MobAggressive extends Mob {
 
             Node currentNode = openList.poll();
             int trail = worldMap.getPlayerTrail()[currentNode.getPoint().x][currentNode.getPoint().y];
+
+            // TODO: Check for trail validity
+//            Point point = currentNode.getPoint();
+//            if (trail > highestTrail && !doesLineIntersectWalls(getLocation(), new PointF(point), worldMap.getWalls()) &&
+//                    !doesLineIntersectWalls(new PointF(getLocation().x + getWidthRatio(),
+//                                    getLocation().y + getHeightRatio()),
+//                            new PointF(point.x + getWidthRatio(),
+//                                    point.y + getHeightRatio()), worldMap.getWalls()) &&
+//                    !doesLineIntersectWalls(
+//                            new PointF(getLocation().x, getLocation().y + getHeightRatio()),
+//                            new PointF(point.x, point.y + getHeightRatio()), worldMap.getWalls()) &&
+//                    !doesLineIntersectWalls(
+//                            new PointF(getLocation().x + getWidthRatio(), getLocation().y),
+//                            new PointF(point.x + getWidthRatio(), point.y), worldMap.getWalls())) {
+//                end = currentNode.getPoint();
+//                highestTrail = trail;
+//            }
 
             if (trail > highestTrail && !doesLineIntersectWalls(getLocation(),
                     new PointF(currentNode.getPoint()), worldMap.getWalls())) {
@@ -625,6 +678,9 @@ public abstract class MobAggressive extends Mob {
         }
 
         Collections.reverse(path);
+        if (!path.isEmpty()) {
+            path.remove(0);
+        }
 
         return path;
     }

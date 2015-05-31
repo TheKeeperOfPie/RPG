@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Gravity;
@@ -41,6 +42,7 @@ import com.winsonchiu.rpg.utils.RenderUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getCanonicalName();
     private static final String KEY_INVENTORY = "inventory";
+    private static final String KEY_WEAPON = "weapon";
+    private static final String KEY_ARMOR = "armor";
+    private static final String KEY_ACCESSORY = "accessory";
     private ControllerInventory controllerInventory;
     private Renderer renderer;
     private GLSurfaceView glSurfaceView;
@@ -368,33 +373,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onEquipmentChanged() {
-                if (controllerInventory.hasWeapon()) {
-                    imageEquipSlotWeapon.setImageDrawable(
-                            RenderUtils.getPixelatedDrawable(getResources(),
-                                    controllerInventory.getWeapon()
-                                            .getResourceId()));
-                }
-                else {
-                    imageEquipSlotWeapon.setImageDrawable(drawableWeapon);
-                }
-                if (controllerInventory.hasArmor()) {
-                    imageEquipSlotArmor.setImageDrawable(
-                            RenderUtils.getPixelatedDrawable(getResources(),
-                                    controllerInventory.getArmor()
-                                            .getResourceId()));
-                }
-                else {
-                    imageEquipSlotArmor.setImageDrawable(drawableArmor);
-                }
-                if (controllerInventory.hasAccessory()) {
-                    imageEquipSlotAccessory.setImageDrawable(
-                            RenderUtils.getPixelatedDrawable(getResources(),
-                                    controllerInventory.getAccessory()
-                                            .getResourceId()));
-                }
-                else {
-                    imageEquipSlotAccessory.setImageDrawable(drawableAccessory);
-                }
+                setEquipmentDrawables();
             }
         };
 
@@ -500,6 +479,37 @@ public class MainActivity extends AppCompatActivity {
         imageEquipSlotWeapon.setImageDrawable(drawableWeapon);
         imageEquipSlotArmor.setImageDrawable(drawableArmor);
         imageEquipSlotAccessory.setImageDrawable(drawableAccessory);
+    }
+
+    private void setEquipmentDrawables() {
+
+        if (controllerInventory.hasWeapon()) {
+            imageEquipSlotWeapon.setImageDrawable(
+                    RenderUtils.getPixelatedDrawable(getResources(),
+                            controllerInventory.getWeapon()
+                                    .getResourceId()));
+        }
+        else {
+            imageEquipSlotWeapon.setImageDrawable(drawableWeapon);
+        }
+        if (controllerInventory.hasArmor()) {
+            imageEquipSlotArmor.setImageDrawable(
+                    RenderUtils.getPixelatedDrawable(getResources(),
+                            controllerInventory.getArmor()
+                                    .getResourceId()));
+        }
+        else {
+            imageEquipSlotArmor.setImageDrawable(drawableArmor);
+        }
+        if (controllerInventory.hasAccessory()) {
+            imageEquipSlotAccessory.setImageDrawable(
+                    RenderUtils.getPixelatedDrawable(getResources(),
+                            controllerInventory.getAccessory()
+                                    .getResourceId()));
+        }
+        else {
+            imageEquipSlotAccessory.setImageDrawable(drawableAccessory);
+        }
     }
 
     private void showEquipmentPopup(final Equipment equipment, int x, int y) {
@@ -698,6 +708,28 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         preferences.edit().putString(KEY_INVENTORY, jsonArray.toString()).commit();
+        try {
+            if (controllerInventory.hasWeapon()) {
+                preferences.edit().putString(KEY_WEAPON, controllerInventory.getWeapon().toJsonObject().toString()).commit();
+            }
+            else {
+                preferences.edit().putString(KEY_WEAPON, "").commit();
+            }
+            if (controllerInventory.hasArmor()) {
+                preferences.edit().putString(KEY_ARMOR, jsonArray.toString()).commit();
+            }
+            else {
+                preferences.edit().putString(KEY_ARMOR, "").commit();
+            }
+            if (controllerInventory.hasAccessory()) {
+                preferences.edit().putString(KEY_ACCESSORY, jsonArray.toString()).commit();
+            }
+            else {
+                preferences.edit().putString(KEY_ACCESSORY, "").commit();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     private void restoreInventory() {
@@ -714,10 +746,27 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             controllerInventory.setItemList(items);
+
+            String weaponString = preferences.getString(KEY_WEAPON, "");
+            if (!TextUtils.isEmpty(weaponString)) {
+                controllerInventory.setWeapon(Item.fromJsonObject(new JSONObject(weaponString)));
+            }
+            String armorString = preferences.getString(KEY_ARMOR, "");
+            if (!TextUtils.isEmpty(armorString)) {
+                controllerInventory.setArmor(Item.fromJsonObject(new JSONObject(armorString)));
+            }
+            String accessoryString = preferences.getString(KEY_ACCESSORY, "");
+            if (!TextUtils.isEmpty(accessoryString)) {
+                controllerInventory.setAccessory(Item.fromJsonObject(new JSONObject(accessoryString)));
+            }
+
         }
         catch (JSONException e) {
             e.printStackTrace();
         }
+
+        setEquipmentDrawables();
+
     }
 
     @Override

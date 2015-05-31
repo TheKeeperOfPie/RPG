@@ -7,7 +7,7 @@ import org.json.JSONObject;
 /**
  * Created by TheKeeperOfPie on 5/24/2015.
  */
-public class Weapon extends Equipment {
+public abstract class Weapon extends Equipment {
 
     public Weapon(PointF location, int level, Material material) {
         super(location, level, material);
@@ -20,4 +20,11 @@ public class Weapon extends Equipment {
     public Weapon(JSONObject jsonObject) {
         super(jsonObject);
     }
+
+    public abstract void setTextureAndResourceIds();
+
+    public abstract int getMinDamage();
+
+    public abstract int getMaxDamage();
+
 }

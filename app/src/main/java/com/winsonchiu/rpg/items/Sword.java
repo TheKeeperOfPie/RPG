@@ -17,8 +17,32 @@ public class Sword extends Weapon {
         super(location, level, material);
         setName(getMaterial().getName() + " Sword");
         setDescription(
-                "A sword made of " + material.getName() + " which deals " + getMaterial().getModifier() + " - " + ((getLevel() + 1) * getMaterial().getModifier()) + " damage");
-        switch (material) {
+                "A sword made of " + material.getName() + " which deals " + getMinDamage() + " - " + getMaxDamage() + " damage");
+        setTextureAndResourceIds();
+    }
+
+    public Sword(Item item) {
+        super(item);
+    }
+
+    public Sword(JSONObject jsonObject) {
+        super(jsonObject);
+        setTextureAndResourceIds();
+    }
+
+    @Override
+    public Material getMaterial() {
+        return super.getMaterial();
+    }
+
+    @Override
+    public int getDamageBoost() {
+        return (new Random().nextInt(getLevel() + 1) + 1) * getMaterial().getModifier();
+    }
+
+    @Override
+    public void setTextureAndResourceIds() {
+        switch (getMaterial()) {
             case BRONZE:
                 setResourceId(R.drawable.w_sword006);
                 setTextureId(315);
@@ -32,26 +56,18 @@ public class Sword extends Weapon {
                 setTextureId(400);
                 break;
             default:
-                throw new IllegalArgumentException("Sword cannot be made of " + material.getName());
+                throw new IllegalArgumentException("Sword cannot be made of " + getMaterial().getName());
         }
         setLastAnimationFrame(getTextureId());
     }
 
-    public Sword(Item item) {
-        super(item);
-    }
-
-    public Sword(JSONObject jsonObject) {
-        super(jsonObject);
+    @Override
+    public int getMinDamage() {
+        return getMaterial().getModifier();
     }
 
     @Override
-    public Material getMaterial() {
-        return super.getMaterial();
-    }
-
-    @Override
-    public int getDamageBoost() {
-        return (new Random().nextInt(getLevel() + 1) + 1) * getMaterial().getModifier();
+    public int getMaxDamage() {
+        return (getLevel() + 1) * getMaterial().getModifier();
     }
 }
